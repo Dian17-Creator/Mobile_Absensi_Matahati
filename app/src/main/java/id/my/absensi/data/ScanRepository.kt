@@ -6,7 +6,7 @@ import android.net.ConnectivityManager
 import androidx.activity.ComponentActivity
 import androidx.core.app.ActivityCompat
 import id.my.matahati.absensi.MyApp
-import id.my.matahati.absensi.ScanResult
+import id.my.matahati.absensi.data.ScanResult
 import id.my.matahati.absensi.SessionManager
 import id.my.matahati.absensi.worker.enqueueSyncWorker
 import com.google.android.gms.location.LocationServices
