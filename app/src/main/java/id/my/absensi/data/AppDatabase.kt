@@ -8,15 +8,17 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import androidx.room.migration.Migration
 
 @Database(
-    entities = [OfflineScan::class, UserSchedule::class], // tambahkan UserSchedule
-    version = 3
+    entities = [OfflineScan::class, UserSchedule::class], // entitas kamu
+    version = 4, // ⬆️ ganti ke versi baru untuk memperbarui schema
+    exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun offlineScanDao(): OfflineScanDao
     abstract fun userScheduleDao(): UserScheduleDao
 
     companion object {
-        @Volatile private var INSTANCE: AppDatabase? = null
+        @Volatile
+        private var INSTANCE: AppDatabase? = null
 
         fun getDatabase(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
@@ -25,8 +27,9 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "app_database"
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3) // pakai semua migration
-                    //.fallbackToDestructiveMigration() // aktifkan saat development kalau mau hapus DB lama
+                    // aktifkan saat development, biar kalau ada mismatch langsung rebuild DB
+                    .fallbackToDestructiveMigration()
+                    //.addMigrations(MIGRATION_1_2, MIGRATION_2_3) // bisa diaktifkan nanti jika sudah stabil
                     .build()
                 INSTANCE = instance
                 instance
