@@ -22,9 +22,15 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.material3.OutlinedTextField
+// handle enter untuk inputan
+import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.foundation.text.KeyboardOptions
 
 class HalamanLogin : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -96,6 +102,8 @@ fun LoginUI() {
     var rememberMe by remember { mutableStateOf(false) }
     var passwordVisible by remember { mutableStateOf(false) }
 
+    val focusManager = LocalFocusManager.current  // focus inputan
+
     val context = LocalContext.current as ComponentActivity
     val primaryColor = Color(0xFFFF6F51) // oranye custom
 
@@ -123,11 +131,14 @@ fun LoginUI() {
                     value = username,
                     onValueChange = { username = it },
                     label = { Text("Email") },
+                    singleLine = true,
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = primaryColor,
                         focusedLabelColor = primaryColor,
                         cursorColor = primaryColor
                     ),
+                    keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Next),
+                    keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Down) }),
                     modifier = Modifier.fillMaxWidth()
                 )
 
@@ -138,6 +149,7 @@ fun LoginUI() {
                     value = password,
                     onValueChange = { password = it },
                     label = { Text("Password") },
+                    singleLine = true,
                     visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                     trailingIcon = {
                         val image =
@@ -154,6 +166,8 @@ fun LoginUI() {
                         focusedLabelColor = primaryColor,
                         cursorColor = primaryColor
                     ),
+                    keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Next),
+                    keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Down) }),
                     modifier = Modifier.fillMaxWidth()
                 )
 
