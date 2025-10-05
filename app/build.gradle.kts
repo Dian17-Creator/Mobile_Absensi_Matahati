@@ -19,7 +19,7 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         ndk {
-            abiFilters += listOf("arm64-v8a", "armeabi-v7a") // hanya CPU Android umum
+            abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86", "x86_64") // hanya CPU Android umum (x86/64 untuk keperluan via  emulator)
         }
     }
 
