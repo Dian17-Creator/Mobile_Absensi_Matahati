@@ -32,6 +32,7 @@ import androidx.compose.ui.text.font.FontWeight
 import id.my.matahati.absensi.data.UserSchedule
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import kotlin.math.abs
 
 class HalamanJadwal : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -53,9 +54,9 @@ fun HalamanJadwalUI(scheduleViewModel: ScheduleViewModel = viewModel()) {
     var selectedDate by remember { mutableStateOf<LocalDate?>(today) }
 
     val context = LocalContext.current
-    val sessionManager = remember { SessionManager(context) }
-    val userId = sessionManager.getUserId()
+    val activity = context as? ComponentActivity
 
+    val userId = activity?.intent?.getIntExtra("USER_ID", -1) ?: -1
     val schedules by scheduleViewModel.schedules.collectAsState(initial = emptyList())
 
     // Load sesuai user login
@@ -113,7 +114,7 @@ fun HalamanJadwalUI(scheduleViewModel: ScheduleViewModel = viewModel()) {
 
         Spacer(modifier = Modifier.height(15.dp))
 
-        // ✅ Card Kalender dengan background oranye
+        // ✅ Card Kalender
         Card(
             modifier = Modifier.fillMaxWidth(),
             elevation = CardDefaults.cardElevation(6.dp),
@@ -177,7 +178,7 @@ fun HalamanJadwalUI(scheduleViewModel: ScheduleViewModel = viewModel()) {
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        // ✅ Card Shift dengan background oranye
+        // ✅ Card Shift
         Card(
             modifier = Modifier.fillMaxWidth(),
             elevation = CardDefaults.cardElevation(4.dp),
@@ -214,6 +215,15 @@ fun HalamanJadwalUI(scheduleViewModel: ScheduleViewModel = viewModel()) {
     }
 }
 
+// 🔹 Fungsi tambahan untuk warna dinamis berdasarkan nama shift
+fun generateColorFromShift(shiftName: String): Color {
+    val hash = abs(shiftName.hashCode())
+    val red = (hash % 200) + 30
+    val green = ((hash / 200) % 200) + 30
+    val blue = ((hash / 40000) % 200) + 30
+    return Color(red / 255f, green / 255f, blue / 255f)
+}
+
 @Composable
 private fun DayCell(
     date: LocalDate?,
@@ -232,11 +242,11 @@ private fun DayCell(
             Box(modifier = Modifier.fillMaxSize()) {}
         } else {
             val isToday = date == today
-            val hasSchedule = schedules.any { it.dwork == date.toString() }
+            val scheduleForDate = schedules.find { it.dwork == date.toString() }
 
             val bg = when {
                 selected -> Color(0xFF2196F3)
-                isToday -> Color(0xF61616161) // abu-abu sedang
+                isToday -> Color(0xFFBDBDBD)
                 else -> Color.Transparent
             }
             val txtColor = if (bg != Color.Transparent) Color.White else Color.Black
@@ -255,11 +265,13 @@ private fun DayCell(
                     style = MaterialTheme.typography.bodyMedium
                 )
 
-                if (hasSchedule) {
+                // 🔹 Titik kecil warna dinamis sesuai shift
+                scheduleForDate?.let {
+                    val colorDot = generateColorFromShift(it.cschedname)
                     Box(
                         modifier = Modifier
                             .size(6.dp)
-                            .background(Color.White, shape = CircleShape)
+                            .background(colorDot, shape = CircleShape)
                     )
                 }
             }
