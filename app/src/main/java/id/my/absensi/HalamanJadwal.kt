@@ -1,6 +1,7 @@
 package id.my.matahati.absensi
 
 import android.os.Bundle
+import android.content.Intent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
@@ -32,6 +33,7 @@ import androidx.compose.ui.text.font.FontWeight
 import id.my.matahati.absensi.data.UserSchedule
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
 import kotlin.math.abs
 
 class HalamanJadwal : ComponentActivity() {
@@ -77,143 +79,200 @@ fun HalamanJadwalUI(scheduleViewModel: ScheduleViewModel = viewModel()) {
         list
     }
 
-    val orange = Color(0xFFFF6F51)
+    val CalendarBackground = Color(0xFFF5F5F5)
+    val primaryColor = Color(0xFFFF6F51)
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
-    ) {
-        // Header judul + tombol kembali
-        Box(
+    // 🔹 Gunakan Box agar FAB bisa di posisi bawah kanan
+    Box(modifier = Modifier.fillMaxSize()) {
+
+        // ======= Bagian utama isi layar =======
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 10.dp),
-            contentAlignment = Alignment.Center
+                .fillMaxSize()
+                .padding(16.dp)
         ) {
-            IconButton(
-                onClick = { if (context is ComponentActivity) context.finish() },
+            // Header judul + tombol kembali
+            Box(
                 modifier = Modifier
-                    .align(Alignment.CenterStart)
-                    .padding(top = 20.dp)
+                    .fillMaxWidth()
+                    .padding(top = 10.dp),
+                contentAlignment = Alignment.Center
             ) {
-                Icon(
-                    imageVector = Icons.Default.ArrowBack,
-                    contentDescription = "Kembali",
-                    tint = Color.Black
+                IconButton(
+                    onClick = { if (context is ComponentActivity) context.finish() },
+                    modifier = Modifier
+                        .align(Alignment.CenterStart)
+                        .padding(top = 20.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.ArrowBack,
+                        contentDescription = "Kembali",
+                        tint = Color.Black
+                    )
+                }
+
+                Text(
+                    text = "Jadwal & Shift",
+                    style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+                    color = Color(0xFF333333),
+                    modifier = Modifier.padding(top = 20.dp)
                 )
             }
 
-            Text(
-                text = "Jadwal & Shift",
-                style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
-                color = Color(0xFF333333),
-                modifier = Modifier.padding(top = 20.dp)
-            )
-        }
+            Spacer(modifier = Modifier.height(15.dp))
 
-        Spacer(modifier = Modifier.height(15.dp))
+            // ✅ Card Kalender
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(365.dp)
+                    .padding(0.dp),
+                elevation = CardDefaults.cardElevation(6.dp),
+                colors = CardDefaults.cardColors(containerColor = CalendarBackground),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Column(modifier = Modifier.fillMaxWidth()) {
 
-        // ✅ Card Kalender
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            elevation = CardDefaults.cardElevation(6.dp),
-            colors = CardDefaults.cardColors(containerColor = orange),
-            shape = RoundedCornerShape(12.dp)
-        ) {
-            Column(modifier = Modifier.fillMaxWidth().padding(12.dp)) {
-                // Header bulan
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    TextButton(onClick = { currentMonth = currentMonth.minusMonths(1) }) {
-                        Text("◀", color = Color.White)
+                    // 🔸 Bagian header (bulan + nama hari)
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(Color(0xFF4C4C59))
+                            .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
+                            .padding(12.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            TextButton(onClick = { currentMonth = currentMonth.minusMonths(1) }) {
+                                Text("◀", color = Color.White)
+                            }
+                            val monthName =
+                                currentMonth.month.getDisplayName(TextStyle.FULL, Locale("id", "ID"))
+                            Text(
+                                text = "$monthName ${currentMonth.year}",
+                                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                                color = Color.White
+                            )
+                            TextButton(onClick = { currentMonth = currentMonth.plusMonths(1) }) {
+                                Text("▶", color = Color.White)
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        // 🔹 Baris hari dengan warna kontras di atas
+                        val weekNames = listOf("Sen", "Sel", "Rab", "Kam", "Jum", "Sab", "Min")
+                        Row(modifier = Modifier.fillMaxWidth()) {
+                            for ((index, w) in weekNames.withIndex()) {
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .padding(4.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    val color =
+                                        if (index == 6) Color.Red else Color.White // Minggu tetap merah
+                                    Text(
+                                        text = w,
+                                        style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
+                                        color = color
+                                    )
+                                }
+                            }
+                        }
                     }
-                    val monthName = currentMonth.month.getDisplayName(TextStyle.FULL, Locale("id", "ID"))
-                    Text(
-                        text = "$monthName ${currentMonth.year}",
-                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                        color = Color.White
-                    )
-                    TextButton(onClick = { currentMonth = currentMonth.plusMonths(1) }) {
-                        Text("▶", color = Color.White)
-                    }
-                }
 
-                Spacer(modifier = Modifier.height(12.dp))
-
-                // Hari
-                val weekNames = listOf("Sen", "Sel", "Rab", "Kam", "Jum", "Sab", "Min")
-                Row(modifier = Modifier.fillMaxWidth()) {
-                    for (w in weekNames) {
-                        Box(modifier = Modifier.weight(1f).padding(4.dp), contentAlignment = Alignment.Center) {
-                            Text(text = w, style = MaterialTheme.typography.bodySmall, color = Color.White)
+                    // 🔸 Bagian isi tanggal
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(Color(0xFFF5F5F5)) // background bawah tetap terang
+                            .padding(8.dp)
+                    ) {
+                        LazyVerticalGrid(
+                            columns = GridCells.Fixed(7),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(min = 300.dp)
+                        ) {
+                            items(slots) { date ->
+                                DayCell(
+                                    date = date,
+                                    today = today,
+                                    selected = date == selectedDate,
+                                    onClick = { selectedDate = it },
+                                    schedules = schedules
+                                )
+                            }
                         }
                     }
                 }
+            }
 
-                Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
-                // Grid tanggal
-                LazyVerticalGrid(
-                    columns = GridCells.Fixed(7),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(min = 300.dp)
-                ) {
-                    items(slots) { date ->
-                        DayCell(
-                            date = date,
-                            today = today,
-                            selected = date == selectedDate,
-                            onClick = { selectedDate = it },
-                            schedules = schedules
+            // ✅ Card Shift
+            val selectedShift = selectedDate?.let { sel ->
+                schedules.find { it.dwork == sel.toString() }
+            }
+            val shiftColor = selectedShift?.let { generateColorFromShift(it.cschedname) } ?: CalendarBackground
+
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                elevation = CardDefaults.cardElevation(4.dp),
+                colors = CardDefaults.cardColors(containerColor = shiftColor),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+                    Text(
+                        "Shift",
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                        color = if (selectedShift != null) Color.White else Color.Black
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    if (selectedShift != null) {
+                        Text(
+                            text = "${selectedShift.cschedname.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }} (${selectedShift.dstart} - ${selectedShift.dend})",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color.White
+                        )
+                    } else {
+                        Text(
+                            text = "Belum ada shift untuk tanggal ini.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color.Black
                         )
                     }
                 }
             }
-        }
 
-        Spacer(modifier = Modifier.height(20.dp))
+            // 🔹 Tambahkan Spacer di sini agar ada jarak antara card dan tombol
+            Spacer(modifier = Modifier.height(16.dp))
 
-        // ✅ Card Shift
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            elevation = CardDefaults.cardElevation(4.dp),
-            colors = CardDefaults.cardColors(containerColor = orange),
-            shape = RoundedCornerShape(12.dp)
-        ) {
-            Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
-                Text(
-                    "Shift",
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                    color = Color.White
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-
-                val note = selectedDate?.let { sel ->
-                    schedules.find { it.dwork == sel.toString() }
-                }
-
-                if (note != null) {
-                    Text(
-                        text = "${note.cschedname.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }} (${note.dstart} - ${note.dend})",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Color.White
-                    )
-                } else {
-                    Text(
-                        text = "Belum ada shift untuk tanggal ini.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Color.White.copy(alpha = 0.8f)
-                    )
-                }
+            Button(
+                onClick = {
+                    val intent = Intent(context, HalamanIzin::class.java)
+                    context.startActivity(intent)
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = primaryColor,
+                    contentColor = Color.White
+                ),
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Text("Izin Tidak Masuk")
             }
         }
     }
 }
+
 
 // 🔹 Fungsi tambahan untuk warna dinamis berdasarkan nama shift
 fun generateColorFromShift(shiftName: String): Color {
@@ -249,7 +308,6 @@ private fun DayCell(
                 isToday -> Color(0xFFBDBDBD)
                 else -> Color.Transparent
             }
-            val txtColor = if (bg != Color.Transparent) Color.White else Color.Black
 
             Column(
                 modifier = Modifier
@@ -259,10 +317,19 @@ private fun DayCell(
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
+                val isSunday = date.dayOfWeek.value == 7
+                val dayTextColor = when {
+                    isSunday -> Color.Red // 🔹 Angka Minggu merah
+                    bg != Color.Transparent -> Color.Black
+                    else -> Color.Black
+                }
+
                 Text(
                     text = date.dayOfMonth.toString(),
-                    color = txtColor,
-                    style = MaterialTheme.typography.bodyMedium
+                    color = dayTextColor,
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        fontWeight = if (isSunday) FontWeight.Bold else FontWeight.Normal
+                    )
                 )
 
                 // 🔹 Titik kecil warna dinamis sesuai shift
