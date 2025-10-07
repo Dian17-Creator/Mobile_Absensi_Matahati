@@ -45,6 +45,7 @@ android {
 
     buildFeatures {
         compose = true
+        viewBinding = true
     }
 }
 
@@ -116,4 +117,19 @@ dependencies {
 
     // viewmodel compose
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.6.2")
+
+    implementation("androidx.core:core-ktx:1.10.1")
+
+    // Material components (BottomNavigationView)
+    implementation("com.google.android.material:material:1.9.0")
+
+    // Fragment KTX (FragmentContainerView, fragment support)
+    implementation("androidx.fragment:fragment-ktx:1.6.1")
+
+    // CoordinatorLayout (jika kamu pakai)
+    implementation("androidx.coordinatorlayout:coordinatorlayout:1.2.0")
+
+    // Navigation (opsional tapi direkomendasikan jika ingin NavHostFragment / navigation-ui)
+    implementation("androidx.navigation:navigation-fragment-ktx:2.7.2")
+    implementation("androidx.navigation:navigation-ui-ktx:2.7.2")
 }

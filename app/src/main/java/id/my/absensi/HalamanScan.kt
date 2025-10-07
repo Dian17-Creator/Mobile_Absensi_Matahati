@@ -1,6 +1,6 @@
 package id.my.matahati.absensi
 
-
+import androidx.compose.ui.draw.clip
 import android.content.Intent
 import android.content.Context
 import android.Manifest
@@ -119,45 +119,75 @@ class HalamanScan : ComponentActivity() {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HalamanScanUI(
     hasCameraPermission: Boolean,
     onRequestPermission: () -> Unit
 ) {
     val context = LocalContext.current
+    val session = SessionManager(context)
+    val activity = context as? ComponentActivity
+
     var scanResult by remember { mutableStateOf<ScanResult>(ScanResult.Message("Arahkan kamera ke QR Code")) }
     var showCamera by remember { mutableStateOf(true) }
 
     val primaryColor = Color(0xFFFF6F51)
 
-    Scaffold { padding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-        ) {
+    // 🔹 Ambil data user dari session atau intent
+    val storedUserId = session.getUserId()
+    val userIdFromIntent = activity?.intent?.getIntExtra("USER_ID", -1) ?: -1
+    val userNameFromIntent = activity?.intent?.getStringExtra("USER_NAME") ?: ""
+    val userEmailFromIntent = activity?.intent?.getStringExtra("USER_EMAIL") ?: ""
+
+    val userId = if (storedUserId != -1) storedUserId else userIdFromIntent
+    val userName = if (storedUserId != -1) session.getUser()["name"]?.toString() ?: "" else userNameFromIntent
+    val userEmail = if (storedUserId != -1) session.getUser()["email"]?.toString() ?: "" else userEmailFromIntent
+
+    // 🔸 Layout responsif tanpa scroll seperti LoginUI
+    BoxWithConstraints(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        val screenHeight = maxHeight
+        val screenWidth = maxWidth
+
+        // proporsional berdasarkan ukuran layar
+        val cameraHeight = screenHeight * 0.45f
+        val imageSize = screenHeight * 0.3f
+        val textSpacing = screenHeight * 0.015f
+        val buttonHeight = screenHeight * 0.07f
+        val horizontalPadding = screenWidth * 0.08f
+
+        Scaffold { padding ->
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+                    .padding(padding)
+                    .padding(horizontal = horizontalPadding),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.SpaceEvenly
             ) {
+                // 🔹 Judul
                 Text(
                     text = "Silahkan Scan Barcode",
                     style = MaterialTheme.typography.headlineSmall,
-                    modifier = Modifier.padding(top = 32.dp)
+                    modifier = Modifier.padding(bottom = textSpacing)
                 )
 
+                // 🔹 Kamera
                 if (hasCameraPermission && showCamera) {
                     Box(
                         modifier = Modifier
-                            .fillMaxWidth(0.9f)
-                            .height(425.dp)
+                            .fillMaxWidth()
+                            .height(cameraHeight)
+                            .clip(RoundedCornerShape(16.dp)),
+                        contentAlignment = Alignment.Center
                     ) {
                         CameraPreview(
                             modifier = Modifier.fillMaxSize(),
                             onScan = { rawValue ->
-                                    var extractedToken: String? = null
+                                var extractedToken: String? = null
                                 try {
                                     val obj = JSONObject(rawValue)
                                     extractedToken = obj.optString("token", null)
@@ -186,28 +216,26 @@ fun HalamanScanUI(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // tampilkan hasil scan
+                // 🔹 Hasil scan
                 when (scanResult) {
                     is ScanResult.Message -> Text(
                         text = (scanResult as ScanResult.Message).text,
                         fontSize = 14.sp,
-                        modifier = Modifier.padding(top = 8.dp)
+                        modifier = Modifier.padding(top = textSpacing)
                     )
 
                     is ScanResult.WaitingImage -> Column(
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Image(
-                            painter = painterResource(id = R.drawable.noconnection), // 🔹 gambar menunggu, taruh di drawable
+                            painter = painterResource(id = R.drawable.noconnection),
                             contentDescription = "Menunggu jaringan",
-                            modifier = Modifier.size(350.dp)
+                            modifier = Modifier.size(imageSize)
                         )
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             text = "Menunggu jaringan...",
-                            fontSize = 20.sp,
+                            fontSize = 18.sp,
                             color = Color.Gray
                         )
                     }
@@ -218,25 +246,22 @@ fun HalamanScanUI(
                         Image(
                             painter = painterResource(id = R.drawable.good),
                             contentDescription = "Scan berhasil",
-                            modifier = Modifier.size(350.dp)
+                            modifier = Modifier.size(imageSize)
                         )
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             text = "Scan berhasil",
-                            fontSize = 20.sp,
+                            fontSize = 18.sp,
                             color = Color(0xFF4CAF50)
                         )
                     }
                 }
 
-
-                Spacer(modifier = Modifier.weight(1f))
-
+                // 🔹 Tombol-tombol aksi
                 Column(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    verticalArrangement = Arrangement.spacedBy(textSpacing)
                 ) {
-                    // Halaman Ubah Password
                     Button(
                         onClick = {
                             val intent = Intent(context, UbahPassword::class.java)
@@ -244,7 +269,7 @@ fun HalamanScanUI(
                         },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(50.dp),
+                            .height(buttonHeight),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = primaryColor,
                             contentColor = Color.White
@@ -254,15 +279,15 @@ fun HalamanScanUI(
                         Text("Ubah Password")
                     }
 
-                    // Halaman Jadwal
                     Button(
                         onClick = {
                             val intent = Intent(context, HalamanJadwal::class.java)
+                            intent.putExtra("USER_ID", userId)
                             context.startActivity(intent)
                         },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(50.dp),
+                            .height(buttonHeight),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = primaryColor,
                             contentColor = Color.White
@@ -272,12 +297,11 @@ fun HalamanScanUI(
                         Text("Halaman Jadwal")
                     }
 
-                    // Button untuk logout dari sistem
                     Button(
                         onClick = { LogoutHelper.logout(context) },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(50.dp),
+                            .height(buttonHeight),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = primaryColor,
                             contentColor = Color.White
@@ -291,6 +315,8 @@ fun HalamanScanUI(
         }
     }
 }
+
+
 
 @SuppressLint("MissingPermission")
 @OptIn(ExperimentalGetImage::class)
