@@ -18,8 +18,10 @@
         android:layout_height="wrap_content"
         android:layout_gravity="bottom"
         app:menu="@menu/bottom_nav_menu"
-        android:background="?android:attr/windowBackground"
-        app:itemIconTint="@color/cardview_dark_background"
-        app:itemTextColor="@color/cardview_dark_background" />
+        app:itemIconTint="@color/bottom_nav_color_selector"
+        app:itemTextColor="@color/bottom_nav_color_selector"
+        app:labelVisibilityMode="labeled"
+        android:background="#2E2E2E" />
+
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

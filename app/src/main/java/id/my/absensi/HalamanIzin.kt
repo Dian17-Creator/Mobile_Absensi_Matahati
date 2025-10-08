@@ -310,9 +310,24 @@ suspend fun uploadRequest(
     try {
         Log.d("HalamanIzin", "uploadRequest(JSON): date=$date location=$location reasonLen=${reason.length} uri=${photoUri.path}")
 
-        // Ambil userId dari SessionManager (ganti sesuai implementasimu)
-        val session = SessionManager(context)
-        val userId = session.getUserId() ?: "1" // default 1 kalau belum login
+        // ✅ Ambil userId dengan fallback dari Intent jika session kosong
+        val session = SessionManager(context.applicationContext)
+        val userIdFromSession = session.getUserId()
+        val activity = context as? ComponentActivity
+        val userId = if (userIdFromSession != -1) {
+            userIdFromSession
+        } else {
+            activity?.intent?.getIntExtra("USER_ID", -1) ?: -1
+        }
+
+        if (userId == -1) {
+            Log.e("HalamanIzin", "User ID tidak ditemukan, mungkin user belum login.")
+            return@withContext UploadResult(
+                success = false,
+                message = "⚠️ Gagal mengirim izin: data user tidak ditemukan",
+                errorDetail = "User ID invalid (-1)"
+            )
+        }
 
         // Konversi foto ke Base64
         val file = getFileFromUri(photoUri, context)
@@ -369,6 +384,7 @@ suspend fun uploadRequest(
         UploadResult(false, "Gagal koneksi ke server", e.message)
     }
 }
+
 
 
 private fun getFileFromUri(uri: Uri, context: Context): File? {
