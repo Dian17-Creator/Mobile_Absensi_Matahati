@@ -6,7 +6,7 @@ import android.content.SharedPreferences
 class SessionManager(context: Context) {
 
     private val prefs: SharedPreferences =
-        context.getSharedPreferences("user_session", Context.MODE_PRIVATE)
+        context.applicationContext.getSharedPreferences("user_session", Context.MODE_PRIVATE)
 
     companion object {
         private const val KEY_ID = "id"
@@ -16,18 +16,18 @@ class SessionManager(context: Context) {
         private const val KEY_REMEMBER_ME = "rememberMe"
     }
 
-    // ✅ Simpan data user
-    fun saveUser(id: Int, name: String, email: String) {
-        prefs.edit().apply {
-            putInt(KEY_ID, id)
-            putString(KEY_NAME, name)
-            putString(KEY_EMAIL, email)
-            putBoolean(KEY_IS_LOGGED_IN, true)
-            apply()
-        }
+    // ✅ Simpan data login (tergantung checkbox "ingatkan saya")
+    fun login(id: Int, name: String, email: String, rememberMe: Boolean) {
+        val editor = prefs.edit()
+        editor.putInt(KEY_ID, id)
+        editor.putString(KEY_NAME, name)
+        editor.putString(KEY_EMAIL, email)
+        editor.putBoolean(KEY_IS_LOGGED_IN, true)
+        editor.putBoolean(KEY_REMEMBER_ME, rememberMe)
+        editor.apply()
     }
 
-    // ✅ Ambil user ID
+    // ✅ Ambil user ID langsung (kompatibel dengan file lama)
     fun getUserId(): Int = prefs.getInt(KEY_ID, -1)
 
     // ✅ Ambil semua data user
@@ -37,19 +37,14 @@ class SessionManager(context: Context) {
         "email" to prefs.getString(KEY_EMAIL, null)
     )
 
-    // ✅ Cek apakah user sudah login
+    // ✅ Cek apakah sedang login
     fun isLoggedIn(): Boolean = prefs.getBoolean(KEY_IS_LOGGED_IN, false)
 
-    // ✅ Hapus seluruh session (untuk logout)
+    // ✅ Cek apakah “ingatkan saya” aktif
+    fun isRememberMe(): Boolean = prefs.getBoolean(KEY_REMEMBER_ME, false)
+
+    // ✅ Hapus semua session (logout)
     fun clearSession() {
         prefs.edit().clear().apply()
     }
-
-    // ✅ Simpan status “ingatkan saya”
-    fun setRememberMe(value: Boolean) {
-        prefs.edit().putBoolean(KEY_REMEMBER_ME, value).apply()
-    }
-
-    // ✅ Ambil status “ingatkan saya”
-    fun isRememberMe(): Boolean = prefs.getBoolean(KEY_REMEMBER_ME, false)
 }

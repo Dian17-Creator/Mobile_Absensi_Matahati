@@ -22,10 +22,6 @@ import java.time.LocalDate
 import java.time.YearMonth
 import java.time.format.TextStyle
 import java.util.Locale
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import id.my.matahati.absensi.data.ScheduleViewModel
@@ -58,17 +54,16 @@ fun HalamanJadwalUI(scheduleViewModel: ScheduleViewModel = viewModel()) {
     val context = LocalContext.current
     val activity = context as? ComponentActivity
 
-    val userId = activity?.intent?.getIntExtra("USER_ID", -1) ?: -1
+    val session = SessionManager(context.applicationContext)
+    val storedId = session.getUserId()
+    val userId = if (storedId != -1) storedId else activity?.intent?.getIntExtra("USER_ID", -1) ?: -1
+
     val schedules by scheduleViewModel.schedules.collectAsState(initial = emptyList())
 
-    // Load sesuai user login
-    LaunchedEffect(userId) {
-        if (userId != -1) {
-            scheduleViewModel.loadSchedules(userId)
-        }
+    LaunchedEffect(Unit) {
+        if (userId != -1) scheduleViewModel.loadSchedules(userId)
     }
 
-    // Build slot tanggal
     val firstOfMonth = currentMonth.atDay(1)
     val firstDayIndex = (firstOfMonth.dayOfWeek.value + 6) % 7
     val daysInMonth = currentMonth.lengthOfMonth()
@@ -82,64 +77,61 @@ fun HalamanJadwalUI(scheduleViewModel: ScheduleViewModel = viewModel()) {
     val CalendarBackground = Color(0xFFF5F5F5)
     val primaryColor = Color(0xFFFF6F51)
 
-    // 🔹 Gunakan Box agar FAB bisa di posisi bawah kanan
-    Box(modifier = Modifier.fillMaxSize()) {
+    // ✅ Layout adaptif untuk semua ukuran layar
+    BoxWithConstraints(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.White)
+            .padding(16.dp)
+    ) {
+        val screenHeight = maxHeight
+        val screenWidth = maxWidth
 
-        // ======= Bagian utama isi layar =======
+        val headerHeight = screenHeight * 0.08f
+        val calendarHeight = screenHeight * 0.45f
+        val shiftCardHeight = screenHeight * 0.18f
+        val buttonHeight = screenHeight * 0.08f
+        val spacing = screenHeight * 0.02f
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(16.dp)
+                .padding(vertical = 10.dp), // beri jarak atas–bawah ringan
+            verticalArrangement = Arrangement.spacedBy(13.dp), // jarak antar elemen 10dp
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Header judul + tombol kembali
+            // 🔹 Header judul + tombol kembali
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 10.dp),
+                    .padding(vertical = 4.dp),
                 contentAlignment = Alignment.Center
             ) {
-                IconButton(
-                    onClick = { if (context is ComponentActivity) context.finish() },
-                    modifier = Modifier
-                        .align(Alignment.CenterStart)
-                        .padding(top = 20.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.ArrowBack,
-                        contentDescription = "Kembali",
-                        tint = Color.Black
-                    )
-                }
-
                 Text(
                     text = "Jadwal & Shift",
-                    style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
                     color = Color(0xFF333333),
-                    modifier = Modifier.padding(top = 20.dp)
+                    modifier = Modifier.padding(top = 15.dp)
                 )
             }
 
-            Spacer(modifier = Modifier.height(15.dp))
-
-            // ✅ Card Kalender
+            // 🔹 Card Kalender (proporsional)
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(365.dp)
-                    .padding(0.dp),
+                    .height(calendarHeight),
                 elevation = CardDefaults.cardElevation(6.dp),
                 colors = CardDefaults.cardColors(containerColor = CalendarBackground),
                 shape = RoundedCornerShape(12.dp)
             ) {
-                Column(modifier = Modifier.fillMaxWidth()) {
-
-                    // 🔸 Bagian header (bulan + nama hari)
+                Column(modifier = Modifier.fillMaxSize()) {
+                    // Header bulan
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
                             .background(Color(0xFF4C4C59))
                             .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
-                            .padding(12.dp)
+                            .padding(8.dp)
                     ) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -149,11 +141,10 @@ fun HalamanJadwalUI(scheduleViewModel: ScheduleViewModel = viewModel()) {
                             TextButton(onClick = { currentMonth = currentMonth.minusMonths(1) }) {
                                 Text("◀", color = Color.White)
                             }
-                            val monthName =
-                                currentMonth.month.getDisplayName(TextStyle.FULL, Locale("id", "ID"))
+                            val monthName = currentMonth.month.getDisplayName(TextStyle.FULL, Locale("id", "ID"))
                             Text(
                                 text = "$monthName ${currentMonth.year}",
-                                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                                 color = Color.White
                             )
                             TextButton(onClick = { currentMonth = currentMonth.plusMonths(1) }) {
@@ -161,20 +152,16 @@ fun HalamanJadwalUI(scheduleViewModel: ScheduleViewModel = viewModel()) {
                             }
                         }
 
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        // 🔹 Baris hari dengan warna kontras di atas
                         val weekNames = listOf("Sen", "Sel", "Rab", "Kam", "Jum", "Sab", "Min")
                         Row(modifier = Modifier.fillMaxWidth()) {
                             for ((index, w) in weekNames.withIndex()) {
                                 Box(
                                     modifier = Modifier
                                         .weight(1f)
-                                        .padding(4.dp),
+                                        .padding(2.dp),
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    val color =
-                                        if (index == 6) Color.Red else Color.White // Minggu tetap merah
+                                    val color = if (index == 6) Color.Red else Color.White
                                     Text(
                                         text = w,
                                         style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
@@ -185,19 +172,14 @@ fun HalamanJadwalUI(scheduleViewModel: ScheduleViewModel = viewModel()) {
                         }
                     }
 
-                    // 🔸 Bagian isi tanggal
+                    // Isi tanggal
                     Column(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .background(Color(0xFFF5F5F5)) // background bawah tetap terang
-                            .padding(8.dp)
+                            .fillMaxSize()
+                            .background(Color(0xFFF5F5F5))
+                            .padding(4.dp)
                     ) {
-                        LazyVerticalGrid(
-                            columns = GridCells.Fixed(7),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .heightIn(min = 300.dp)
-                        ) {
+                        LazyVerticalGrid(columns = GridCells.Fixed(7)) {
                             items(slots) { date ->
                                 DayCell(
                                     date = date,
@@ -212,55 +194,72 @@ fun HalamanJadwalUI(scheduleViewModel: ScheduleViewModel = viewModel()) {
                 }
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
-
-            // ✅ Card Shift
-            val selectedShift = selectedDate?.let { sel ->
-                schedules.find { it.dwork == sel.toString() }
-            }
+            // 🔹 Card Shift
+            val selectedShift = selectedDate?.let { sel -> schedules.find { it.dwork == sel.toString() } }
             val shiftColor = selectedShift?.let { generateColorFromShift(it.cschedname) } ?: CalendarBackground
 
             Card(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(75.dp),
                 elevation = CardDefaults.cardElevation(4.dp),
                 colors = CardDefaults.cardColors(containerColor = shiftColor),
                 shape = RoundedCornerShape(12.dp)
             ) {
-                Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(12.dp),
+                    verticalArrangement = Arrangement.Center
+                ) {
                     Text(
                         "Shift",
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                         color = if (selectedShift != null) Color.White else Color.Black
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
-
+                    Spacer(modifier = Modifier.height(4.dp))
                     if (selectedShift != null) {
                         Text(
                             text = "${selectedShift.cschedname.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }} (${selectedShift.dstart} - ${selectedShift.dend})",
-                            style = MaterialTheme.typography.bodyMedium,
+                            style = MaterialTheme.typography.bodySmall,
                             color = Color.White
                         )
                     } else {
                         Text(
                             text = "Belum ada shift untuk tanggal ini.",
-                            style = MaterialTheme.typography.bodyMedium,
+                            style = MaterialTheme.typography.bodySmall,
                             color = Color.Black
                         )
                     }
                 }
             }
 
-            // 🔹 Tambahkan Spacer di sini agar ada jarak antara card dan tombol
-            Spacer(modifier = Modifier.height(16.dp))
-
+            // 🔹 Tombol Izin Tidak Masuk
             Button(
                 onClick = {
-                    val intent = Intent(context, HalamanIzin::class.java)
+                    val session = SessionManager(context.applicationContext)
+                    val storedUserId = session.getUserId()
+                    val userIdFromIntent = (context as? ComponentActivity)?.intent?.getIntExtra("USER_ID", -1) ?: -1
+                    val userNameFromIntent = (context as? ComponentActivity)?.intent?.getStringExtra("USER_NAME") ?: ""
+                    val userEmailFromIntent = (context as? ComponentActivity)?.intent?.getStringExtra("USER_EMAIL") ?: ""
+
+                    val userId = if (storedUserId != -1) storedUserId else userIdFromIntent
+                    val userName = if (storedUserId != -1)
+                        session.getUser()["name"]?.toString() ?: "" else userNameFromIntent
+                    val userEmail = if (storedUserId != -1)
+                        session.getUser()["email"]?.toString() ?: "" else userEmailFromIntent
+
+                    val intent = Intent(context, HalamanIzin::class.java).apply {
+                        putExtra("USER_ID", userId)
+                        putExtra("USER_NAME", userName)
+                        putExtra("USER_EMAIL", userEmail)
+                    }
                     context.startActivity(intent)
+
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(50.dp),
+                    .height(buttonHeight),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = primaryColor,
                     contentColor = Color.White

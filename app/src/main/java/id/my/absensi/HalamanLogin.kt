@@ -48,6 +48,7 @@ class HalamanLogin : ComponentActivity() {
     }
 }
 
+// ✅ fungsi login tetap sama
 fun loginUser(
     context: ComponentActivity,
     email: String,
@@ -114,19 +115,12 @@ fun LoginUI() {
 
     var anyFocused by remember { mutableStateOf(false) }
 
-    // Animasi offset sederhana
     val isKeyboardOpen by keyboardAsState()
     val animatedOffset by animateDpAsState(
         targetValue = if (isKeyboardOpen) (-180).dp else 0.dp,
         animationSpec = tween(durationMillis = 150),
         label = "loginSlide"
     )
-
-    LaunchedEffect(Unit) {
-        // pre-render supaya responsif
-        username = ""
-        password = ""
-    }
 
     Box(
         modifier = Modifier
@@ -191,35 +185,8 @@ fun LoginUI() {
                 keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),
                 keyboardActions = KeyboardActions(onDone = {
                     focusManager.clearFocus()
-                    // ✅ langsung panggil fungsi login di sini
-                    loginUser(context, username, password) { success, msg, userJson ->
-                        Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
-
-                        if (success && userJson != null) {
-                            val userId = userJson.optString("id")?.toIntOrNull() ?: -1
-                            val userName = userJson.optString("name", "")
-                            val userEmail = userJson.optString("email", "")
-
-                            val session = SessionManager(context)
-                            session.clearSession()
-
-                            if (rememberMe) {
-                                session.saveUser(id = userId, name = userName, email = userEmail)
-                                session.setRememberMe(true)
-                            } else {
-                                session.setRememberMe(false)
-                            }
-
-                            val intent = Intent(context, HalamanScan::class.java)
-                            intent.putExtra("USER_ID", userId)
-                            intent.putExtra("USER_NAME", userName)
-                            intent.putExtra("USER_EMAIL", userEmail)
-                            context.startActivity(intent)
-                            (context as ComponentActivity).finish()
-                        }
-                    }
+                    handleLogin(context, username, password, rememberMe)
                 }),
-
                 modifier = Modifier
                     .fillMaxWidth()
                     .onFocusChanged { anyFocused = it.isFocused }
@@ -247,32 +214,7 @@ fun LoginUI() {
 
             Button(
                 onClick = {
-                    loginUser(context, username, password) { success, msg, userJson ->
-                        Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
-
-                        if (success && userJson != null) {
-                            val userId = userJson.optString("id")?.toIntOrNull() ?: -1
-                            val userName = userJson.optString("name", "")
-                            val userEmail = userJson.optString("email", "")
-
-                            val session = SessionManager(context)
-                            session.clearSession()
-
-                            if (rememberMe) {
-                                session.saveUser(id = userId, name = userName, email = userEmail)
-                                session.setRememberMe(true)
-                            } else {
-                                session.setRememberMe(false)
-                            }
-
-                            val intent = Intent(context, HalamanScan::class.java)
-                            intent.putExtra("USER_ID", userId)
-                            intent.putExtra("USER_NAME", userName)
-                            intent.putExtra("USER_EMAIL", userEmail)
-                            context.startActivity(intent)
-                            (context as ComponentActivity).finish()
-                        }
-                    }
+                    handleLogin(context, username, password, rememberMe)
                 },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -288,6 +230,33 @@ fun LoginUI() {
         }
     }
 }
+
+fun handleLogin(context: ComponentActivity, email: String, password: String, rememberMe: Boolean) {
+    loginUser(context, email, password) { success, msg, userJson ->
+        Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
+
+        if (success && userJson != null) {
+            val userId = userJson.optString("id")?.toIntOrNull() ?: -1
+            val userName = userJson.optString("name", "")
+            val userEmail = userJson.optString("email", "")
+
+            val session = SessionManager(context.applicationContext)
+
+            // ✅ Simpan login aktif (ingatkan saya sesuai checkbox)
+            session.login(id = userId, name = userName, email = userEmail, rememberMe = rememberMe)
+
+            // ✅ Pindah ke MainActivity
+            val intent = Intent(context, MainActivity::class.java)
+            intent.putExtra("USER_ID", userId)
+            intent.putExtra("USER_NAME", userName)
+            intent.putExtra("USER_EMAIL", userEmail)
+            context.startActivity(intent)
+            context.finish()
+        }
+    }
+}
+
+
 
 @Composable
 fun keyboardAsState(): State<Boolean> {

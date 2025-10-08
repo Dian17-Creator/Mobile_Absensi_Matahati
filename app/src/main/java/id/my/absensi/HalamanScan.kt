@@ -45,6 +45,10 @@ import com.google.android.gms.location.Priority
 import kotlinx.coroutines.*
 import id.my.matahati.absensi.data.OfflineScan
 import id.my.matahati.absensi.worker.enqueueSyncWorker
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.foundation.background
+import android.os.Handler
+import android.os.Looper
 
 // 🔹 sealed class untuk hasil scan
 sealed class ScanResult {
@@ -134,7 +138,6 @@ fun HalamanScanUI(
 
     val primaryColor = Color(0xFFFF6F51)
 
-    // 🔹 Ambil data user dari session atau intent
     val storedUserId = session.getUserId()
     val userIdFromIntent = activity?.intent?.getIntExtra("USER_ID", -1) ?: -1
     val userNameFromIntent = activity?.intent?.getStringExtra("USER_NAME") ?: ""
@@ -144,178 +147,138 @@ fun HalamanScanUI(
     val userName = if (storedUserId != -1) session.getUser()["name"]?.toString() ?: "" else userNameFromIntent
     val userEmail = if (storedUserId != -1) session.getUser()["email"]?.toString() ?: "" else userEmailFromIntent
 
-    // 🔸 Layout responsif tanpa scroll seperti LoginUI
+    // 🔹 Layout responsif dengan BoxWithConstraints
     BoxWithConstraints(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.White)
+            .padding(horizontal = 16.dp)
     ) {
         val screenHeight = maxHeight
         val screenWidth = maxWidth
 
-        // proporsional berdasarkan ukuran layar
         val cameraHeight = screenHeight * 0.45f
-        val imageSize = screenHeight * 0.3f
-        val textSpacing = screenHeight * 0.015f
+        val imageSize = screenHeight * 0.45f
+        val spacing = 10.dp
         val buttonHeight = screenHeight * 0.07f
-        val horizontalPadding = screenWidth * 0.08f
 
-        Scaffold { padding ->
-            Column(
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(vertical = 10.dp), // beri jarak atas–bawah ringan
+            verticalArrangement = Arrangement.spacedBy(17.dp), // jarak antar elemen 10dp
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            // 🔹 Judul
+            Box(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding)
-                    .padding(horizontal = horizontalPadding),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.SpaceEvenly
+                    .fillMaxWidth()
+                    .padding(vertical = 4.dp),
+                contentAlignment = Alignment.Center
             ) {
-                // 🔹 Judul
                 Text(
-                    text = "Silahkan Scan Barcode",
-                    style = MaterialTheme.typography.headlineSmall,
-                    modifier = Modifier.padding(bottom = textSpacing)
+                    text = "Silahkan Scan QR Code",
+                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                    color = Color.Black,
+                    modifier = Modifier.padding(top = 30.dp)
+                )
+            }
+
+            // 🔹 Kamera
+            if (hasCameraPermission && showCamera) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(cameraHeight)
+                        .clip(RoundedCornerShape(16.dp)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CameraPreview(
+                        modifier = Modifier.fillMaxSize(),
+                        onScan = { rawValue ->
+                            var extractedToken: String? = null
+                            try {
+                                val obj = JSONObject(rawValue)
+                                extractedToken = obj.optString("token", null)
+                            } catch (e: Exception) {
+                                extractedToken = rawValue
+                            }
+
+                            if (extractedToken != null) {
+                                showCamera = false
+                                sendToVerify(context, extractedToken) { result ->
+                                    scanResult = result
+                                }
+                            } else {
+                                scanResult = ScanResult.Message("❌ QR tidak valid (tidak ada token).")
+                            }
+                        }
+                    )
+                }
+            } else if (!hasCameraPermission) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("Izin kamera/lokasi belum diberikan")
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Button(onClick = { onRequestPermission() }) {
+                        Text("Berikan Izin")
+                    }
+                }
+            }
+
+            // 🔹 Hasil Scan
+            when (scanResult) {
+                is ScanResult.Message -> Text(
+                    text = (scanResult as ScanResult.Message).text,
+                    fontSize = 14.sp,
+                    color = Color.DarkGray
                 )
 
-                // 🔹 Kamera
-                if (hasCameraPermission && showCamera) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(cameraHeight)
-                            .clip(RoundedCornerShape(16.dp)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        CameraPreview(
-                            modifier = Modifier.fillMaxSize(),
-                            onScan = { rawValue ->
-                                var extractedToken: String? = null
-                                try {
-                                    val obj = JSONObject(rawValue)
-                                    extractedToken = obj.optString("token", null)
-                                } catch (e: Exception) {
-                                    extractedToken = rawValue
-                                }
-
-                                if (extractedToken != null) {
-                                    showCamera = false
-                                    sendToVerify(context, extractedToken) { result ->
-                                        scanResult = result
-                                    }
-                                } else {
-                                    scanResult = ScanResult.Message("❌ QR tidak valid (tidak ada token).")
-                                }
-                            }
-                        )
-                    }
-                } else if (!hasCameraPermission) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("Izin kamera/lokasi belum diberikan")
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Button(onClick = { onRequestPermission() }) {
-                            Text("Berikan Izin")
-                        }
-                    }
-                }
-
-                // 🔹 Hasil scan
-                when (scanResult) {
-                    is ScanResult.Message -> Text(
-                        text = (scanResult as ScanResult.Message).text,
-                        fontSize = 14.sp,
-                        modifier = Modifier.padding(top = textSpacing)
+                is ScanResult.WaitingImage -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Image(
+                        painter = painterResource(id = R.drawable.noconnection),
+                        contentDescription = "Menunggu jaringan",
+                        modifier = Modifier.size(imageSize)
                     )
-
-                    is ScanResult.WaitingImage -> Column(
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Image(
-                            painter = painterResource(id = R.drawable.noconnection),
-                            contentDescription = "Menunggu jaringan",
-                            modifier = Modifier.size(imageSize)
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = "Menunggu jaringan...",
-                            fontSize = 18.sp,
-                            color = Color.Gray
-                        )
-                    }
-
-                    is ScanResult.SuccessImage -> Column(
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Image(
-                            painter = painterResource(id = R.drawable.good),
-                            contentDescription = "Scan berhasil",
-                            modifier = Modifier.size(imageSize)
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = "Scan berhasil",
-                            fontSize = 18.sp,
-                            color = Color(0xFF4CAF50)
-                        )
-                    }
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "Menunggu jaringan...",
+                        fontSize = 16.sp,
+                        color = Color.Gray
+                    )
                 }
 
-                // 🔹 Tombol-tombol aksi
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(textSpacing)
-                ) {
-                    Button(
-                        onClick = {
-                            val intent = Intent(context, UbahPassword::class.java)
-                            context.startActivity(intent)
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(buttonHeight),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = primaryColor,
-                            contentColor = Color.White
-                        ),
-                        shape = RoundedCornerShape(8.dp)
-                    ) {
-                        Text("Ubah Password")
-                    }
-
-                    Button(
-                        onClick = {
-                            val intent = Intent(context, HalamanJadwal::class.java)
-                            intent.putExtra("USER_ID", userId)
-                            context.startActivity(intent)
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(buttonHeight),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = primaryColor,
-                            contentColor = Color.White
-                        ),
-                        shape = RoundedCornerShape(8.dp)
-                    ) {
-                        Text("Halaman Jadwal")
-                    }
-
-                    Button(
-                        onClick = { LogoutHelper.logout(context) },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(buttonHeight),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = primaryColor,
-                            contentColor = Color.White
-                        ),
-                        shape = RoundedCornerShape(8.dp)
-                    ) {
-                        Text("Logout")
-                    }
+                is ScanResult.SuccessImage -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Image(
+                        painter = painterResource(id = R.drawable.good),
+                        contentDescription = "Scan berhasil",
+                        modifier = Modifier.size(imageSize)
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "Scan berhasil",
+                        fontSize = 16.sp,
+                        color = Color(0xFF4CAF50)
+                    )
                 }
+            }
+
+            // 🔹 Tombol Logout
+            Button(
+                onClick = { LogoutHelper.logout(context) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(buttonHeight),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = primaryColor,
+                    contentColor = Color.White
+                ),
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Text("Logout")
             }
         }
     }
 }
-
 
 
 @SuppressLint("MissingPermission")
@@ -415,57 +378,52 @@ fun sendToVerify(context: Context, token: String, onResult: (ScanResult) -> Unit
         return
     }
 
-    fusedLocationClient.getCurrentLocation(
-        Priority.PRIORITY_HIGH_ACCURACY,
-        null
-    ).addOnSuccessListener { location ->
-        if (location != null) {
-            val lat = location.latitude
-            val lng = location.longitude
-            val session = SessionManager(context)
-            val userId = session.getUserId()
+    // 🔁 retry cari lokasi hingga dapat
+    fun tryGetLocation(retry: Int = 0) {
+        fusedLocationClient.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, null)
+            .addOnSuccessListener { location ->
+                if (location != null && location.latitude != 0.0 && location.longitude != 0.0) {
+                    val lat = location.latitude
+                    val lng = location.longitude
+                    val session = SessionManager(context)
+                    val userId = session.getUserId()
 
-            val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-            val isConnected = cm.activeNetworkInfo?.isConnected == true
+                    val scanRecord = OfflineScan(
+                        token = token,
+                        userId = userId,
+                        lat = lat,
+                        lng = lng
+                    )
 
-            val scanRecord = OfflineScan(
-                token = token,
-                userId = userId,
-                lat = lat,
-                lng = lng
-            )
+                    val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+                    val isConnected = cm.activeNetworkInfo?.isConnected == true
 
-            if (!isConnected) {
-                CoroutineScope(Dispatchers.IO).launch {
-                    MyApp.Companion.db.offlineScanDao().insert(scanRecord)
-                    enqueueSyncWorker(context)
-                    withContext(Dispatchers.Main) {
-                        onResult(ScanResult.WaitingImage)
-                    }
-
-                    // 🔹 loop cek jaringan
-                    while (true) {
-                        delay(5000) // cek tiap 5 detik
-                        val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-                        val online = cm.activeNetworkInfo?.isConnected == true
-                        if (online) {
-                            // kalau sudah online → kirim ulang
-                            sendOnline(context, scanRecord, onResult)
-                            break
+                    if (!isConnected) {
+                        CoroutineScope(Dispatchers.IO).launch {
+                            MyApp.db.offlineScanDao().insert(scanRecord)
+                            enqueueSyncWorker(context)
+                            withContext(Dispatchers.Main) {
+                                onResult(ScanResult.WaitingImage)
+                            }
                         }
+                    } else {
+                        sendOnline(context, scanRecord, onResult)
                     }
+                } else if (retry < 5) {
+                    // 🔁 coba ulang tiap 1 detik
+                    Handler(Looper.getMainLooper()).postDelayed({
+                        tryGetLocation(retry + 1)
+                    }, 1000)
+                } else {
+                    onResult(ScanResult.Message("❌ Gagal mendapatkan lokasi"))
                 }
-            } else {
-                sendOnline(context, scanRecord, onResult)
             }
-
-
-        } else {
-            onResult(ScanResult.Message("❌ Lokasi tidak tersedia"))
-        }
-    }.addOnFailureListener {
-        onResult(ScanResult.Message("❌ Gagal membaca lokasi : ${it.message}"))
+            .addOnFailureListener {
+                onResult(ScanResult.Message("❌ Gagal membaca lokasi: ${it.message}"))
+            }
     }
+
+    tryGetLocation()
 }
 
 fun sendOnline(context: Context, scan: OfflineScan, onResult: (ScanResult) -> Unit) {
