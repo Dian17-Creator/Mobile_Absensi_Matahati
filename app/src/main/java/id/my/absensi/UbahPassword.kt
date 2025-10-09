@@ -34,6 +34,14 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
+import kotlin.coroutines.resume
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
+import androidx.compose.ui.focus.onFocusEvent
+import kotlinx.coroutines.delay
+import androidx.compose.foundation.ExperimentalFoundationApi
+import kotlinx.coroutines.launch
+
 
 class UbahPassword : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -44,12 +52,13 @@ class UbahPassword : ComponentActivity() {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun UbahPasswordUI() {
     val context = LocalContext.current
     val session = SessionManager(context)
     val focusManager = LocalFocusManager.current
+    val scope = rememberCoroutineScope()
 
     var oldPassword by remember { mutableStateOf("") }
     var newPassword by remember { mutableStateOf("") }
@@ -58,6 +67,8 @@ fun UbahPasswordUI() {
     var oldPasswordVisible by remember { mutableStateOf(false) }
     var newPasswordVisible by remember { mutableStateOf(false) }
     var confirmPasswordVisible by remember { mutableStateOf(false) }
+
+    val bringIntoViewRequester = remember { BringIntoViewRequester() }
 
     val primaryColor = Color(0xFFFF6F51)
 
@@ -94,7 +105,7 @@ fun UbahPasswordUI() {
             }
 
             Image(
-                painter = painterResource(id = R.drawable.password),
+                painter = painterResource(id = R.drawable.passwordbro),
                 contentDescription = "Password illustration",
                 modifier = Modifier
                     .size(imageSize)
@@ -176,7 +187,15 @@ fun UbahPasswordUI() {
                 }),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(textFieldHeight)
+                    .bringIntoViewRequester(bringIntoViewRequester) // ✅ ini kuncinya
+                    .onFocusEvent { focusState ->
+                        if (focusState.isFocused) {
+                            scope.launch {
+                                delay(1) // beri waktu keyboard muncul
+                                bringIntoViewRequester.bringIntoView()
+                            }
+                        }
+                    }
             )
 
             // ✅ Tombol Simpan

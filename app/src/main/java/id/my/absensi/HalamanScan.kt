@@ -49,13 +49,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.foundation.background
 import android.os.Handler
 import android.os.Looper
-
-// 🔹 sealed class untuk hasil scan
-sealed class ScanResult {
-    data class Message(val text: String) : ScanResult()
-    object SuccessImage : ScanResult()
-    object WaitingImage : ScanResult()
-}
+import id.my.matahati.absensi.data.ScanResult
 
 class HalamanScan : ComponentActivity() {
 
@@ -127,11 +121,15 @@ class HalamanScan : ComponentActivity() {
 @Composable
 fun HalamanScanUI(
     hasCameraPermission: Boolean,
-    onRequestPermission: () -> Unit
+    onRequestPermission: () -> Unit,
+    externalScanResult: ScanResult? = null
 ) {
     val context = LocalContext.current
     val session = SessionManager(context)
     val activity = context as? ComponentActivity
+    val lifecycleOwner = LocalLifecycleOwner.current
+
+    val workManager = androidx.work.WorkManager.getInstance(context)
 
     var scanResult by remember { mutableStateOf<ScanResult>(ScanResult.Message("Arahkan kamera ke QR Code")) }
     var showCamera by remember { mutableStateOf(true) }
@@ -147,7 +145,37 @@ fun HalamanScanUI(
     val userName = if (storedUserId != -1) session.getUser()["name"]?.toString() ?: "" else userNameFromIntent
     val userEmail = if (storedUserId != -1) session.getUser()["email"]?.toString() ?: "" else userEmailFromIntent
 
-    // 🔹 Layout responsif dengan BoxWithConstraints
+    // ✅ Observe WorkManager sync result
+    DisposableEffect(Unit) {
+        val observer = androidx.lifecycle.Observer<List<androidx.work.WorkInfo>> { workInfos ->
+            val isSuccess = workInfos.any { it.state == androidx.work.WorkInfo.State.SUCCEEDED }
+            if (isSuccess) {
+                scanResult = ScanResult.SuccessImage
+            }
+        }
+
+        workManager.getWorkInfosByTagLiveData("sync_offline_scans")
+            .observe(lifecycleOwner, observer)
+
+        onDispose {
+            workManager.getWorkInfosByTagLiveData("sync_offline_scans")
+                .removeObserver(observer)
+        }
+    }
+
+    // Jika ada perubahan dari luar (misal dari HomeFragment)
+    LaunchedEffect(externalScanResult) {
+        externalScanResult?.let { result ->
+            scanResult = result
+            when (result) {
+                is ScanResult.SuccessImage -> showCamera = false
+                is ScanResult.Message -> showCamera = true
+                else -> {}
+            }
+        }
+    }
+
+    // 🔹 Layout responsif
     BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
@@ -155,18 +183,15 @@ fun HalamanScanUI(
             .padding(horizontal = 16.dp)
     ) {
         val screenHeight = maxHeight
-        val screenWidth = maxWidth
-
         val cameraHeight = screenHeight * 0.45f
         val imageSize = screenHeight * 0.45f
-        val spacing = 10.dp
         val buttonHeight = screenHeight * 0.07f
 
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(vertical = 10.dp), // beri jarak atas–bawah ringan
-            verticalArrangement = Arrangement.spacedBy(17.dp), // jarak antar elemen 10dp
+                .padding(vertical = 10.dp),
+            verticalArrangement = Arrangement.spacedBy(17.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // 🔹 Judul
@@ -235,7 +260,7 @@ fun HalamanScanUI(
 
                 is ScanResult.WaitingImage -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Image(
-                        painter = painterResource(id = R.drawable.noconnection),
+                        painter = painterResource(id = R.drawable.nointernet),
                         contentDescription = "Menunggu jaringan",
                         modifier = Modifier.size(imageSize)
                     )
@@ -249,7 +274,7 @@ fun HalamanScanUI(
 
                 is ScanResult.SuccessImage -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Image(
-                        painter = painterResource(id = R.drawable.good),
+                        painter = painterResource(id = R.drawable.goodwork),
                         contentDescription = "Scan berhasil",
                         modifier = Modifier.size(imageSize)
                     )
