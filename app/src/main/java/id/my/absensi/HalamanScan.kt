@@ -134,7 +134,7 @@ fun HalamanScanUI(
     var scanResult by remember { mutableStateOf<ScanResult>(ScanResult.Message("Arahkan kamera ke QR Code")) }
     var showCamera by remember { mutableStateOf(true) }
 
-    val primaryColor = Color(0xFFFF6F51)
+    val primaryColor = Color(0xFFFC0000)
 
     val storedUserId = session.getUserId()
     val userIdFromIntent = activity?.intent?.getIntExtra("USER_ID", -1) ?: -1
