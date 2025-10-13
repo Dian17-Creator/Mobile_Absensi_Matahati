@@ -49,6 +49,7 @@ android {
     }
 }
 
+
 dependencies {
     val camerax_version = "1.3.1"
 
@@ -64,7 +65,6 @@ dependencies {
 
     // Calendar library
     implementation("com.kizitonwose.calendar:compose:2.4.0")
-
     // ML Kit
     implementation("com.google.mlkit:barcode-scanning:17.2.0")
 
@@ -91,13 +91,10 @@ dependencies {
     implementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(platform(libs.androidx.compose.bom))
 
-    // Compose UI
-    implementation(libs.androidx.compose.ui)
-    implementation(libs.androidx.compose.ui.graphics)
-    implementation(libs.androidx.compose.ui.tooling.preview)
-    debugImplementation(libs.androidx.compose.ui.tooling)
-    debugImplementation(libs.androidx.compose.ui.test.manifest)
-    androidTestImplementation(libs.androidx.compose.ui.test.junit4)
+    // ⚠️ Ganti ini
+    implementation("androidx.compose.material:material-icons-extended")
+    // Dengan yang lebih kecil:
+    implementation("androidx.compose.material:material-icons-core")
 
     // Material (pakai Material3 dari BOM, jadi tidak perlu manual version)
     implementation(libs.androidx.compose.material3)
