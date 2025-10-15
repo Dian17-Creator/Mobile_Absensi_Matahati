@@ -411,7 +411,15 @@ fun sendToVerify(context: Context, token: String, onResult: (ScanResult) -> Unit
                     val lat = location.latitude
                     val lng = location.longitude
                     val session = SessionManager(context)
-                    val userId = session.getUserId()
+
+                    // ✅ FIX fallback userId seperti di UbahPassword
+                    val userId = session.getUserId().takeIf { it != -1 }
+                        ?: (context as? ComponentActivity)?.intent?.getIntExtra("USER_ID", -1) ?: -1
+
+                    if (userId == -1) {
+                        onResult(ScanResult.Message("⚠️ User belum terdeteksi, silakan login ulang"))
+                        return@addOnSuccessListener  // ✅ perbaikan utama
+                    }
 
                     val scanRecord = OfflineScan(
                         token = token,
