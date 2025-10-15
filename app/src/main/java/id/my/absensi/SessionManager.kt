@@ -2,6 +2,9 @@ package id.my.matahati.absensi
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.os.Handler
+import android.os.Looper
+
 
 class SessionManager(context: Context) {
 
@@ -25,7 +28,16 @@ class SessionManager(context: Context) {
         editor.putBoolean(KEY_IS_LOGGED_IN, true)
         editor.putBoolean(KEY_REMEMBER_ME, rememberMe)
         editor.apply()
+
+        // 🚀 Jika "ingatkan saya" = false, tetap simpan sementara
+        if (!rememberMe) {
+            // Gunakan mekanisme auto-clear di background (misalnya setelah 8 jam)
+            Handler(Looper.getMainLooper()).postDelayed({
+                if (!isRememberMe()) clearSession()
+            }, 8 * 60 * 60 * 1000) // 8 jam
+        }
     }
+
 
     // ✅ Ambil user ID langsung (kompatibel dengan file lama)
     fun getUserId(): Int = prefs.getInt(KEY_ID, -1)
