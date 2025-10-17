@@ -1,9 +1,9 @@
 package id.my.matahati.absensi
 
 import android.os.Bundle
-import android.content.Intent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -14,18 +14,12 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.collectAsState
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import java.time.LocalDate
-import java.time.YearMonth
 import java.time.format.TextStyle
 import java.util.Locale
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import id.my.matahati.absensi.data.ScheduleViewModel
-import androidx.compose.ui.text.font.FontWeight
 import id.my.matahati.absensi.data.UserSchedule
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -33,7 +27,17 @@ import androidx.compose.ui.draw.clip
 import id.my.matahati.absensi.worker.enqueueScheduleSyncWorker
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
+import kotlin.io.path.Path
+import kotlin.io.path.moveTo
 import kotlin.math.abs
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.text.font.FontWeight
+import java.time.LocalDate
+import java.time.YearMonth
 
 class HalamanJadwal : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -48,6 +52,7 @@ class HalamanJadwal : ComponentActivity() {
     }
 }
 
+
 @Composable
 fun HalamanJadwalUI(scheduleViewModel: ScheduleViewModel = viewModel()) {
     var currentMonth by remember { mutableStateOf(YearMonth.now()) }
@@ -58,73 +63,59 @@ fun HalamanJadwalUI(scheduleViewModel: ScheduleViewModel = viewModel()) {
     val activity = context as? ComponentActivity
     val session = remember { SessionManager(context.applicationContext) }
 
-
     val storedId = session.getUserId()
     val userId = if (storedId != -1) storedId else activity?.intent?.getIntExtra("USER_ID", -1) ?: -1
 
     val schedules by scheduleViewModel.schedules.collectAsState(initial = emptyList())
+    val isLoading by scheduleViewModel.loading.collectAsState()
+    val error by scheduleViewModel.error.collectAsState()
     var scanState by remember { mutableStateOf(session.getScanState()) }
 
     LaunchedEffect(Unit) {
-        // gunakan loop yang berhenti saat composition dibuang
         while (isActive) {
             val newState = session.getScanState()
             if (newState != scanState) {
                 scanState = newState
             }
-            delay(2000L) // 2 detik
+            delay(2000L)
         }
     }
 
-    LaunchedEffect(userId, currentMonth, scanState) {
+    LaunchedEffect(userId, currentMonth) {
         if (userId != -1) {
+            val isOnline = id.my.matahati.absensi.utils.NetworkUtils.isOnline(context)
             scheduleViewModel.loadSchedules(userId)
-            enqueueScheduleSyncWorker(context, userId) // 🔁 sync otomatis
+            if (isOnline) enqueueScheduleSyncWorker(context, userId)
         }
     }
 
-    val firstOfMonth = currentMonth.atDay(1)
-    val firstDayIndex = (firstOfMonth.dayOfWeek.value + 6) % 7
-    val daysInMonth = currentMonth.lengthOfMonth()
-    val slots = remember(currentMonth) {
-        val list = mutableListOf<LocalDate?>()
-        repeat(firstDayIndex) { list.add(null) }
-        for (d in 1..daysInMonth) list.add(currentMonth.atDay(d))
-        list
-    }
-
+    // 🎨 Warna tema
     val CalendarBackground = Color(0xFFF5F5F5)
-    val primaryColor = Color(0xFFFF6F51)
 
-    // ✅ Layout adaptif untuk semua ukuran layar
-    BoxWithConstraints(
+    // ✅ Ambil tinggi layar dari konfigurasi (bisa digunakan di luar BoxWithConstraints)
+    val configuration = LocalConfiguration.current
+    val screenHeight = configuration.screenHeightDp.dp
+
+    // ====== UI UTAMA ======
+    Box(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.White)
-            .padding(16.dp)
     ) {
-        val screenHeight = maxHeight
-        val screenWidth = maxWidth
-
-        val headerHeight = screenHeight * 0.08f
-        val calendarHeight = screenHeight * 0.45f
-        val shiftCardHeight = screenHeight * 0.18f
-        val buttonHeight = screenHeight * 0.08f
-        val spacing = screenHeight * 0.02f
-
-        Column(
+        // ====== Konten dalam BoxWithConstraints (jadwal + kalender) ======
+        BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(vertical = 10.dp), // beri jarak atas–bawah ringan
-            verticalArrangement = Arrangement.spacedBy(13.dp), // jarak antar elemen 10dp
-            horizontalAlignment = Alignment.CenterHorizontally
+                .padding(horizontal = 16.dp)
         ) {
-            // 🔹 Header judul + tombol kembali
-            Box(
+            val calendarHeight = maxHeight * 0.45f
+
+            Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 4.dp),
-                contentAlignment = Alignment.Center
+                    .fillMaxSize()
+                    .padding(bottom = screenHeight * 0.15f),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
                     text = "Jadwal & Shift",
@@ -132,91 +123,163 @@ fun HalamanJadwalUI(scheduleViewModel: ScheduleViewModel = viewModel()) {
                     color = Color(0xFF333333),
                     modifier = Modifier.padding(top = 15.dp)
                 )
-            }
 
-            // 🔹 Card Kalender (proporsional)
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(calendarHeight),
-                elevation = CardDefaults.cardElevation(6.dp),
-                colors = CardDefaults.cardColors(containerColor = CalendarBackground),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Column(modifier = Modifier.fillMaxSize()) {
-                    // Header bulan
-                    Column(
+                when {
+                    isLoading -> Text("⏳ Memuat jadwal...", color = Color.Gray)
+                    error != null -> Text("⚠️ ${error}", color = Color.Red)
+                    schedules.isEmpty() -> Text("📭 Tidak ada jadwal tersedia", color = Color.Gray)
+                }
+
+                if (schedules.isNotEmpty()) {
+                    Card(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .background(Color(0xFF4C4C59))
-                            .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
-                            .padding(8.dp)
+                            .height(calendarHeight),
+                        elevation = CardDefaults.cardElevation(6.dp),
+                        colors = CardDefaults.cardColors(containerColor = CalendarBackground),
+                        shape = RoundedCornerShape(12.dp)
                     ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            TextButton(onClick = { currentMonth = currentMonth.minusMonths(1) }) {
-                                Text("◀", color = Color.White)
-                            }
-                            val monthName = currentMonth.month.getDisplayName(TextStyle.FULL, Locale("id", "ID"))
-                            Text(
-                                text = "$monthName ${currentMonth.year}",
-                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                                color = Color.White
-                            )
-                            TextButton(onClick = { currentMonth = currentMonth.plusMonths(1) }) {
-                                Text("▶", color = Color.White)
-                            }
-                        }
-
-                        val weekNames = listOf("Sen", "Sel", "Rab", "Kam", "Jum", "Sab", "Min")
-                        Row(modifier = Modifier.fillMaxWidth()) {
-                            for ((index, w) in weekNames.withIndex()) {
-                                Box(
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .padding(2.dp),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    val color = if (index == 6) Color.Red else Color.White
-                                    Text(
-                                        text = w,
-                                        style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
-                                        color = color
-                                    )
-                                }
-                            }
-                        }
+                        CalendarCardContent(
+                            currentMonth = currentMonth,
+                            onMonthChange = { currentMonth = it },
+                            selectedDate = selectedDate,
+                            onDateSelected = { selectedDate = it },
+                            today = today,
+                            schedules = schedules
+                        )
                     }
+                }
+            }
+        }
 
-                    // Isi tanggal
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(Color(0xFFF5F5F5))
-                            .padding(4.dp)
+        // === Shape bawah (sekarang di luar BoxWithConstraints) ===
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .align(Alignment.BottomCenter)
+                .height(screenHeight * 0.18f)
+        ) {
+            Canvas(modifier = Modifier.fillMaxSize()) {
+                val width = size.width
+                val height = size.height
+
+                // Lapisan pertama (abu kehijauan muda)
+                val path1 = Path().apply {
+                    moveTo(10f, height * 0.5f)
+                    quadraticBezierTo(width * 0.5f, 0f, width, height * 0.3f)
+                    lineTo(width, height)
+                    lineTo(0f, height)
+                    close()
+                }
+                drawPath(path = path1, color = Color(0xFFDAD4B0))
+
+                // Lapisan kedua (krem muda)
+                val path2 = Path().apply {
+                    moveTo(0f, height * 0.5f)
+                    quadraticBezierTo(width * 0.5f, height * 0.2f, width, height * 0.5f)
+                    lineTo(width, height)
+                    lineTo(0f, height)
+                    close()
+                }
+                drawPath(path = path2, color = Color(0xFFFAF6D8))
+            }
+        }
+    }
+}
+
+
+private fun Modifier.align(bottomCenter: Alignment) {
+    TODO("Not yet implemented")
+}
+
+@Composable
+private fun CalendarCardContent(
+    currentMonth: YearMonth,
+    onMonthChange: (YearMonth) -> Unit,
+    selectedDate: LocalDate?,
+    onDateSelected: (LocalDate) -> Unit,
+    today: LocalDate,
+    schedules: List<UserSchedule>
+) {
+    val firstOfMonth = currentMonth.atDay(1)
+    val firstDayIndex = (firstOfMonth.dayOfWeek.value + 6) % 7
+    val daysInMonth = currentMonth.lengthOfMonth()
+
+    val slots = remember(currentMonth) {
+        val list = mutableListOf<LocalDate?>()
+        repeat(firstDayIndex) { list.add(null) }
+        for (d in 1..daysInMonth) list.add(currentMonth.atDay(d))
+        list
+    }
+
+    Column(modifier = Modifier.fillMaxSize()) {
+        // 🔹 Header bulan
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color(0xFF4C4C59))
+                .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
+                .padding(8.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                TextButton(onClick = { onMonthChange(currentMonth.minusMonths(1)) }) {
+                    Text("◀", color = Color.White)
+                }
+                val monthName = currentMonth.month.getDisplayName(TextStyle.FULL, Locale("id", "ID"))
+                Text(
+                    text = "$monthName ${currentMonth.year}",
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                    color = Color.White
+                )
+                TextButton(onClick = { onMonthChange(currentMonth.plusMonths(1)) }) {
+                    Text("▶", color = Color.White)
+                }
+            }
+
+            val weekNames = listOf("Sen", "Sel", "Rab", "Kam", "Jum", "Sab", "Min")
+            Row(modifier = Modifier.fillMaxWidth()) {
+                weekNames.forEachIndexed { index, w ->
+                    Box(
+                        modifier = Modifier.weight(1f).padding(2.dp),
+                        contentAlignment = Alignment.Center
                     ) {
-                        LazyVerticalGrid(columns = GridCells.Fixed(7)) {
-                            items(slots) { date ->
-                                DayCell(
-                                    date = date,
-                                    today = today,
-                                    selected = date == selectedDate,
-                                    onClick = { selectedDate = it },
-                                    schedules = schedules
-                                )
-                            }
-                        }
+                        val color = if (index == 6) Color.Red else Color.White
+                        Text(
+                            text = w,
+                            style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
+                            color = color
+                        )
                     }
+                }
+            }
+        }
+
+        // 🔹 Grid tanggal
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color(0xFFF5F5F5))
+                .padding(4.dp)
+        ) {
+            LazyVerticalGrid(columns = GridCells.Fixed(7)) {
+                items(slots) { date ->
+                    DayCell(
+                        date = date,
+                        today = today,
+                        selected = date == selectedDate,
+                        onClick = { onDateSelected(it) },
+                        schedules = schedules
+                    )
                 }
             }
         }
     }
 }
 
-// 🔹 Fungsi tambahan untuk warna dinamis berdasarkan nama shift
 fun generateColorFromShift(shiftName: String): Color {
     val hash = abs(shiftName.hashCode())
     val red = (hash % 200) + 30
