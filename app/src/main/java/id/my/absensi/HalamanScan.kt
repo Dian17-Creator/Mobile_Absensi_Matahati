@@ -49,7 +49,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.foundation.background
 import android.os.Handler
 import android.os.Looper
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import id.my.matahati.absensi.data.ScanResult
+import java.util.Locale
 
 class HalamanScan : ComponentActivity() {
 
@@ -116,7 +119,7 @@ class HalamanScan : ComponentActivity() {
         }
     }
 }
-
+@SuppressLint("UnusedBoxWithConstraintsScope")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HalamanScanUI(
@@ -128,14 +131,14 @@ fun HalamanScanUI(
     val session = SessionManager(context)
     val activity = context as? ComponentActivity
     val lifecycleOwner = LocalLifecycleOwner.current
-
     val workManager = androidx.work.WorkManager.getInstance(context)
 
     var scanResult by remember { mutableStateOf<ScanResult>(ScanResult.Message("Arahkan kamera ke QR Code")) }
     var showCamera by remember { mutableStateOf(true) }
 
-    val primaryColor = Color(0xFFFC0000)
+    val primaryColor = Color(0xFFFF6F51) // 🔸 warna oranye khas
 
+    // 🔹 Data user
     val storedUserId = session.getUserId()
     val userIdFromIntent = activity?.intent?.getIntExtra("USER_ID", -1) ?: -1
     val userNameFromIntent = activity?.intent?.getStringExtra("USER_NAME") ?: ""
@@ -149,9 +152,7 @@ fun HalamanScanUI(
     DisposableEffect(Unit) {
         val observer = androidx.lifecycle.Observer<List<androidx.work.WorkInfo>> { workInfos ->
             val isSuccess = workInfos.any { it.state == androidx.work.WorkInfo.State.SUCCEEDED }
-            if (isSuccess) {
-                scanResult = ScanResult.SuccessImage
-            }
+            if (isSuccess) scanResult = ScanResult.SuccessImage
         }
 
         workManager.getWorkInfosByTagLiveData("sync_offline_scans")
@@ -163,148 +164,175 @@ fun HalamanScanUI(
         }
     }
 
-    // Jika ada perubahan dari luar (misal dari HomeFragment)
+    // Jika ada perubahan dari luar
     LaunchedEffect(externalScanResult) {
         externalScanResult?.let { result ->
             scanResult = result
-            when (result) {
-                is ScanResult.SuccessImage -> showCamera = false
-                is ScanResult.Message -> showCamera = true
-                else -> {}
-            }
+            showCamera = result !is ScanResult.SuccessImage
         }
     }
 
-    // 🔹 Layout responsif
-    BoxWithConstraints(
+    // 🌈 Layout utama dua lapisan
+    Box(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.White)
-            .padding(horizontal = 16.dp)
     ) {
-        val screenHeight = maxHeight
-        val cameraHeight = screenHeight * 0.45f
-        val imageSize = screenHeight * 0.45f
-        val buttonHeight = screenHeight * 0.07f
+        // 🔶 Background oranye bagian atas
+//        Box(
+//            modifier = Modifier
+//                .fillMaxWidth()
+//                .fillMaxHeight(0.5f) // 30% layar bagian atas
+//                .clip(RoundedCornerShape(bottomStart = 30.dp, bottomEnd = 30.dp))
+//                .background(primaryColor)
+//                .align(Alignment.TopCenter)
+//        )
 
-        Column(
+        // 🔹 Konten utama di atas background
+        BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(vertical = 10.dp),
-            verticalArrangement = Arrangement.spacedBy(17.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+                .padding(horizontal = 16.dp, vertical = 30.dp)
         ) {
-            // 🔹 Judul
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 4.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "Silahkan Scan QR Code",
-                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                    color = Color.Black,
-                    modifier = Modifier.padding(top = 30.dp)
-                )
-            }
+            val screenHeight = maxHeight
+            val cameraHeight = screenHeight * 0.35f
+            val imageSize = screenHeight * 0.3f
+            val buttonHeight = screenHeight * 0.07f
 
-            // 🔹 Kamera
-            if (hasCameraPermission && showCamera) {
-                Box(
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                // 🔹 Card waktu (di atas background oranye)
+                Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(cameraHeight)
-                        .clip(RoundedCornerShape(16.dp)),
-                    contentAlignment = Alignment.Center
+                        .wrapContentHeight(),
+                    elevation = CardDefaults.cardElevation(8.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFF4C4C59)),
+                    shape = RoundedCornerShape(12.dp)
                 ) {
-                    CameraPreview(
-                        modifier = Modifier.fillMaxSize(),
-                        onScan = { rawValue ->
-                            var extractedToken: String? = null
-                            try {
-                                val obj = JSONObject(rawValue)
-                                extractedToken = obj.optString("token", null)
-                            } catch (e: Exception) {
-                                extractedToken = rawValue
-                            }
-
-                            if (extractedToken != null) {
-                                showCamera = false
-                                sendToVerify(context, extractedToken) { result ->
-                                    scanResult = result
-                                }
-                            } else {
-                                scanResult = ScanResult.Message("❌ QR tidak valid (tidak ada token).")
-                            }
-                        }
-                    )
+                    CardWaktu()
                 }
-            } else if (!hasCameraPermission) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("Izin kamera/lokasi belum diberikan")
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Button(onClick = { onRequestPermission() }) {
-                        Text("Berikan Izin")
+
+                // 🔹 Card shift
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .wrapContentHeight(),
+                    elevation = CardDefaults.cardElevation(6.dp),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    CardShift(userId = userId)
+                }
+
+                // 🔹 Kamera dan hasil scan
+                if (hasCameraPermission && showCamera) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(cameraHeight)
+                            .clip(RoundedCornerShape(16.dp)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CameraPreview(
+                            modifier = Modifier.fillMaxSize(),
+                            onScan = { rawValue ->
+                                var extractedToken: String? = null
+                                try {
+                                    val obj = JSONObject(rawValue)
+                                    extractedToken = obj.optString("token", null)
+                                } catch (e: Exception) {
+                                    extractedToken = rawValue
+                                }
+
+                                if (extractedToken != null) {
+                                    showCamera = false
+                                    sendToVerify(context, extractedToken) { result -> scanResult = result }
+                                } else {
+                                    scanResult = ScanResult.Message("❌ QR tidak valid (tidak ada token).")
+                                }
+                            }
+                        )
                     }
                 }
-            }
 
-            // 🔹 Hasil Scan
-            when (scanResult) {
-                is ScanResult.Message -> Text(
-                    text = (scanResult as ScanResult.Message).text,
-                    fontSize = 14.sp,
-                    color = Color.DarkGray
-                )
+                // 🔹 Hasil scan
+                when (scanResult) {
+                    is ScanResult.Message -> Text(
+                        text = (scanResult as ScanResult.Message).text,
+                        fontSize = 14.sp,
+                        color = Color.DarkGray
+                    )
 
-                is ScanResult.WaitingImage -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Image(
-                        painter = painterResource(id = R.drawable.nointernet),
-                        contentDescription = "Menunggu jaringan",
-                        modifier = Modifier.size(imageSize)
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "Menunggu jaringan...",
-                        fontSize = 16.sp,
-                        color = Color.Gray
-                    )
+                    is ScanResult.WaitingImage -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Image(
+                            painter = painterResource(id = R.drawable.nointernet),
+                            contentDescription = "Menunggu jaringan",
+                            modifier = Modifier.size(imageSize)
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text("Menunggu jaringan...", fontSize = 14.sp, color = Color.Gray)
+                    }
+
+                    is ScanResult.SuccessImage -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Image(
+                            painter = painterResource(id = R.drawable.goodwork),
+                            contentDescription = "Scan berhasil",
+                            modifier = Modifier.size(imageSize)
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text("Scan berhasil", fontSize = 14.sp, color = Color(0xFF4CAF50))
+                    }
                 }
 
-                is ScanResult.SuccessImage -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Image(
-                        painter = painterResource(id = R.drawable.goodwork),
-                        contentDescription = "Scan berhasil",
-                        modifier = Modifier.size(imageSize)
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "Scan berhasil",
-                        fontSize = 16.sp,
-                        color = Color(0xFF4CAF50)
-                    )
-                }
-            }
+                // 🔹 Tombol sejajar
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Button(
+                        onClick = {
+                            val intent = Intent(context, HalamanIzin::class.java).apply {
+                                putExtra("USER_ID", userId)
+                                putExtra("USER_NAME", userName)
+                                putExtra("USER_EMAIL", userEmail)
+                            }
+                            context.startActivity(intent)
+                        },
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(buttonHeight),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFFFF6F51),
+                            contentColor = Color.White
+                        ),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text("Izin Tidak Masuk")
+                    }
 
-            // 🔹 Tombol Logout
-            Button(
-                onClick = { LogoutHelper.logout(context) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(buttonHeight),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = primaryColor,
-                    contentColor = Color.White
-                ),
-                shape = RoundedCornerShape(8.dp)
-            ) {
-                Text("Logout")
+                    Button(
+                        onClick = { LogoutHelper.logout(context) },
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(buttonHeight),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFFFC0000),
+                            contentColor = Color.White
+                        ),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text("Logout")
+                    }
+                }
             }
         }
     }
 }
-
 
 @SuppressLint("MissingPermission")
 @OptIn(ExperimentalGetImage::class)
@@ -495,3 +523,146 @@ fun sendOnline(context: Context, scan: OfflineScan, onResult: (ScanResult) -> Un
         }
     })
 }
+
+/* 🔹 CARD WAKTU (real-time) */
+@Composable
+fun CardWaktu() {
+    var waktuSekarang by remember { mutableStateOf("") }
+    var tanggalSekarang by remember { mutableStateOf("") }
+
+    LaunchedEffect(Unit) {
+        while (true) {
+            val now = java.time.LocalDateTime.now()
+            val formatterJam = java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss")
+            val formatterTgl = java.time.format.DateTimeFormatter.ofPattern("EEEE, dd MMMM yyyy",
+                Locale("id", "ID")
+            )
+            waktuSekarang = now.format(formatterJam)
+            tanggalSekarang = now.format(formatterTgl)
+            delay(1000L)
+        }
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 6.dp, horizontal = 10.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = waktuSekarang,
+            style = MaterialTheme.typography.headlineMedium.copy(
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Bold
+            ),
+            color = Color(0xFFFFFFFF)
+        )
+        Spacer(modifier = Modifier.height(2.dp))
+        Text(
+            text = tanggalSekarang,
+            style = MaterialTheme.typography.bodyMedium.copy(
+                fontSize = 13.sp
+            ),
+            color = Color(0xFFFFFFFF)
+        )
+    }
+}
+
+/* 🔹 CARD SHIFT (warna & periode dinamis) */
+@Composable
+fun CardShift(
+    userId: Int,
+    scheduleViewModel: id.my.matahati.absensi.data.ScheduleViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+) {
+    val schedules by scheduleViewModel.schedules.collectAsState(initial = emptyList())
+    val today = java.time.LocalDate.now()
+
+    LaunchedEffect(Unit) {
+        if (userId != -1) scheduleViewModel.loadSchedules(userId)
+    }
+
+    val todayShift = schedules.find { it.dwork == today.toString() }
+    val shiftColor = todayShift?.let { generateColorFromShift(it.cschedname) } ?: Color(0xFFF5F5F5)
+
+    // 🔹 cari periode tanggal berturut-turut dengan shift sama
+    val sameShiftDates = schedules
+        .asSequence()
+        .filter { it.cschedname == todayShift?.cschedname }
+        .mapNotNull { runCatching { java.time.LocalDate.parse(it.dwork) }.getOrNull() }
+        .distinct()
+        .toList()
+        .sorted()
+
+    val runs = mutableListOf<MutableList<java.time.LocalDate>>()
+    for (d in sameShiftDates) {
+        if (runs.isEmpty()) {
+            runs.add(mutableListOf(d))
+        } else {
+            val lastRun = runs.last()
+            val lastDate = lastRun.last()
+            if (lastDate.plusDays(1) == d) lastRun.add(d)
+            else runs.add(mutableListOf(d))
+        }
+    }
+
+    val containingRun = runs.find { it.contains(today) } ?: emptyList()
+    val minDate = containingRun.minOrNull()
+    val maxDate = containingRun.maxOrNull()
+
+    val shortFormatter = java.time.format.DateTimeFormatter.ofPattern("dd MMM", Locale("id", "ID"))
+    val yearFormatter = java.time.format.DateTimeFormatter.ofPattern("yyyy", Locale("id", "ID"))
+    val periodeText = if (minDate != null && maxDate != null) {
+        if (minDate.year == maxDate.year)
+            "${minDate.format(shortFormatter)} - ${maxDate.format(shortFormatter)} ${maxDate.format(yearFormatter)}"
+        else
+            "${minDate.format(java.time.format.DateTimeFormatter.ofPattern("dd MMM yyyy", Locale("id", "ID")))} - " +
+                    "${maxDate.format(java.time.format.DateTimeFormatter.ofPattern("dd MMM yyyy", Locale("id", "ID")))}"
+    } else null
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = shiftColor),
+        shape = RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(6.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 14.dp, horizontal = 16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = "Shift Hari Ini",
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                color = if (todayShift != null) Color.White else Color.Black
+            )
+
+            Spacer(modifier = Modifier.height(6.dp))
+
+            if (todayShift != null) {
+                Text(
+                    text = "${todayShift.cschedname.replaceFirstChar { it.titlecase(Locale("id", "ID")) }} " +
+                            "(${todayShift.dstart} - ${todayShift.dend})",
+                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                    color = Color.White
+                )
+
+                periodeText?.let {
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = "Periode : $it",
+                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 13.sp),
+                        color = Color.White.copy(alpha = 0.95f)
+                    )
+                }
+            } else {
+                Text(
+                    text = "Belum ada shift untuk hari ini.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.Black
+                )
+            }
+        }
+    }
+}
+

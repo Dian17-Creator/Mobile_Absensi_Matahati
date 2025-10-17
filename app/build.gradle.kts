@@ -51,6 +51,7 @@ android {
 
 
 dependencies {
+    implementation(libs.androidx.compose.runtime.saveable)
     val camerax_version = "1.3.1"
 
     // Room
