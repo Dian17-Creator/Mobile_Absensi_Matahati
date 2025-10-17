@@ -6,9 +6,12 @@ import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
 import android.net.NetworkRequest
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.launch
 
 object NetworkUtils {
 
@@ -22,7 +25,7 @@ object NetworkUtils {
                 capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
     }
 
-    // Listener untuk perubahan koneksi
+    // Listener untuk perubahan koneksi (Reactive)
     fun getNetworkStatusFlow(context: Context): Flow<Boolean> = callbackFlow {
         val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
         val networkCallback = object : ConnectivityManager.NetworkCallback() {
@@ -46,6 +49,16 @@ object NetworkUtils {
 
         awaitClose {
             connectivityManager.unregisterNetworkCallback(networkCallback)
+        }
+    }
+
+    // ✅ Helper tambahan: Jalankan callback otomatis saat koneksi berubah
+    fun observeNetwork(context: Context, onStatusChange: (Boolean) -> Unit) {
+        val scope = CoroutineScope(Dispatchers.Default)
+        scope.launch {
+            getNetworkStatusFlow(context).collect { isConnected ->
+                onStatusChange(isConnected)
+            }
         }
     }
 }
