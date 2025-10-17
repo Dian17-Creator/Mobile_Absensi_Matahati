@@ -4,7 +4,8 @@ import android.content.Context
 import android.content.SharedPreferences
 import android.os.Handler
 import android.os.Looper
-
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 
 class SessionManager(context: Context) {
 
@@ -17,7 +18,14 @@ class SessionManager(context: Context) {
         private const val KEY_EMAIL = "email"
         private const val KEY_IS_LOGGED_IN = "isLoggedIn"
         private const val KEY_REMEMBER_ME = "rememberMe"
+        private const val KEY_SCAN_STATE = "scan_state"
+        private const val KEY_PENDING_SYNC = "pending_sync"
+        private const val KEY_LAST_SYNC_ATTEMPT = "last_sync_attempt"
     }
+
+    // 🔹 Flow untuk status scan — ini yang akan dipantau oleh Compose
+    private val _scanStateFlow = MutableStateFlow(getScanState())
+    val scanStateFlow = _scanStateFlow.asStateFlow()
 
     // ✅ Simpan data login (tergantung checkbox "ingatkan saya")
     fun login(id: Int, name: String, email: String, rememberMe: Boolean) {
@@ -29,17 +37,14 @@ class SessionManager(context: Context) {
         editor.putBoolean(KEY_REMEMBER_ME, rememberMe)
         editor.apply()
 
-        // 🚀 Jika "ingatkan saya" = false, tetap simpan sementara
         if (!rememberMe) {
-            // Gunakan mekanisme auto-clear di background (misalnya setelah 8 jam)
             Handler(Looper.getMainLooper()).postDelayed({
                 if (!isRememberMe()) clearSession()
-            }, 8 * 60 * 60 * 1000) // 8 jam
+            }, 8 * 60 * 60 * 1000)
         }
     }
 
-
-    // ✅ Ambil user ID langsung (kompatibel dengan file lama)
+    // ✅ Ambil user ID langsung
     fun getUserId(): Int = prefs.getInt(KEY_ID, -1)
 
     // ✅ Ambil semua data user
@@ -49,14 +54,41 @@ class SessionManager(context: Context) {
         "email" to prefs.getString(KEY_EMAIL, null)
     )
 
-    // ✅ Cek apakah sedang login
+    // ✅ Status login & ingatkan saya
     fun isLoggedIn(): Boolean = prefs.getBoolean(KEY_IS_LOGGED_IN, false)
-
-    // ✅ Cek apakah “ingatkan saya” aktif
     fun isRememberMe(): Boolean = prefs.getBoolean(KEY_REMEMBER_ME, false)
 
-    // ✅ Hapus semua session (logout)
+    // ✅ Hapus session (logout)
     fun clearSession() {
         prefs.edit().clear().apply()
+        _scanStateFlow.value = null
+    }
+
+    // ✅ Simpan status scan
+    fun setScanState(state: String) {
+        prefs.edit().putString(KEY_SCAN_STATE, state).apply()
+        _scanStateFlow.value = state // 🔹 update Flow agar Compose tahu
+    }
+
+    // ✅ Ambil status scan terakhir
+    fun getScanState(): String? = prefs.getString(KEY_SCAN_STATE, null)
+
+    // 🔹 Simpan status pending sync
+    fun setPendingSync(pending: Boolean) {
+        prefs.edit().putBoolean(KEY_PENDING_SYNC, pending).apply()
+    }
+
+    fun hasPendingSync(): Boolean = prefs.getBoolean(KEY_PENDING_SYNC, false)
+
+    // 🔹 Simpan waktu terakhir sync attempt
+    fun setLastSyncAttempt(time: Long) {
+        prefs.edit().putLong(KEY_LAST_SYNC_ATTEMPT, time).apply()
+    }
+
+    fun getLastSyncAttempt(): Long = prefs.getLong(KEY_LAST_SYNC_ATTEMPT, 0)
+
+    // 🔹 Reset sync state
+    fun resetSyncState() {
+        prefs.edit().remove(KEY_PENDING_SYNC).remove(KEY_LAST_SYNC_ATTEMPT).apply()
     }
 }

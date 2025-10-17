@@ -13,6 +13,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.Lifecycle
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.android.material.navigation.NavigationBarView
 import id.my.matahati.absensi.fragment.HomeFragment
@@ -182,8 +183,21 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun replaceFragment(fragment: Fragment) {
-        supportFragmentManager.beginTransaction()
-            .replace(R.id.fragment_container, fragment)
-            .commit()
+        val transaction = supportFragmentManager.beginTransaction()
+
+        for (frag in supportFragmentManager.fragments) {
+            transaction.setMaxLifecycle(frag, Lifecycle.State.STARTED)
+            transaction.hide(frag)
+        }
+
+        val existing = supportFragmentManager.fragments.find { it::class == fragment::class }
+        if (existing != null) {
+            transaction.setMaxLifecycle(existing, Lifecycle.State.RESUMED)
+            transaction.show(existing)
+        } else {
+            transaction.add(R.id.fragment_container, fragment)
+            transaction.setMaxLifecycle(fragment, Lifecycle.State.RESUMED)
+        }
+        transaction.commit()
     }
 }

@@ -30,6 +30,9 @@ import id.my.matahati.absensi.data.UserSchedule
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.clip
+import id.my.matahati.absensi.worker.enqueueScheduleSyncWorker
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlin.math.abs
 
 class HalamanJadwal : ComponentActivity() {
@@ -53,15 +56,31 @@ fun HalamanJadwalUI(scheduleViewModel: ScheduleViewModel = viewModel()) {
 
     val context = LocalContext.current
     val activity = context as? ComponentActivity
+    val session = remember { SessionManager(context.applicationContext) }
 
-    val session = SessionManager(context.applicationContext)
+
     val storedId = session.getUserId()
     val userId = if (storedId != -1) storedId else activity?.intent?.getIntExtra("USER_ID", -1) ?: -1
 
     val schedules by scheduleViewModel.schedules.collectAsState(initial = emptyList())
+    var scanState by remember { mutableStateOf(session.getScanState()) }
 
     LaunchedEffect(Unit) {
-        if (userId != -1) scheduleViewModel.loadSchedules(userId)
+        // gunakan loop yang berhenti saat composition dibuang
+        while (isActive) {
+            val newState = session.getScanState()
+            if (newState != scanState) {
+                scanState = newState
+            }
+            delay(2000L) // 2 detik
+        }
+    }
+
+    LaunchedEffect(userId, currentMonth, scanState) {
+        if (userId != -1) {
+            scheduleViewModel.loadSchedules(userId)
+            enqueueScheduleSyncWorker(context, userId) // 🔁 sync otomatis
+        }
     }
 
     val firstOfMonth = currentMonth.atDay(1)
@@ -193,85 +212,9 @@ fun HalamanJadwalUI(scheduleViewModel: ScheduleViewModel = viewModel()) {
                     }
                 }
             }
-
-            // 🔹 Card Shift
-            val selectedShift = selectedDate?.let { sel -> schedules.find { it.dwork == sel.toString() } }
-            val shiftColor = selectedShift?.let { generateColorFromShift(it.cschedname) } ?: CalendarBackground
-
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(75.dp),
-                elevation = CardDefaults.cardElevation(4.dp),
-                colors = CardDefaults.cardColors(containerColor = shiftColor),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(12.dp),
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Text(
-                        "Shift",
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                        color = if (selectedShift != null) Color.White else Color.Black
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    if (selectedShift != null) {
-                        Text(
-                            text = "${selectedShift.cschedname.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }} (${selectedShift.dstart} - ${selectedShift.dend})",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = Color.White
-                        )
-                    } else {
-                        Text(
-                            text = "Belum ada shift untuk tanggal ini.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = Color.Black
-                        )
-                    }
-                }
-            }
-
-            // 🔹 Tombol Izin Tidak Masuk
-            Button(
-                onClick = {
-                    val session = SessionManager(context.applicationContext)
-                    val storedUserId = session.getUserId()
-                    val userIdFromIntent = (context as? ComponentActivity)?.intent?.getIntExtra("USER_ID", -1) ?: -1
-                    val userNameFromIntent = (context as? ComponentActivity)?.intent?.getStringExtra("USER_NAME") ?: ""
-                    val userEmailFromIntent = (context as? ComponentActivity)?.intent?.getStringExtra("USER_EMAIL") ?: ""
-
-                    val userId = if (storedUserId != -1) storedUserId else userIdFromIntent
-                    val userName = if (storedUserId != -1)
-                        session.getUser()["name"]?.toString() ?: "" else userNameFromIntent
-                    val userEmail = if (storedUserId != -1)
-                        session.getUser()["email"]?.toString() ?: "" else userEmailFromIntent
-
-                    val intent = Intent(context, HalamanIzin::class.java).apply {
-                        putExtra("USER_ID", userId)
-                        putExtra("USER_NAME", userName)
-                        putExtra("USER_EMAIL", userEmail)
-                    }
-                    context.startActivity(intent)
-
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(buttonHeight),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = primaryColor,
-                    contentColor = Color.White
-                ),
-                shape = RoundedCornerShape(8.dp)
-            ) {
-                Text("Izin Tidak Masuk")
-            }
         }
     }
 }
-
 
 // 🔹 Fungsi tambahan untuk warna dinamis berdasarkan nama shift
 fun generateColorFromShift(shiftName: String): Color {
