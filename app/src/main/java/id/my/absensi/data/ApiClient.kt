@@ -5,7 +5,7 @@ import retrofit2.converter.gson.GsonConverterFactory
 
 
 object ApiClient {
-    private const val BASE_URL = "https://absensi.matahati.my.id/" // ganti dengan domain kamu
+    private const val BASE_URL = "https://absensi.matahati.my.id/laravel/public/" // ganti dengan domain kamu
 
     val apiService: ApiService by lazy {
         Retrofit.Builder()

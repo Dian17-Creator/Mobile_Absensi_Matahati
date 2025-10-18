@@ -10,4 +10,8 @@ interface ApiService {
     suspend fun getUserSchedules(
         @Query("userid") userId: Int
     ): List<UserSchedule>
+
+    @GET("api/logs/{userId}")
+    suspend fun getLogsByUser(@Path("userId") userId: Int): ApiResponse
+
 }

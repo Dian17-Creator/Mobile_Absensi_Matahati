@@ -8,13 +8,22 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import androidx.room.migration.Migration
 
 @Database(
-    entities = [OfflineScan::class, UserSchedule::class], // entitas kamu
-    version = 4, // ⬆️ ganti ke versi baru untuk memperbarui schema
+    entities = [
+        OfflineScan::class,
+        UserSchedule::class,
+        AbsensiLog::class // ✅ tambahkan entitas baru untuk tabel log absensi
+    ],
+    version = 5, // ⬆️ tingkatkan versi dari 4 → 5 agar schema baru diterapkan
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
+
+    // DAO yang sudah ada
     abstract fun offlineScanDao(): OfflineScanDao
     abstract fun userScheduleDao(): UserScheduleDao
+
+    // ✅ Tambahkan DAO baru untuk AbsensiLog
+    abstract fun absensiLogDao(): AbsensiLogDao
 
     companion object {
         @Volatile
@@ -27,9 +36,9 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "app_database"
                 )
-                    // aktifkan saat development, biar kalau ada mismatch langsung rebuild DB
+                    // otomatis reset schema jika ada perubahan struktur
                     .fallbackToDestructiveMigration()
-                    //.addMigrations(MIGRATION_1_2, MIGRATION_2_3) // bisa diaktifkan nanti jika sudah stabil
+                    //.addMigrations(MIGRATION_1_2, MIGRATION_2_3)
                     .build()
                 INSTANCE = instance
                 instance
