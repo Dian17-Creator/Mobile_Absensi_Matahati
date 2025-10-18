@@ -40,8 +40,13 @@ class ScheduleViewModel(application: Application) : AndroidViewModel(application
 
             val today = LocalDate.now()
             val formatter = DateTimeFormatter.ISO_DATE
-            val startDate = today.minusDays(7).format(formatter)
-            val endDate = today.plusDays(7).format(formatter)
+
+            // 🗓 Cari Senin minggu ini
+            val startOfWeek = today.with(java.time.DayOfWeek.MONDAY)
+
+            // Ambil 1 minggu sebelum & 1 minggu sesudah minggu ini
+            val startDate = startOfWeek.minusWeeks(1).format(formatter)
+            val endDate = startOfWeek.plusWeeks(2).minusDays(1).format(formatter)
 
             // Ambil dari database lokal dulu
             val localData = withContext(Dispatchers.IO) {
@@ -58,19 +63,19 @@ class ScheduleViewModel(application: Application) : AndroidViewModel(application
                 try {
                     val response = ApiClient.apiService.getUserSchedules(userId)
                     if (!response.isNullOrEmpty()) {
+                        // Filter hanya jadwal dalam 1 minggu sebelum dan sesudah minggu ini
                         val filtered = response.filter { schedule ->
                             val date = LocalDate.parse(schedule.dwork, formatter)
-                            !date.isBefore(today.minusDays(7)) && !date.isAfter(today.plusDays(7))
+                            !date.isBefore(LocalDate.parse(startDate)) && !date.isAfter(LocalDate.parse(endDate))
                         }
 
-                        // Simpan hasil ke Room (ganti userId jika kosong)
                         withContext(Dispatchers.IO) {
                             filtered.forEach { item ->
                                 val fixedItem = if (item.nuserid == 0) item.copy(nuserid = userId) else item
                                 dao.insert(fixedItem)
                             }
 
-                            // Bersihkan data di luar 30 hari untuk hemat storage
+                            // Bersihkan data di luar 30 hari untuk efisiensi
                             val cleanupStart = today.minusDays(30).format(formatter)
                             dao.deleteOutOfRange(userId, cleanupStart, endDate)
                         }

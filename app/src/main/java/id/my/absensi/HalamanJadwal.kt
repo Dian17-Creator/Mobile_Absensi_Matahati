@@ -7,6 +7,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -37,6 +38,8 @@ import androidx.compose.ui.text.font.FontWeight
 import id.my.matahati.absensi.data.AbsensiViewModel
 import java.time.LocalDate
 import java.time.YearMonth
+import androidx.compose.foundation.lazy.items
+
 
 class HalamanJadwal : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -53,37 +56,44 @@ class HalamanJadwal : ComponentActivity() {
 
 @Composable
 fun HalamanJadwalUI(scheduleViewModel: ScheduleViewModel = viewModel()) {
+    // --- ViewModel dan State ---
     val absensiViewModel: AbsensiViewModel = viewModel()
     val logs by absensiViewModel.logs.collectAsState()
     val loadingLog by absensiViewModel.loading.collectAsState()
     val errorLog by absensiViewModel.error.collectAsState()
 
+    val schedules by scheduleViewModel.schedules.collectAsState(initial = emptyList())
+    val isLoading by scheduleViewModel.loading.collectAsState()
+    val error by scheduleViewModel.error.collectAsState()
+
+    // --- State Kalender ---
     var currentMonth by remember { mutableStateOf(YearMonth.now()) }
     val today = remember { LocalDate.now() }
     var selectedDate by remember { mutableStateOf<LocalDate?>(today) }
 
+    // --- Context & Session ---
     val context = LocalContext.current
     val activity = context as? ComponentActivity
     val session = remember { SessionManager(context.applicationContext) }
 
     val storedId = session.getUserId()
     val userId = if (storedId != -1) storedId else activity?.intent?.getIntExtra("USER_ID", -1) ?: -1
-
-    val schedules by scheduleViewModel.schedules.collectAsState(initial = emptyList())
-    val isLoading by scheduleViewModel.loading.collectAsState()
-    val error by scheduleViewModel.error.collectAsState()
     var scanState by remember { mutableStateOf(session.getScanState()) }
 
+    // === State untuk tombol sort log ===
+    var isDescending by remember { mutableStateOf(true) }
+    val sortedLogs = if (isDescending) logs.sortedByDescending { it.waktu } else logs.sortedBy { it.waktu }
+
+    // --- Observasi perubahan scan state ---
     LaunchedEffect(Unit) {
         while (isActive) {
             val newState = session.getScanState()
-            if (newState != scanState) {
-                scanState = newState
-            }
+            if (newState != scanState) scanState = newState
             delay(2000L)
         }
     }
 
+    // --- Load jadwal & log ---
     LaunchedEffect(userId, currentMonth) {
         if (userId != -1) {
             val isOnline = id.my.matahati.absensi.utils.NetworkUtils.isOnline(context)
@@ -93,26 +103,30 @@ fun HalamanJadwalUI(scheduleViewModel: ScheduleViewModel = viewModel()) {
     }
 
     LaunchedEffect(userId) {
-        if (userId != -1) {
-            absensiViewModel.loadLogs(userId)
-        }
+        if (userId != -1) absensiViewModel.loadLogs(userId)
     }
 
-
-    // 🎨 Warna tema
-    val CalendarBackground = Color(0xFFF5F5F5)
-
-    // ✅ Ambil tinggi layar dari konfigurasi (bisa digunakan di luar BoxWithConstraints)
+    // --- Warna tema & ukuran layar ---
+    val calendarBackground = Color(0xFFF5F5F5)
     val configuration = LocalConfiguration.current
     val screenHeight = configuration.screenHeightDp.dp
 
-    // ====== UI UTAMA ======
+    // --- UI Utama ---
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.White)
     ) {
-        // ====== Konten dalam BoxWithConstraints (jadwal + kalender) ======
+        // === Shape atas dekoratif (box oranye solid) ===
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .align(Alignment.TopCenter)
+                .height(screenHeight * 0.25f)
+                .background(color = Color(0xFFFF6F51))
+        )
+
+        // ===== Konten utama =====
         BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()
@@ -123,30 +137,26 @@ fun HalamanJadwalUI(scheduleViewModel: ScheduleViewModel = viewModel()) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(bottom = screenHeight * 0.15f),
+                    .padding(top = screenHeight * 0.05f) // agar tidak tertutup shape oranye
+                    .padding(bottom = screenHeight * 0.10f),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
+                // === Judul ===
                 Text(
                     text = "Jadwal & Shift",
                     style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                    color = Color(0xFF333333),
-                    modifier = Modifier.padding(top = 25.dp)
+                    color = Color.White
                 )
 
-                when {
-                    isLoading -> Text("⏳ Memuat jadwal...", color = Color.Gray)
-                    error != null -> Text("⚠️ ${error}", color = Color.Red)
-                    schedules.isEmpty() -> Text("📭 Tidak ada jadwal tersedia", color = Color.Gray)
-                }
-
+                // === Card Kalender ===
                 if (schedules.isNotEmpty()) {
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(calendarHeight),
                         elevation = CardDefaults.cardElevation(6.dp),
-                        colors = CardDefaults.cardColors(containerColor = CalendarBackground),
+                        colors = CardDefaults.cardColors(containerColor = calendarBackground),
                         shape = RoundedCornerShape(12.dp)
                     ) {
                         CalendarCardContent(
@@ -159,87 +169,95 @@ fun HalamanJadwalUI(scheduleViewModel: ScheduleViewModel = viewModel()) {
                         )
                     }
                 }
-            }
 
-            // === Daftar Log Absensi ===
-            Spacer(modifier = Modifier.height(16.dp))
+                // === Spacer antar Card ===
+                Spacer(modifier = Modifier.height(2.dp))
 
-            Text(
-                text = "Log Absensi",
-                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                color = Color(0xFF333333)
-            )
+                // === Card Log Absensi (scrollable + header abu-abu) ===
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(200.dp),
+                    elevation = CardDefaults.cardElevation(6.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White)
+                ) {
+                    Column(modifier = Modifier.fillMaxSize()) {
 
-            when {
-                loadingLog -> Text("⏳ Memuat log absensi...", color = Color.Gray)
-                errorLog != null -> Text("⚠️ ${errorLog}", color = Color.Red)
-                logs.isEmpty() -> Text("📭 Belum ada log absensi", color = Color.Gray)
-                else -> {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 8.dp)
-                    ) {
-                        logs.forEach { log ->
-                            Card(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 4.dp),
-                                elevation = CardDefaults.cardElevation(3.dp),
-                                colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF3E0))
+                        // 🔹 Header abu-abu seperti kalender
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(Color(0xFF4C4C59))
+                                .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
+                                .padding(horizontal = 16.dp, vertical = 10.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Log Absensi",
+                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                color = Color.White
+                            )
+
+                            // 🔘 Tombol Sort Toggle
+                            TextButton(
+                                onClick = { isDescending = !isDescending },
+                                contentPadding = PaddingValues(0.dp)
                             ) {
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(12.dp),
-                                    horizontalArrangement = Arrangement.SpaceBetween
-                                ) {
-                                    Text("🕒 ${log.waktu}", color = Color(0xFF333333))
-                                    Text(
-                                        text = "ID: ${log.id}",
-                                        color = Color(0xFF757575),
-                                        style = MaterialTheme.typography.bodySmall
-                                    )
+                                Text(
+                                    text = if (isDescending) "Terbaru 🔽" else "Terlama 🔼",
+                                    color = Color.White,
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                            }
+                        }
+
+                        // 🔹 Isi log (scrollable)
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(Color(0xFFFFF9F2))
+                                .padding(12.dp)
+                        ) {
+                            when {
+                                loadingLog -> Text("⏳ Memuat log absensi...", color = Color.Gray)
+                                errorLog != null -> Text("⚠️ $errorLog", color = Color.Red)
+                                sortedLogs.isEmpty() -> Text("📭 Belum ada log absensi", color = Color.Gray)
+                                else -> {
+                                    LazyColumn(modifier = Modifier.fillMaxSize()) {
+                                        items(sortedLogs) { log ->
+                                            Card(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(vertical = 4.dp),
+                                                elevation = CardDefaults.cardElevation(2.dp),
+                                                colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF3E0))
+                                            ) {
+                                                Row(
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .padding(12.dp),
+                                                    horizontalArrangement = Arrangement.SpaceBetween
+                                                ) {
+                                                    Text(
+                                                        text = "🕒 ${log.waktu}",
+                                                        color = Color(0xFF333333)
+                                                    )
+                                                    Text(
+                                                        text = "ID: ${log.id}",
+                                                        color = Color(0xFF757575),
+                                                        style = MaterialTheme.typography.bodySmall
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }
                     }
                 }
-            }
-
-        }
-
-        // === Shape bawah (sekarang di luar BoxWithConstraints) ===
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .align(Alignment.BottomCenter)
-                .offset(y = (-screenHeight * 0.07f)) // 🔼 geser naik 4% dari tinggi layar
-                .height(screenHeight * 0.20f)
-        ) {
-            Canvas(modifier = Modifier.fillMaxSize()) {
-                val width = size.width
-                val height = size.height
-
-                // Lapisan pertama (abu kehijauan muda)
-                val path1 = Path().apply {
-                    moveTo(0f, height * 0.5f)
-                    quadraticBezierTo(width * 0.5f, 0f, width, height * 0.3f)
-                    lineTo(width, height)
-                    lineTo(0f, height)
-                    close()
-                }
-                drawPath(path = path1, color = Color(0xFFFF5722))
-
-                // Lapisan kedua (krem muda)
-                val path2 = Path().apply {
-                    moveTo(0f, height * 0.5f)
-                    quadraticBezierTo(width * 0.5f, height * 0.2f, width, height * 0.5f)
-                    lineTo(width, height)
-                    lineTo(0f, height)
-                    close()
-                }
-                drawPath(path = path2, color = Color(0xA3BF3200))
             }
         }
     }

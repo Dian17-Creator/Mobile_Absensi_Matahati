@@ -49,8 +49,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.foundation.background
 import android.os.Handler
 import android.os.Looper
+import android.widget.Toast
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.platform.LocalConfiguration
 import id.my.matahati.absensi.data.ScanResult
 import java.util.Locale
 
@@ -148,6 +150,9 @@ fun HalamanScanUI(
     val userName = if (storedUserId != -1) session.getUser()["name"]?.toString() ?: "" else userNameFromIntent
     val userEmail = if (storedUserId != -1) session.getUser()["email"]?.toString() ?: "" else userEmailFromIntent
 
+    val configuration = LocalConfiguration.current
+    val screenHeight = configuration.screenHeightDp.dp
+
     // ✅ Observe WorkManager sync result
     DisposableEffect(Unit) {
         val observer = androidx.lifecycle.Observer<List<androidx.work.WorkInfo>> { workInfos ->
@@ -178,17 +183,15 @@ fun HalamanScanUI(
             .fillMaxSize()
             .background(Color.White)
     ) {
-        // 🔶 Background oranye bagian atas
-//        Box(
-//            modifier = Modifier
-//                .fillMaxWidth()
-//                .fillMaxHeight(0.5f) // 30% layar bagian atas
-//                .clip(RoundedCornerShape(bottomStart = 30.dp, bottomEnd = 30.dp))
-//                .background(primaryColor)
-//                .align(Alignment.TopCenter)
-//        )
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .align(Alignment.TopCenter)
+                .height(screenHeight * 0.25f)
+                .background(color = Color(0xFFFF6F51))
+        )
 
-        // 🔹 Konten utama di atas background
+    // 🔹 Konten utama di atas background
         BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()
@@ -259,7 +262,6 @@ fun HalamanScanUI(
                         )
                     }
                 }
-
                 // 🔹 Hasil scan
                 when (scanResult) {
                     is ScanResult.Message -> Text(
@@ -289,6 +291,7 @@ fun HalamanScanUI(
                     }
                 }
 
+                // 🔹 Tombol sejajar
                 // 🔹 Tombol sejajar
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -328,6 +331,23 @@ fun HalamanScanUI(
                     ) {
                         Text("Logout")
                     }
+                }
+
+                Button(
+                    onClick = {
+                        val intent = Intent(context, HalamanManual::class.java)
+                        context.startActivity(intent)
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(buttonHeight),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF4C4C59),
+                        contentColor = Color.White
+                    ),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text("Absen Manual")
                 }
             }
         }
