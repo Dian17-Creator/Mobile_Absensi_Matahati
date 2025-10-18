@@ -6,10 +6,11 @@ import retrofit2.http.Query
 
 
 interface ApiService {
-    @GET("schedule.php?api=1")
+    @GET("api/schedule/{userId}")
     suspend fun getUserSchedules(
-        @Query("userid") userId: Int
+        @Path("userId") userId: Int
     ): List<UserSchedule>
+
 
     @GET("api/logs/{userId}")
     suspend fun getLogsByUser(@Path("userId") userId: Int): ApiResponse
