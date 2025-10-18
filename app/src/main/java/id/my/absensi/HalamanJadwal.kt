@@ -27,8 +27,6 @@ import androidx.compose.ui.draw.clip
 import id.my.matahati.absensi.worker.enqueueScheduleSyncWorker
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
-import kotlin.io.path.Path
-import kotlin.io.path.moveTo
 import kotlin.math.abs
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -36,6 +34,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
+import id.my.matahati.absensi.data.AbsensiViewModel
 import java.time.LocalDate
 import java.time.YearMonth
 
@@ -52,9 +51,13 @@ class HalamanJadwal : ComponentActivity() {
     }
 }
 
-
 @Composable
 fun HalamanJadwalUI(scheduleViewModel: ScheduleViewModel = viewModel()) {
+    val absensiViewModel: AbsensiViewModel = viewModel()
+    val logs by absensiViewModel.logs.collectAsState()
+    val loadingLog by absensiViewModel.loading.collectAsState()
+    val errorLog by absensiViewModel.error.collectAsState()
+
     var currentMonth by remember { mutableStateOf(YearMonth.now()) }
     val today = remember { LocalDate.now() }
     var selectedDate by remember { mutableStateOf<LocalDate?>(today) }
@@ -89,6 +92,13 @@ fun HalamanJadwalUI(scheduleViewModel: ScheduleViewModel = viewModel()) {
         }
     }
 
+    LaunchedEffect(userId) {
+        if (userId != -1) {
+            absensiViewModel.loadLogs(userId)
+        }
+    }
+
+
     // 🎨 Warna tema
     val CalendarBackground = Color(0xFFF5F5F5)
 
@@ -121,7 +131,7 @@ fun HalamanJadwalUI(scheduleViewModel: ScheduleViewModel = viewModel()) {
                     text = "Jadwal & Shift",
                     style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
                     color = Color(0xFF333333),
-                    modifier = Modifier.padding(top = 15.dp)
+                    modifier = Modifier.padding(top = 25.dp)
                 )
 
                 when {
@@ -150,6 +160,53 @@ fun HalamanJadwalUI(scheduleViewModel: ScheduleViewModel = viewModel()) {
                     }
                 }
             }
+
+            // === Daftar Log Absensi ===
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Text(
+                text = "Log Absensi",
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                color = Color(0xFF333333)
+            )
+
+            when {
+                loadingLog -> Text("⏳ Memuat log absensi...", color = Color.Gray)
+                errorLog != null -> Text("⚠️ ${errorLog}", color = Color.Red)
+                logs.isEmpty() -> Text("📭 Belum ada log absensi", color = Color.Gray)
+                else -> {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 8.dp)
+                    ) {
+                        logs.forEach { log ->
+                            Card(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 4.dp),
+                                elevation = CardDefaults.cardElevation(3.dp),
+                                colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF3E0))
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(12.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text("🕒 ${log.waktu}", color = Color(0xFF333333))
+                                    Text(
+                                        text = "ID: ${log.id}",
+                                        color = Color(0xFF757575),
+                                        style = MaterialTheme.typography.bodySmall
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
         }
 
         // === Shape bawah (sekarang di luar BoxWithConstraints) ===
@@ -157,7 +214,8 @@ fun HalamanJadwalUI(scheduleViewModel: ScheduleViewModel = viewModel()) {
             modifier = Modifier
                 .fillMaxWidth()
                 .align(Alignment.BottomCenter)
-                .height(screenHeight * 0.18f)
+                .offset(y = (-screenHeight * 0.07f)) // 🔼 geser naik 4% dari tinggi layar
+                .height(screenHeight * 0.20f)
         ) {
             Canvas(modifier = Modifier.fillMaxSize()) {
                 val width = size.width
@@ -165,13 +223,13 @@ fun HalamanJadwalUI(scheduleViewModel: ScheduleViewModel = viewModel()) {
 
                 // Lapisan pertama (abu kehijauan muda)
                 val path1 = Path().apply {
-                    moveTo(10f, height * 0.5f)
+                    moveTo(0f, height * 0.5f)
                     quadraticBezierTo(width * 0.5f, 0f, width, height * 0.3f)
                     lineTo(width, height)
                     lineTo(0f, height)
                     close()
                 }
-                drawPath(path = path1, color = Color(0xFFDAD4B0))
+                drawPath(path = path1, color = Color(0xFFFF5722))
 
                 // Lapisan kedua (krem muda)
                 val path2 = Path().apply {
@@ -181,7 +239,7 @@ fun HalamanJadwalUI(scheduleViewModel: ScheduleViewModel = viewModel()) {
                     lineTo(0f, height)
                     close()
                 }
-                drawPath(path = path2, color = Color(0xFFFAF6D8))
+                drawPath(path = path2, color = Color(0xA3BF3200))
             }
         }
     }
@@ -336,8 +394,6 @@ private fun DayCell(
                         fontWeight = if (isSunday) FontWeight.Bold else FontWeight.Normal
                     )
                 )
-
-                // 🔹 Titik kecil warna dinamis sesuai shift
                 scheduleForDate?.let {
                     val colorDot = generateColorFromShift(it.cschedname)
                     Box(
