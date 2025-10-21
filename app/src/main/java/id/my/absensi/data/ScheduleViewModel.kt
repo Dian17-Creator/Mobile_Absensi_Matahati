@@ -62,28 +62,36 @@ class ScheduleViewModel(application: Application) : AndroidViewModel(application
             if (isConnected) {
                 try {
                     val response = ApiClient.apiService.getUserSchedules(userId)
-                    if (!response.isNullOrEmpty()) {
-                        // Filter hanya jadwal dalam 1 minggu sebelum dan sesudah minggu ini
-                        val filtered = response.filter { schedule ->
-                            val date = LocalDate.parse(schedule.dwork, formatter)
-                            !date.isBefore(LocalDate.parse(startDate)) && !date.isAfter(LocalDate.parse(endDate))
-                        }
 
-                        withContext(Dispatchers.IO) {
-                            filtered.forEach { item ->
-                                val fixedItem = if (item.nuserid == 0) item.copy(nuserid = userId) else item
-                                dao.insert(fixedItem)
+                    if (response.isSuccessful) {
+                        val serverData = response.body() ?: emptyList()
+
+                        if (serverData.isNotEmpty()) {
+                            // Filter hanya jadwal dalam 1 minggu sebelum dan sesudah minggu ini
+                            val filtered = serverData.filter { schedule ->
+                                val date = LocalDate.parse(schedule.dwork, formatter)
+                                !date.isBefore(LocalDate.parse(startDate)) && !date.isAfter(LocalDate.parse(endDate))
                             }
 
-                            // Bersihkan data di luar 30 hari untuk efisiensi
-                            val cleanupStart = today.minusDays(30).format(formatter)
-                            dao.deleteOutOfRange(userId, cleanupStart, endDate)
-                        }
+                            withContext(Dispatchers.IO) {
+                                filtered.forEach { item ->
+                                    val fixedItem = if (item.nuserid == 0) item.copy(nuserid = userId) else item
+                                    dao.insert(fixedItem)
+                                }
 
-                        _schedules.value = filtered
+                                // Bersihkan data di luar 30 hari untuk efisiensi
+                                val cleanupStart = today.minusDays(30).format(formatter)
+                                dao.deleteOutOfRange(userId, cleanupStart, endDate)
+                            }
+
+                            _schedules.value = filtered
+                        } else {
+                            _error.value = "Data dari server kosong"
+                        }
                     } else {
-                        _error.value = "Data dari server kosong"
+                        _error.value = "HTTP ${response.code()} - Gagal memuat data jadwal"
                     }
+
                 } catch (e: Exception) {
                     e.printStackTrace()
                     _error.value = "Gagal mengambil data dari server: ${e.localizedMessage}"
