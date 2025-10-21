@@ -67,7 +67,7 @@ dependencies {
     // Calendar library
     implementation("com.kizitonwose.calendar:compose:2.4.0")
     // ML Kit
-    implementation("com.google.mlkit:barcode-scanning:17.2.0")
+    implementation("com.google.android.gms:play-services-mlkit-barcode-scanning:18.3.0")
 
     // CameraX
     implementation("androidx.camera:camera-core:$camerax_version")
@@ -92,8 +92,6 @@ dependencies {
     implementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(platform(libs.androidx.compose.bom))
 
-    // ⚠️ Ganti ini
-    implementation("androidx.compose.material:material-icons-extended")
     // Dengan yang lebih kecil:
     implementation("androidx.compose.material:material-icons-core")
 

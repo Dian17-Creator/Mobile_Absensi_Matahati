@@ -1,6 +1,7 @@
 package id.my.matahati.absensi.data
 
 import android.app.Application
+import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import id.my.matahati.absensi.MyApp
@@ -12,6 +13,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 class AbsensiViewModel(application: Application) : AndroidViewModel(application) {
+
     private val _logs = MutableStateFlow<List<AbsensiLog>>(emptyList())
     val logs: StateFlow<List<AbsensiLog>> = _logs
 
@@ -29,49 +31,60 @@ class AbsensiViewModel(application: Application) : AndroidViewModel(application)
             _loading.value = true
             _error.value = null
 
-            val localData = withContext(Dispatchers.IO) {
-                dao.getLogsForUser(userId)
-            }
+            try {
+                // Ambil data lokal dulu
+                val localData = withContext(Dispatchers.IO) {
+                    dao.getLogsForUser(userId)
+                }
 
-            if (localData.isNotEmpty()) _logs.value = localData
+                if (localData.isNotEmpty()) {
+                    _logs.value = localData
+                    Log.d("ABSENSI_LOGS", "Loaded ${localData.size} local logs")
+                }
 
-            val isConnected = NetworkUtils.isOnline(context)
-            if (isConnected) {
-                try {
+                if (NetworkUtils.isOnline(context)) {
                     val response = ApiClient.apiService.getLogsByUser(userId)
-                    val remoteLogs = response.data
+                    if (response.isSuccessful) {
+                        val remoteLogs = response.body() ?: emptyList()
 
-                    // ✅ Ubah dari JSON ke entity Room
-                    val mappedLogs = remoteLogs.map { api ->
-                        AbsensiLog(
-                            id = api.nid,
-                            user_id = api.nuserId,
-                            waktu = api.dscanned,
-                            scan = "${api.nlat ?: "-"}, ${api.nlng ?: "-"}",
-                            approved_by = api.nadminid?.toString() ?: "-"
-                        )
-                    }
+                        if (remoteLogs.isNotEmpty()) {
+                            val mappedLogs = remoteLogs.map { api ->
+                                AbsensiLog(
+                                    id = api.nid,
+                                    user_id = api.nuserId,
+                                    waktu = api.dscanned,
+                                    scan = "${api.nlat ?: "-"}, ${api.nlng ?: "-"}",
+                                    approved_by = api.nadminid?.toString() ?: "-"
+                                )
+                            }
 
-                    if (mappedLogs.isNotEmpty()) {
-                        _logs.value = mappedLogs
-                        withContext(Dispatchers.IO) {
-                            dao.insertAll(mappedLogs)
+                            // Simpan ke DB di thread IO
+                            withContext(Dispatchers.IO) {
+                                dao.insertAll(mappedLogs)
+                            }
+
+                            // Update UI di thread utama
+                            _logs.value = mappedLogs
+                            Log.d("ABSENSI_LOGS", "Fetched ${mappedLogs.size} remote logs")
+                        } else {
+                            _error.value = "Data log kosong dari server"
+                            Log.w("ABSENSI_LOGS", "Empty data from API")
                         }
                     } else {
-                        _error.value = "Data log kosong dari server"
+                        _error.value = "HTTP ${response.code()} - Gagal memuat data log"
+                        Log.e("ABSENSI_LOGS", "HTTP ${response.code()} - ${response.errorBody()?.string()}")
                     }
-
-                } catch (e: Exception) {
-                    _error.value = "Gagal mengambil data: ${e.localizedMessage}"
+                } else {
+                    if (localData.isEmpty()) {
+                        _error.value = "Tidak ada koneksi dan data lokal kosong"
+                    }
                 }
-            } else {
-                if (localData.isEmpty()) {
-                    _error.value = "Tidak ada koneksi dan data lokal kosong"
-                }
-                _logs.value = localData
+            } catch (e: Exception) {
+                Log.e("ABSENSI_LOGS", "Error: ${e.message}", e)
+                _error.value = "Gagal mengambil data: ${e.localizedMessage ?: "Unknown error"}"
+            } finally {
+                _loading.value = false
             }
-
-            _loading.value = false
         }
     }
 }

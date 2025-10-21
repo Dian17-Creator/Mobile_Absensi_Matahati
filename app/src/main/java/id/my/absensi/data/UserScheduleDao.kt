@@ -71,4 +71,7 @@ interface UserScheduleDao {
         userId: Int,
         date: String
     ): UserSchedule?
+
+    @Query("DELETE FROM tuserschedule WHERE nuserid = :userId")
+    suspend fun deleteAllForUser(userId: Int)
 }

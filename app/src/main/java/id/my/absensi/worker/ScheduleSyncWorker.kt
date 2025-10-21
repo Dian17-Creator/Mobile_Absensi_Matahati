@@ -29,12 +29,26 @@ class ScheduleSyncWorker(
             val dao = MyApp.db.userScheduleDao()
             val response = api.getUserSchedules(userId)
 
-            if (!response.isNullOrEmpty()) {
-                // Hapus data lama dan simpan yang baru
-                response.forEach { dao.insert(it) }
+            if (response.isSuccessful) {
+                val schedules = response.body() ?: emptyList()
+
+                if (schedules.isNotEmpty()) {
+                    // Hapus data lama dulu
+                    dao.deleteAllForUser(userId)
+
+                    // Simpan data baru
+                    schedules.forEach { item ->
+                        val fixedItem = if (item.nuserid == 0) item.copy(nuserid = userId) else item
+                        dao.insert(fixedItem)
+                    }
+                }
+
+                Result.success()
+            } else {
+                // Kalau gagal (misal 404/500), coba lagi nanti
+                Result.retry()
             }
 
-            Result.success()
         } catch (e: Exception) {
             e.printStackTrace()
             Result.retry() // coba lagi nanti kalau gagal
