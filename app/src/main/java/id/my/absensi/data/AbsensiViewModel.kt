@@ -32,7 +32,7 @@ class AbsensiViewModel(application: Application) : AndroidViewModel(application)
             _error.value = null
 
             try {
-                // Ambil data lokal dulu
+                // 🗂️ Ambil data lokal terlebih dahulu
                 val localData = withContext(Dispatchers.IO) {
                     dao.getLogsForUser(userId)
                 }
@@ -42,45 +42,52 @@ class AbsensiViewModel(application: Application) : AndroidViewModel(application)
                     Log.d("ABSENSI_LOGS", "Loaded ${localData.size} local logs")
                 }
 
+                // 🌐 Kalau online → ambil dari server
                 if (NetworkUtils.isOnline(context)) {
                     val response = ApiClient.apiService.getLogsByUser(userId)
+
                     if (response.isSuccessful) {
                         val remoteLogs = response.body() ?: emptyList()
 
                         if (remoteLogs.isNotEmpty()) {
+                            // 🔁 Konversi dari model API ke Room model
                             val mappedLogs = remoteLogs.map { api ->
                                 AbsensiLog(
                                     id = api.nid,
                                     user_id = api.nuserId,
                                     waktu = api.dscanned,
                                     scan = "${api.nlat ?: "-"}, ${api.nlng ?: "-"}",
-                                    approved_by = api.nadminid?.toString() ?: "-"
+                                    approved_by = api.nadminid?.toString() ?: "-",
+                                    typeAbsensi = api.typeAbsensi ?: "scan" // 🔥 tambahkan ini!
                                 )
                             }
 
-                            // Simpan ke DB di thread IO
+
+                            // 💾 Simpan ke Room di background
                             withContext(Dispatchers.IO) {
                                 dao.insertAll(mappedLogs)
                             }
 
-                            // Update UI di thread utama
+                            // 🔄 Update UI dengan data terbaru
                             _logs.value = mappedLogs
                             Log.d("ABSENSI_LOGS", "Fetched ${mappedLogs.size} remote logs")
                         } else {
-                            _error.value = "Data log kosong dari server"
-                            Log.w("ABSENSI_LOGS", "Empty data from API")
+                            _error.value = "⚠️ Data log kosong dari server"
+                            Log.w("ABSENSI_LOGS", "Empty response body")
                         }
                     } else {
-                        _error.value = "HTTP ${response.code()} - Gagal memuat data log"
-                        Log.e("ABSENSI_LOGS", "HTTP ${response.code()} - ${response.errorBody()?.string()}")
+                        val msg = "HTTP ${response.code()} - Gagal memuat data log"
+                        _error.value = msg
+                        Log.e("ABSENSI_LOGS", msg)
                     }
                 } else {
                     if (localData.isEmpty()) {
                         _error.value = "Tidak ada koneksi dan data lokal kosong"
                     }
                 }
+
             } catch (e: Exception) {
-                Log.e("ABSENSI_LOGS", "Error: ${e.message}", e)
+                Log.e("ABSENSI_LOGS", "Error loadLogs(): ${e.message}", e)
                 _error.value = "Gagal mengambil data: ${e.localizedMessage ?: "Unknown error"}"
             } finally {
                 _loading.value = false

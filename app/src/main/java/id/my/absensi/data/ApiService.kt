@@ -16,5 +16,5 @@ interface ApiService {
     @GET("api/logs/{userId}")
     suspend fun getLogsByUser(
         @Path("userId") userId: Int
-    ): Response<List<AbsensiApiModel>>
+    ): Response<List<AbsensiLogRemote>>
 }

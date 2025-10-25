@@ -40,6 +40,7 @@ import java.util.*
 import java.util.concurrent.TimeUnit
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import org.json.JSONObject
 
 class HalamanIzin : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -63,7 +64,8 @@ fun HalamanIzinUI() {
     val coroutineScope = rememberCoroutineScope()
 
     val date = remember { mutableStateOf("") }
-    val location = remember { mutableStateOf("Mencari lokasi...") }
+    val locationName = remember { mutableStateOf("Mencari lokasi...") } // tampil di UI
+    val coordinate = remember { mutableStateOf("") } // dikirim ke server
     val reason = remember { mutableStateOf("") }
     val photoUri = remember { mutableStateOf<Uri?>(null) }
     val message = remember { mutableStateOf("") }
@@ -77,7 +79,7 @@ fun HalamanIzinUI() {
         date.value = sdf.format(Date())
     }
 
-    // Ambil lokasi otomatis
+    // Ambil lokasi otomatis pakai Nominatim API
     LaunchedEffect(Unit) {
         val fusedLocationClient = LocationServices.getFusedLocationProviderClient(activity)
         val permissions = arrayOf(
@@ -88,14 +90,52 @@ fun HalamanIzinUI() {
             ContextCompat.checkSelfPermission(activity, it) ==
                     android.content.pm.PackageManager.PERMISSION_GRANTED
         }
+
         if (allGranted) {
             fusedLocationClient.lastLocation.addOnSuccessListener { loc ->
-                location.value =
-                    if (loc != null) "${loc.latitude},${loc.longitude}" else "Lokasi tidak tersedia"
+                if (loc != null) {
+                    coordinate.value = "${loc.latitude},${loc.longitude}"
+
+                    coroutineScope.launch(Dispatchers.IO) {
+                        try {
+                            val client = OkHttpClient()
+                            val url =
+                                "https://nominatim.openstreetmap.org/reverse?lat=${loc.latitude}&lon=${loc.longitude}&format=json&addressdetails=1"
+
+                            val request = Request.Builder()
+                                .url(url)
+                                .addHeader("User-Agent", "MatahatiApp/1.0 (mailto:admin@matahati.my.id)")
+                                .build()
+
+                            val response = client.newCall(request).execute()
+                            val json = response.body?.string()
+                            if (response.isSuccessful && json != null) {
+                                val obj = JSONObject(json)
+                                val displayName = obj.optString("display_name", "")
+                                withContext(Dispatchers.Main) {
+                                    locationName.value =
+                                        if (displayName.isNotBlank()) displayName
+                                        else coordinate.value
+                                }
+                            } else {
+                                withContext(Dispatchers.Main) {
+                                    locationName.value = coordinate.value
+                                }
+                            }
+                        } catch (e: Exception) {
+                            Log.e("HalamanIzin", "Nominatim error: ${e.message}")
+                            withContext(Dispatchers.Main) {
+                                locationName.value = coordinate.value
+                            }
+                        }
+                    }
+                } else {
+                    locationName.value = "Lokasi tidak tersedia"
+                }
             }
         } else {
             ActivityCompat.requestPermissions(activity, permissions, 1001)
-            location.value = "Menunggu izin lokasi..."
+            locationName.value = "Menunggu izin lokasi..."
         }
     }
 
@@ -139,7 +179,7 @@ fun HalamanIzinUI() {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // 🔹 Preview Foto
+        // Preview Foto
         photoUri.value?.let {
             Image(
                 painter = rememberAsyncImagePainter(it),
@@ -153,7 +193,6 @@ fun HalamanIzinUI() {
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // 🔹 Ambil Foto (full width)
         Button(
             onClick = { launcher.launch(null) },
             enabled = !isLoading.value,
@@ -171,32 +210,32 @@ fun HalamanIzinUI() {
 
         Spacer(modifier = Modifier.height(16.dp))
 
+        // Field Tanggal
+        OutlinedTextField(
+            value = date.value,
+            onValueChange = {},
+            label = { Text("Tanggal") },
+            enabled = false,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp)
+        )
 
-        // 🔹 Baris tanggal dan lokasi (fit & sisa ruang)
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            OutlinedTextField(
-                value = date.value,
-                onValueChange = {},
-                label = { Text("Tanggal") },
-                enabled = false,
-                modifier = Modifier
-                    .width(120.dp)
-            )
-            OutlinedTextField(
-                value = location.value,
-                onValueChange = {},
-                label = { Text("Lokasi") },
-                enabled = false,
-                modifier = Modifier.weight(1f)
-            )
-        }
+        // Field Lokasi (alamat readable dari Nominatim)
+        OutlinedTextField(
+            value = "📍 ${locationName.value}",
+            onValueChange = {},
+            label = { Text("Lokasi") },
+            enabled = false,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp),
+            maxLines = 2
+        )
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // 🔹 Alasan Izin
+        // Alasan
         OutlinedTextField(
             value = reason.value,
             onValueChange = { reason.value = it },
@@ -210,9 +249,9 @@ fun HalamanIzinUI() {
                 .fillMaxWidth()
                 .height(120.dp)
         )
+
         Spacer(modifier = Modifier.height(16.dp))
 
-        // 🔹 Tombol Kirim
         Button(
             onClick = {
                 coroutineScope.launch {
@@ -230,15 +269,17 @@ fun HalamanIzinUI() {
                     errorDetail.value = null
 
                     val result = uploadRequest(
-                        date.value,
-                        location.value,
-                        reason.value.trim(),
-                        photoUri.value!!,
-                        activity
+                        date = date.value,
+                        coordinate = coordinate.value,
+                        placeName = locationName.value,
+                        reason = reason.value.trim(),
+                        photoUri = photoUri.value!!,
+                        context = activity
                     )
 
                     isLoading.value = false
-                    message.value = if (result.success) "✅ ${result.message}" else "❌ ${result.message}"
+                    message.value =
+                        if (result.success) "✅ ${result.message}" else "❌ ${result.message}"
                     errorDetail.value = result.errorDetail
                 }
             },
@@ -267,7 +308,6 @@ fun HalamanIzinUI() {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // 🔹 Status message
         if (message.value.isNotEmpty()) {
             Column(
                 modifier = Modifier.fillMaxWidth(),
@@ -291,20 +331,21 @@ fun HalamanIzinUI() {
     }
 }
 
-/**
- * Data class untuk hasil upload
- */
+/* Upload + Helper tetap sama */
+/* -------------------------------
+   🔹 Bagian Upload dan Helper
+-------------------------------- */
 suspend fun uploadRequest(
     date: String,
-    location: String,
+    coordinate: String, // kirim nlat,nlng
+    placeName: String,  // kirim cplacename
     reason: String,
-    photoUri: Uri,
-    context: Context
+    photoUri: Uri,      // URI dari gambar
+    context: Context    // context untuk ambil session dll
 ): UploadResult = withContext(Dispatchers.IO) {
     try {
-        Log.d("HalamanIzin", "uploadRequest(JSON): date=$date location=$location reasonLen=${reason.length} uri=${photoUri.path}")
+        Log.d("HalamanIzin", "uploadRequest: date=$date loc=$coordinate name=$placeName reasonLen=${reason.length}")
 
-        // ✅ Ambil userId dengan fallback dari Intent jika session kosong
         val session = SessionManager(context.applicationContext)
         val userIdFromSession = session.getUserId()
         val activity = context as? ComponentActivity
@@ -315,33 +356,24 @@ suspend fun uploadRequest(
         }
 
         if (userId == -1) {
-            Log.e("HalamanIzin", "User ID tidak ditemukan, mungkin user belum login.")
-            return@withContext UploadResult(
-                success = false,
-                message = "⚠️ Gagal mengirim izin: data user tidak ditemukan",
-                errorDetail = "User ID invalid (-1)"
-            )
+            return@withContext UploadResult(false, "⚠️ Gagal mengirim izin: user tidak ditemukan", "User ID invalid")
         }
 
-        // Konversi foto ke Base64
         val file = getFileFromUri(photoUri, context)
         if (file == null || !file.exists()) {
-            return@withContext UploadResult(
-                success = false,
-                message = "Foto tidak ditemukan",
-                errorDetail = "Path: ${photoUri.path}"
-            )
+            return@withContext UploadResult(false, "Foto tidak ditemukan", "Path: ${photoUri.path}")
         }
 
         val bytes = file.readBytes()
         val base64Image = android.util.Base64.encodeToString(bytes, android.util.Base64.NO_WRAP)
 
-        // JSON body
+        // ✅ JSON body termasuk placeName
         val jsonBody = """
         {
             "userId": "$userId",
             "requestDate": "$date",
-            "location": "$location",
+            "location": "$coordinate",
+            "placeName": "$placeName",
             "reason": "$reason",
             "photoBase64": "$base64Image"
         }
@@ -353,7 +385,6 @@ suspend fun uploadRequest(
             .build()
 
         val body = jsonBody.toRequestBody("application/json".toMediaTypeOrNull())
-
         val request = Request.Builder()
             .url("https://absensi.matahati.my.id/user_request_mobile.php")
             .post(body)
@@ -405,30 +436,16 @@ private fun getFileFromUri(uri: Uri, context: Context): File? {
 private fun parseJsonResponse(jsonString: String): UploadResult {
     return try {
         if (jsonString.contains("<!DOCTYPE HTML") || jsonString.contains("<html>")) {
-            return UploadResult(
-                success = false,
-                message = "Server mengembalikan halaman HTML",
-                errorDetail = "Kemungkinan endpoint salah atau bukan JSON."
-            )
+            return UploadResult(false, "Server mengembalikan halaman HTML", "Endpoint salah / bukan JSON.")
         }
 
-        var success = false
-        var message = "Unknown response"
-
-        if (jsonString.contains("\"success\":true") || jsonString.contains("'success':true")) {
-            success = true
-        }
-
+        val success = jsonString.contains("\"success\":true") || jsonString.contains("'success':true")
         val messageMatch = """"message"\s*:\s*"([^"]*)"""".toRegex().find(jsonString)
-        message = messageMatch?.groupValues?.get(1)
+        val message = messageMatch?.groupValues?.get(1)
             ?: if (success) "Request berhasil" else "Request gagal"
 
         UploadResult(success, message)
     } catch (e: Exception) {
-        UploadResult(
-            success = false,
-            message = "Gagal parsing respons JSON",
-            errorDetail = e.message
-        )
+        UploadResult(false, "Gagal parsing JSON", e.message)
     }
 }

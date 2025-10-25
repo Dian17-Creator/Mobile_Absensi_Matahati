@@ -39,6 +39,7 @@ import id.my.matahati.absensi.data.AbsensiViewModel
 import java.time.LocalDate
 import java.time.YearMonth
 import androidx.compose.foundation.lazy.items
+import androidx.compose.ui.unit.sp
 
 
 class HalamanJadwal : ComponentActivity() {
@@ -227,32 +228,28 @@ fun HalamanJadwalUI(scheduleViewModel: ScheduleViewModel = viewModel()) {
                                 else -> {
                                     LazyColumn(modifier = Modifier.fillMaxSize()) {
                                         items(sortedLogs) { log ->
+                                            val bgColor = when (log.typeAbsensi) {
+                                                "manual" -> Color(0xFFFFF59D) // kuning lembut
+                                                "scan" -> Color(0xFFC8D7E6) // hijau lembut
+                                                else -> Color.White
+                                            }
+
                                             Card(
                                                 modifier = Modifier
                                                     .fillMaxWidth()
                                                     .padding(vertical = 4.dp),
-                                                elevation = CardDefaults.cardElevation(2.dp),
-                                                colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF3E0))
+                                                colors = CardDefaults.cardColors(containerColor = bgColor),
+                                                elevation = CardDefaults.cardElevation(2.dp)
                                             ) {
-                                                Row(
-                                                    modifier = Modifier
-                                                        .fillMaxWidth()
-                                                        .padding(12.dp),
-                                                    horizontalArrangement = Arrangement.SpaceBetween
-                                                ) {
-                                                    Text(
-                                                        text = "🕒 ${log.waktu}",
-                                                        color = Color(0xFF333333)
-                                                    )
-                                                    Text(
-                                                        text = "ID: ${log.id}",
-                                                        color = Color(0xFF757575),
-                                                        style = MaterialTheme.typography.bodySmall
-                                                    )
+                                                Column(modifier = Modifier.padding(12.dp)) {
+                                                    Text("${log.waktu}", fontWeight = FontWeight.Bold)
+                                                    Text("Jenis: ${log.typeAbsensi?.uppercase() ?: "-"}")
+
                                                 }
                                             }
                                         }
                                     }
+
                                 }
                             }
                         }

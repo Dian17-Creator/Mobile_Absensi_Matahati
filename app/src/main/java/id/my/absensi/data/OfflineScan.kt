@@ -10,6 +10,7 @@ data class OfflineScan(
     val userId: Int,
     val lat: Double,
     val lng: Double,
+    val cplacename: String? = null,
     val timestamp: Long = System.currentTimeMillis(),
     var status: String = "accepted"
 )
