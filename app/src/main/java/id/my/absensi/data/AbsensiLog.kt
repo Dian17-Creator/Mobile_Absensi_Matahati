@@ -8,6 +8,7 @@ data class AbsensiLog(
     @PrimaryKey val id: Int,
     val user_id: Int,
     val waktu: String,
-    val scan: String? = null,
-    val approved_by: String? = null
+    val scan: String?,
+    val approved_by: String?,
+    val typeAbsensi: String? // 🔥 Tambahkan ini
 )

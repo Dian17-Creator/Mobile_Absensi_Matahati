@@ -9,6 +9,7 @@ import android.view.animation.AccelerateDecelerateInterpolator
 import android.widget.Toast
 import android.animation.ObjectAnimator
 import android.animation.PropertyValuesHolder
+import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -19,6 +20,7 @@ import com.google.android.material.navigation.NavigationBarView
 import id.my.matahati.absensi.fragment.HomeFragment
 import id.my.matahati.absensi.fragment.JadwalFragment
 import id.my.matahati.absensi.fragment.PasswordFragment
+import java.io.File
 
 class MainActivity : AppCompatActivity() {
 
@@ -35,6 +37,10 @@ class MainActivity : AppCompatActivity() {
 
         val isLoggedIn = session.isLoggedIn()
         val rememberMe = session.isRememberMe()
+        val sessionPrefs = getSharedPreferences("user_session", MODE_PRIVATE)
+        val email = sessionPrefs.getString("email", null)
+        Log.d("SESSION_DEBUG", "Email in session: $email")
+
 
         // 🔹 Kalau belum login → pindah ke Login
         if (!isLoggedIn) {
@@ -56,7 +62,6 @@ class MainActivity : AppCompatActivity() {
         val bottomNav = findViewById<BottomNavigationView>(R.id.bottom_navigation)
         replaceFragment(HomeFragment()) // default fragment
 
-        // Tampilkan hanya label untuk item yang dipilih
         bottomNav.labelVisibilityMode = NavigationBarView.LABEL_VISIBILITY_SELECTED
 
         // Atur skala awal untuk animasi ikon
@@ -80,7 +85,6 @@ class MainActivity : AppCompatActivity() {
             val selectedView = bottomNav.findViewById<View>(item.itemId)
             val selectedIcon = selectedView?.findViewById<View>(com.google.android.material.R.id.icon)
 
-            // animasi ikon aktif
             selectedIcon?.let {
                 ObjectAnimator.ofPropertyValuesHolder(
                     it,
@@ -93,7 +97,6 @@ class MainActivity : AppCompatActivity() {
                 }
             }
 
-            // animasi ikon sebelumnya kembali normal
             if (lastSelectedItemId != item.itemId) {
                 val prevView = bottomNav.findViewById<View>(lastSelectedItemId)
                 val prevIcon = prevView?.findViewById<View>(com.google.android.material.R.id.icon)
@@ -121,7 +124,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    // 🔹 Fungsi untuk cek & minta izin kamera + lokasi
     private fun checkAndRequestPermissions() {
         val permissionsToRequest = mutableListOf<String>()
 
@@ -152,7 +154,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    // 🔹 Tanggapan setelah user memberi/menolak izin
     override fun onRequestPermissionsResult(
         requestCode: Int,
         permissions: Array<out String>,
@@ -199,5 +200,24 @@ class MainActivity : AppCompatActivity() {
             transaction.setMaxLifecycle(fragment, Lifecycle.State.RESUMED)
         }
         transaction.commit()
+    }
+
+    // 🔹 Bersihkan cache otomatis saat aplikasi ditutup
+    override fun onStop() {
+        super.onStop()
+        clearAppCache()
+    }
+
+    private fun clearAppCache() {
+        try {
+            val cacheDir: File = cacheDir
+            if (cacheDir.exists()) {
+                cacheDir.deleteRecursively()
+            }
+            val externalCache: File? = externalCacheDir
+            externalCache?.deleteRecursively()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 }

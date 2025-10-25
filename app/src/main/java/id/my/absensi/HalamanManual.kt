@@ -3,11 +3,15 @@ package id.my.matahati.absensi
 import android.Manifest
 import android.app.Activity
 import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -24,6 +28,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import coil.compose.rememberAsyncImagePainter
 import com.google.android.gms.location.LocationServices
 import kotlinx.coroutines.Dispatchers
@@ -33,16 +38,11 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import java.io.File
+import java.io.FileOutputStream
 import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.TimeUnit
-import androidx.core.content.ContextCompat
-import id.my.absensi.ui.CameraPage
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
-import java.io.File
-import java.io.FileOutputStream
-
 
 class HalamanManual : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -65,13 +65,11 @@ fun HalamanManualUI() {
     val activity = LocalContext.current as Activity
     val coroutineScope = rememberCoroutineScope()
 
-    // ✅ state untuk kamera
-    var showCamera by remember { mutableStateOf(false) }
-    var photoFile by remember { mutableStateOf<File?>(null) }
-
     val date = remember { mutableStateOf("") }
     val location = remember { mutableStateOf("Mencari lokasi...") }
+    val coords = remember { mutableStateOf(Pair("0", "0")) } // ✅ koordinat asli
     val reason = remember { mutableStateOf("") }
+    val photoUri = remember { mutableStateOf<Uri?>(null) }
     val message = remember { mutableStateOf("") }
     val isLoading = remember { mutableStateOf(false) }
     val errorDetail = remember { mutableStateOf<String?>(null) }
@@ -83,7 +81,7 @@ fun HalamanManualUI() {
         date.value = sdf.format(Date())
     }
 
-    // 📍 Ambil lokasi otomatis
+    // 📍 Ambil lokasi otomatis + nama lokasi via Nominatim
     LaunchedEffect(Unit) {
         val fusedLocationClient = LocationServices.getFusedLocationProviderClient(activity)
         val permissions = arrayOf(
@@ -94,10 +92,44 @@ fun HalamanManualUI() {
             ContextCompat.checkSelfPermission(activity, it) ==
                     android.content.pm.PackageManager.PERMISSION_GRANTED
         }
+
         if (allGranted) {
             fusedLocationClient.lastLocation.addOnSuccessListener { loc ->
-                location.value =
-                    if (loc != null) "${loc.latitude},${loc.longitude}" else "Lokasi tidak tersedia"
+                if (loc != null) {
+                    coords.value = Pair(loc.latitude.toString(), loc.longitude.toString())
+                    location.value = "${loc.latitude},${loc.longitude}"
+
+                    coroutineScope.launch(Dispatchers.IO) {
+                        try {
+                            val client = OkHttpClient()
+                            val url =
+                                "https://nominatim.openstreetmap.org/reverse?lat=${loc.latitude}&lon=${loc.longitude}&format=json&addressdetails=1"
+
+                            val request = Request.Builder()
+                                .url(url)
+                                .addHeader("User-Agent", "MatahatiApp/1.0 (mailto:admin@matahati.my.id)")
+                                .build()
+
+                            val response = client.newCall(request).execute()
+                            val json = response.body?.string()
+                            if (response.isSuccessful && json != null) {
+                                val obj = org.json.JSONObject(json)
+                                val displayName = obj.optString("display_name", "")
+                                withContext(Dispatchers.Main) {
+                                    if (displayName.isNotBlank()) {
+                                        location.value = displayName
+                                    } else {
+                                        location.value = "${loc.latitude},${loc.longitude}"
+                                    }
+                                }
+                            }
+                        } catch (e: Exception) {
+                            Log.e("HalamanManual", "Reverse geocode error: ${e.message}")
+                        }
+                    }
+                } else {
+                    location.value = "Lokasi tidak tersedia"
+                }
             }
         } else {
             ActivityCompat.requestPermissions(activity, permissions, 1001)
@@ -105,30 +137,27 @@ fun HalamanManualUI() {
         }
     }
 
-    // 📸 Jika user membuka kamera
-    if (showCamera) {
-        CameraPage(
-            onPhotoCaptured = { file ->
-                photoFile = file
-                showCamera = false
-            },
-            onCancel = { showCamera = false }
-        )
-        return
+    // 📸 Kamera
+    val launcher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicturePreview()
+    ) { bitmap ->
+        if (bitmap != null) {
+            val file = File(activity.cacheDir, "photo_${System.currentTimeMillis()}.jpg")
+            FileOutputStream(file).use { out ->
+                bitmap.compress(Bitmap.CompressFormat.JPEG, 90, out)
+            }
+            photoUri.value = Uri.fromFile(file)
+        }
     }
 
-    // UI utama absen manual
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp)
             .verticalScroll(rememberScrollState())
     ) {
-        // 🔹 Header
-        Box(
-            modifier = Modifier.fillMaxWidth(),
-            contentAlignment = Alignment.Center
-        ) {
+        // Header
+        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
             IconButton(onClick = { activity.finish() }, modifier = Modifier.align(Alignment.CenterStart)) {
                 Icon(Icons.Default.ArrowBack, contentDescription = "Kembali", tint = Color.Black)
             }
@@ -141,10 +170,10 @@ fun HalamanManualUI() {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // 🔹 Preview foto jika sudah diambil
-        photoFile?.let {
+        // Preview foto
+        photoUri.value?.let {
             Image(
-                painter = rememberAsyncImagePainter(Uri.fromFile(it)),
+                painter = rememberAsyncImagePainter(it),
                 contentDescription = "Foto absen manual",
                 modifier = Modifier
                     .size(250.dp)
@@ -155,25 +184,23 @@ fun HalamanManualUI() {
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // 🔹 Tombol buka kamera depan
+        // Tombol ambil foto
         Button(
-            onClick = { showCamera = true },
+            onClick = { launcher.launch(null) },
             enabled = !isLoading.value,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(55.dp),
+            modifier = Modifier.fillMaxWidth().height(55.dp),
             colors = ButtonDefaults.buttonColors(
                 containerColor = primaryColor,
                 contentColor = Color.White
             ),
             shape = RoundedCornerShape(8.dp)
         ) {
-            Text(if (photoFile == null) "Ambil Foto (Kamera Depan)" else "Ambil Ulang Foto")
+            Text(if (photoUri.value == null) "Ambil Foto" else "Ambil Ulang Foto")
         }
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // 🔹 Input alasan absen manual
+        // Alasan
         OutlinedTextField(
             value = reason.value,
             onValueChange = { reason.value = it },
@@ -183,14 +210,12 @@ fun HalamanManualUI() {
                 focusedLabelColor = primaryColor,
                 cursorColor = primaryColor
             ),
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(120.dp)
+            modifier = Modifier.fillMaxWidth().height(120.dp)
         )
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // 🔹 Tombol submit data
+        // Submit
         Button(
             onClick = {
                 coroutineScope.launch {
@@ -198,7 +223,7 @@ fun HalamanManualUI() {
                         message.value = "Mohon isi alasan absen"
                         return@launch
                     }
-                    if (photoFile == null) {
+                    if (photoUri.value == null) {
                         message.value = "Mohon ambil foto terlebih dahulu"
                         return@launch
                     }
@@ -209,21 +234,21 @@ fun HalamanManualUI() {
 
                     val result = uploadAbsenManual(
                         date.value,
+                        coords.value.first,
+                        coords.value.second,
                         location.value,
                         reason.value.trim(),
-                        Uri.fromFile(photoFile),
+                        photoUri.value!!,
                         activity
                     )
 
                     isLoading.value = false
-                    message.value = if (result.success)
-                        "✅ ${result.message}" else "❌ ${result.message}"
+                    message.value =
+                        if (result.success) "✅ ${result.message}" else "❌ ${result.message}"
                     errorDetail.value = result.errorDetail
                 }
             },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(55.dp),
+            modifier = Modifier.fillMaxWidth().height(55.dp),
             enabled = !isLoading.value,
             colors = ButtonDefaults.buttonColors(
                 containerColor = Color(0xFF4C4C59),
@@ -246,7 +271,7 @@ fun HalamanManualUI() {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // 🔹 Pesan status
+        // Status
         if (message.value.isNotEmpty()) {
             Column(
                 modifier = Modifier.fillMaxWidth(),
@@ -270,7 +295,6 @@ fun HalamanManualUI() {
     }
 }
 
-
 data class UploadResult(
     val success: Boolean,
     val message: String,
@@ -278,34 +302,27 @@ data class UploadResult(
 )
 
 fun compressImageFile(originalFile: File, context: Context): File {
-    val bitmap = BitmapFactory.decodeFile(originalFile.absolutePath)
-        ?: return originalFile // fallback jika gagal decode
-
+    val bitmap = BitmapFactory.decodeFile(originalFile.absolutePath) ?: return originalFile
     val maxSize = 1080
     val scale = maxOf(bitmap.width, bitmap.height).toFloat() / maxSize
-    val scaledBitmap = if (scale > 1) {
-        Bitmap.createScaledBitmap(
-            bitmap,
-            (bitmap.width / scale).toInt(),
-            (bitmap.height / scale).toInt(),
-            true
-        )
-    } else bitmap
+    val scaledBitmap = if (scale > 1)
+        Bitmap.createScaledBitmap(bitmap, (bitmap.width / scale).toInt(), (bitmap.height / scale).toInt(), true)
+    else bitmap
 
     val compressedFile = File(context.cacheDir, "compressed_${System.currentTimeMillis()}.jpg")
     FileOutputStream(compressedFile).use { out ->
         scaledBitmap.compress(Bitmap.CompressFormat.JPEG, 70, out)
     }
-
     if (!bitmap.isRecycled) bitmap.recycle()
     if (scaledBitmap != bitmap && !scaledBitmap.isRecycled) scaledBitmap.recycle()
-
     return compressedFile
 }
 
 suspend fun uploadAbsenManual(
     date: String,
-    location: String,
+    lat: String,
+    lng: String,
+    cplacename: String,
     reason: String,
     photoUri: Uri,
     context: Context
@@ -315,31 +332,21 @@ suspend fun uploadAbsenManual(
         val userId = session.getUserId()
         if (userId == -1) return@withContext UploadResult(false, "User ID tidak ditemukan")
 
-        val (lat, lng) = if (location.contains(",")) {
-            val parts = location.split(",")
-            Pair(parts[0].trim(), parts[1].trim())
-        } else Pair("0", "0")
-
-        // 🔹 Ambil file asli dari URI
         val file = getFileFromUri(photoUri, context)
         if (file == null || !file.exists()) {
             return@withContext UploadResult(false, "File foto tidak ditemukan")
         }
 
-        // 🔹 Kompres gambar sebelum upload
         val compressedFile = compressImageFile(file, context)
-        Log.d("HalamanManual", "Ukuran sebelum: ${file.length()/1024} KB, sesudah: ${compressedFile.length()/1024} KB")
-
-        // 🔹 Encode ke Base64
         val bytes = compressedFile.readBytes()
         val base64Image = android.util.Base64.encodeToString(bytes, android.util.Base64.NO_WRAP)
 
-        // 🔹 Buat JSON body
         val jsonBody = """
         {
             "nuserId": "$userId",
             "nlat": "$lat",
             "nlng": "$lng",
+            "cplacename": "${cplacename.replace("\"", "'")}",
             "creason": "$reason",
             "photoBase64": "$base64Image"
         }
@@ -351,7 +358,6 @@ suspend fun uploadAbsenManual(
             .build()
 
         val body = jsonBody.toRequestBody("application/json".toMediaTypeOrNull())
-
         val request = Request.Builder()
             .url("https://absensi.matahati.my.id/mscan_manual.php")
             .post(body)
@@ -365,12 +371,8 @@ suspend fun uploadAbsenManual(
         Log.d("HalamanManual", "HTTP Status: $statusCode")
         Log.d("HalamanManual", "Server response: $responseBody")
 
-        if (statusCode == 200) {
-            parseJsonResponse(responseBody)
-        } else {
-            UploadResult(false, "HTTP $statusCode Error", responseBody)
-        }
-
+        if (statusCode == 200) parseJsonResponse(responseBody)
+        else UploadResult(false, "HTTP $statusCode Error", responseBody)
     } catch (e: Exception) {
         Log.e("HalamanManual", "uploadAbsenManual error", e)
         UploadResult(false, "Gagal koneksi ke server", e.message)

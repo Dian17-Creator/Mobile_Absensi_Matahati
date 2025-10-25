@@ -177,6 +177,14 @@ fun HalamanScanUI(
         }
     }
 
+    LaunchedEffect(scanResult) {
+        if (scanResult is ScanResult.Message &&
+            (scanResult as ScanResult.Message).text == "Arahkan kamera ke QR Code"
+        ) {
+            showCamera = true
+        }
+    }
+
     // 🌈 Layout utama dua lapisan
     Box(
         modifier = Modifier
@@ -460,38 +468,59 @@ fun sendToVerify(context: Context, token: String, onResult: (ScanResult) -> Unit
                     val lng = location.longitude
                     val session = SessionManager(context)
 
-                    // ✅ FIX fallback userId seperti di UbahPassword
                     val userId = session.getUserId().takeIf { it != -1 }
                         ?: (context as? ComponentActivity)?.intent?.getIntExtra("USER_ID", -1) ?: -1
 
                     if (userId == -1) {
                         onResult(ScanResult.Message("⚠️ User belum terdeteksi, silakan login ulang"))
-                        return@addOnSuccessListener  // ✅ perbaikan utama
+                        return@addOnSuccessListener
                     }
 
-                    val scanRecord = OfflineScan(
-                        token = token,
-                        userId = userId,
-                        lat = lat,
-                        lng = lng
-                    )
-
-                    val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-                    val isConnected = cm.activeNetworkInfo?.isConnected == true
-
-                    if (!isConnected) {
-                        CoroutineScope(Dispatchers.IO).launch {
-                            MyApp.db.offlineScanDao().insert(scanRecord)
-                            enqueueSyncWorker(context)
-                            withContext(Dispatchers.Main) {
-                                onResult(ScanResult.WaitingImage)
+                    // 🌍 Ambil nama lokasi (reverse geocode via Nominatim)
+                    CoroutineScope(Dispatchers.IO).launch {
+                        var placeName = ""
+                        try {
+                            val client = OkHttpClient()
+                            val url =
+                                "https://nominatim.openstreetmap.org/reverse?lat=$lat&lon=$lng&format=json&addressdetails=1"
+                            val request = Request.Builder()
+                                .url(url)
+                                .addHeader("User-Agent", "MatahatiApp/1.0 (mailto:admin@matahati.my.id)")
+                                .build()
+                            val response = client.newCall(request).execute()
+                            val json = response.body?.string()
+                            if (response.isSuccessful && json != null) {
+                                val obj = JSONObject(json)
+                                placeName = obj.optString("display_name", "")
                             }
+                        } catch (e: Exception) {
+                            Log.e("sendToVerify", "Reverse geocode error: ${e.message}")
                         }
-                    } else {
-                        sendOnline(context, scanRecord, onResult)
+
+                        // lanjut ke proses scan
+                        val scanRecord = OfflineScan(
+                            token = token,
+                            userId = userId,
+                            lat = lat,
+                            lng = lng
+                        )
+
+                        val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+                        val isConnected = cm.activeNetworkInfo?.isConnected == true
+
+                        if (!isConnected) {
+                            CoroutineScope(Dispatchers.IO).launch {
+                                MyApp.db.offlineScanDao().insert(scanRecord)
+                                enqueueSyncWorker(context)
+                                withContext(Dispatchers.Main) {
+                                    onResult(ScanResult.WaitingImage)
+                                }
+                            }
+                        } else {
+                            sendOnline(context, scanRecord, onResult, placeName)
+                        }
                     }
                 } else if (retry < 5) {
-                    // 🔁 coba ulang tiap 1 detik
                     Handler(Looper.getMainLooper()).postDelayed({
                         tryGetLocation(retry + 1)
                     }, 1000)
@@ -507,7 +536,7 @@ fun sendToVerify(context: Context, token: String, onResult: (ScanResult) -> Unit
     tryGetLocation()
 }
 
-fun sendOnline(context: Context, scan: OfflineScan, onResult: (ScanResult) -> Unit) {
+fun sendOnline(context: Context, scan: OfflineScan, onResult: (ScanResult) -> Unit, placeName: String = "") {
     val client = OkHttpClient()
     val url = "https://absensi.matahati.my.id/verify.php"
 
@@ -516,6 +545,7 @@ fun sendOnline(context: Context, scan: OfflineScan, onResult: (ScanResult) -> Un
         put("userId", scan.userId)
         put("lat", scan.lat)
         put("lng", scan.lng)
+        put("cplacename", placeName) // ✅ kirim nama lokasi ke server
     }
 
     val body = json.toString()
@@ -531,18 +561,18 @@ fun sendOnline(context: Context, scan: OfflineScan, onResult: (ScanResult) -> Un
         }
 
         override fun onResponse(call: Call, response: Response) {
-            if (response.isSuccessful) {
-                (context as ComponentActivity).runOnUiThread {
+            (context as ComponentActivity).runOnUiThread {
+                if (response.isSuccessful) {
                     onResult(ScanResult.SuccessImage)
-                }
-            } else {
-                (context as ComponentActivity).runOnUiThread {
-                    onResult(ScanResult.Message("❌ Scan gagal"))
+                    Handler(Looper.getMainLooper()).postDelayed({
+                        onResult(ScanResult.Message("Arahkan kamera ke QR Code"))
+                    }, 2000)
                 }
             }
         }
     })
 }
+
 
 /* 🔹 CARD WAKTU (real-time) */
 @Composable

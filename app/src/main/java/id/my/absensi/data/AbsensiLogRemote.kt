@@ -8,5 +8,6 @@ data class AbsensiLogRemote(
     @SerializedName("dscanned") val dscanned: String,
     @SerializedName("nlat") val nlat: String?,
     @SerializedName("nlng") val nlng: String?,
-    @SerializedName("nadminid") val nadminid: Int?
+    @SerializedName("nadminid") val nadminid: Int?,
+    @SerializedName("type_absen") val typeAbsensi: String
 )
