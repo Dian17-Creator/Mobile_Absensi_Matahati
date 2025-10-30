@@ -207,7 +207,6 @@ fun HalamanScanUI(
             ) {
                 CardShift(userId = userId)
             }
-
             // ✅ Kamera responsif
             if (hasCameraPermission && showCamera) {
                 val cameraHeight = (screenHeight.dp * 0.40f).coerceIn(180.dp, 320.dp)
