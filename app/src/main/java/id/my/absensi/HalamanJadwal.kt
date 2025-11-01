@@ -57,7 +57,6 @@ class HalamanJadwal : ComponentActivity() {
 
 @Composable
 fun HalamanJadwalUI(scheduleViewModel: ScheduleViewModel = viewModel()) {
-    // --- ViewModel dan State ---
     val absensiViewModel: AbsensiViewModel = viewModel()
     val logs by absensiViewModel.logs.collectAsState()
     val loadingLog by absensiViewModel.loading.collectAsState()
@@ -67,12 +66,10 @@ fun HalamanJadwalUI(scheduleViewModel: ScheduleViewModel = viewModel()) {
     val isLoading by scheduleViewModel.loading.collectAsState()
     val error by scheduleViewModel.error.collectAsState()
 
-    // --- State Kalender ---
     var currentMonth by remember { mutableStateOf(YearMonth.now()) }
     val today = remember { LocalDate.now() }
     var selectedDate by remember { mutableStateOf<LocalDate?>(today) }
 
-    // --- Context & Session ---
     val context = LocalContext.current
     val activity = context as? ComponentActivity
     val session = remember { SessionManager(context.applicationContext) }
@@ -81,11 +78,9 @@ fun HalamanJadwalUI(scheduleViewModel: ScheduleViewModel = viewModel()) {
     val userId = if (storedId != -1) storedId else activity?.intent?.getIntExtra("USER_ID", -1) ?: -1
     var scanState by remember { mutableStateOf(session.getScanState()) }
 
-    // === State untuk tombol sort log ===
     var isDescending by remember { mutableStateOf(true) }
     val sortedLogs = if (isDescending) logs.sortedByDescending { it.waktu } else logs.sortedBy { it.waktu }
 
-    // --- Observasi perubahan scan state ---
     LaunchedEffect(Unit) {
         while (isActive) {
             val newState = session.getScanState()
@@ -94,7 +89,6 @@ fun HalamanJadwalUI(scheduleViewModel: ScheduleViewModel = viewModel()) {
         }
     }
 
-    // --- Load jadwal & log ---
     LaunchedEffect(userId, currentMonth) {
         if (userId != -1) {
             val isOnline = id.my.matahati.absensi.utils.NetworkUtils.isOnline(context)
@@ -107,27 +101,23 @@ fun HalamanJadwalUI(scheduleViewModel: ScheduleViewModel = viewModel()) {
         if (userId != -1) absensiViewModel.loadLogs(userId)
     }
 
-    // --- Warna tema & ukuran layar ---
     val calendarBackground = Color(0xFFF5F5F5)
     val configuration = LocalConfiguration.current
     val screenHeight = configuration.screenHeightDp.dp
 
-    // --- UI Utama ---
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.White)
     ) {
-        // === Shape atas dekoratif (box oranye solid) ===
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .align(Alignment.TopCenter)
                 .height(screenHeight * 0.25f)
-                .background(color = Color(0xFFFF6F51))
+                .background(color = Color(0xFFB63352))
         )
 
-        // ===== Konten utama =====
         BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()
@@ -138,7 +128,7 @@ fun HalamanJadwalUI(scheduleViewModel: ScheduleViewModel = viewModel()) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(top = screenHeight * 0.05f) // agar tidak tertutup shape oranye
+                    .padding(top = screenHeight * 0.05f)
                     .padding(bottom = screenHeight * 0.10f),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
@@ -150,31 +140,37 @@ fun HalamanJadwalUI(scheduleViewModel: ScheduleViewModel = viewModel()) {
                     color = Color.White
                 )
 
-                // === Card Kalender ===
-                if (schedules.isNotEmpty()) {
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(calendarHeight),
-                        elevation = CardDefaults.cardElevation(6.dp),
-                        colors = CardDefaults.cardColors(containerColor = calendarBackground),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        CalendarCardContent(
-                            currentMonth = currentMonth,
-                            onMonthChange = { currentMonth = it },
-                            selectedDate = selectedDate,
-                            onDateSelected = { selectedDate = it },
-                            today = today,
-                            schedules = schedules
-                        )
-                    }
+                // === ✅ Kalender selalu muncul meskipun schedule kosong ===
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(calendarHeight),
+                    elevation = CardDefaults.cardElevation(6.dp),
+                    colors = CardDefaults.cardColors(containerColor = calendarBackground),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    CalendarCardContent(
+                        currentMonth = currentMonth,
+                        onMonthChange = { currentMonth = it },
+                        selectedDate = selectedDate,
+                        onDateSelected = { selectedDate = it },
+                        today = today,
+                        schedules = schedules // kosong juga tidak masalah
+                    )
                 }
 
-                // === Spacer antar Card ===
+                // === 🔹 Pesan jika tidak ada shift ===
+                if (schedules.isEmpty()) {
+                    Text(
+                        text = "📭 Belum ada jadwal shift untuk bulan ini",
+                        color = Color.Gray,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+
                 Spacer(modifier = Modifier.height(2.dp))
 
-                // === Card Log Absensi (scrollable + header abu-abu) ===
+                // === Card Log Absensi ===
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -184,8 +180,6 @@ fun HalamanJadwalUI(scheduleViewModel: ScheduleViewModel = viewModel()) {
                     colors = CardDefaults.cardColors(containerColor = Color.White)
                 ) {
                     Column(modifier = Modifier.fillMaxSize()) {
-
-                        // 🔹 Header abu-abu seperti kalender
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -201,7 +195,6 @@ fun HalamanJadwalUI(scheduleViewModel: ScheduleViewModel = viewModel()) {
                                 color = Color.White
                             )
 
-                            // 🔘 Tombol Sort Toggle
                             TextButton(
                                 onClick = { isDescending = !isDescending },
                                 contentPadding = PaddingValues(0.dp)
@@ -214,7 +207,6 @@ fun HalamanJadwalUI(scheduleViewModel: ScheduleViewModel = viewModel()) {
                             }
                         }
 
-                        // 🔹 Isi log (scrollable)
                         Box(
                             modifier = Modifier
                                 .fillMaxSize()
@@ -229,8 +221,8 @@ fun HalamanJadwalUI(scheduleViewModel: ScheduleViewModel = viewModel()) {
                                     LazyColumn(modifier = Modifier.fillMaxSize()) {
                                         items(sortedLogs) { log ->
                                             val bgColor = when (log.typeAbsensi) {
-                                                "manual" -> Color(0xFFFFF59D) // kuning lembut
-                                                "scan" -> Color(0xFFC8D7E6) // hijau lembut
+                                                "manual" -> Color(0xFFFFF59D)
+                                                "scan" -> Color(0xFFC8D7E6)
                                                 else -> Color.White
                                             }
 
@@ -244,12 +236,10 @@ fun HalamanJadwalUI(scheduleViewModel: ScheduleViewModel = viewModel()) {
                                                 Column(modifier = Modifier.padding(12.dp)) {
                                                     Text("${log.waktu}", fontWeight = FontWeight.Bold)
                                                     Text("Jenis: ${log.typeAbsensi?.uppercase() ?: "-"}")
-
                                                 }
                                             }
                                         }
                                     }
-
                                 }
                             }
                         }
@@ -259,7 +249,6 @@ fun HalamanJadwalUI(scheduleViewModel: ScheduleViewModel = viewModel()) {
         }
     }
 }
-
 
 private fun Modifier.align(bottomCenter: Alignment) {
     TODO("Not yet implemented")

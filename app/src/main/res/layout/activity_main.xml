@@ -21,7 +21,7 @@
         app:itemIconTint="@color/bottom_nav_color_selector"
         app:itemTextColor="@color/bottom_nav_color_selector"
         app:labelVisibilityMode="labeled"
-        android:background="#2E2E2E" />
+        android:background="#292929" />
 
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>
