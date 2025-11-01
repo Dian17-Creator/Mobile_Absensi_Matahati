@@ -53,6 +53,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.platform.LocalConfiguration
 import id.my.matahati.absensi.data.ScanResult
+import id.my.matahati.absensi.utils.NetworkUtils
 import java.util.Locale
 
 class HalamanScan : ComponentActivity() {
@@ -138,40 +139,68 @@ fun HalamanScanUI(
     var showCamera by remember { mutableStateOf(true) }
 
     val configuration = LocalConfiguration.current
-    val screenHeight = configuration.screenHeightDp // dalam dp, bukan .dp dulu
-    val screenWidth = configuration.screenWidthDp
-
-    val primaryColor = Color(0xFFFF6F51)
+    val screenHeight = configuration.screenHeightDp
+    val primaryColor = Color(0xFFB63352)
 
     val storedUserId = session.getUserId()
     val userId = if (storedUserId != -1) storedUserId else activity?.intent?.getIntExtra("USER_ID", -1) ?: -1
     val userName = if (storedUserId != -1) session.getUser()["name"]?.toString() ?: "" else activity?.intent?.getStringExtra("USER_NAME") ?: ""
     val userEmail = if (storedUserId != -1) session.getUser()["email"]?.toString() ?: "" else activity?.intent?.getStringExtra("USER_EMAIL") ?: ""
 
-    // WorkManager observer
+    // 🔹 Tambahan: State reaktif koneksi
+    var isOnline by remember { mutableStateOf(NetworkUtils.isOnline(context)) }
+
+    // 🔹 Pantau koneksi setiap 2 detik
+    LaunchedEffect(Unit) {
+        while (true) {
+            val current = NetworkUtils.isOnline(context)
+            if (current != isOnline) isOnline = current
+            delay(2000L)
+        }
+    }
+
+    // 🔹 Jika koneksi kembali online dan sedang "menunggu jaringan"
+    LaunchedEffect(isOnline) {
+        if (isOnline && scanResult is ScanResult.WaitingImage) {
+            Log.d("HalamanScan", "Koneksi kembali online, ubah UI ke SuccessImage")
+            scanResult = ScanResult.SuccessImage
+        }
+    }
+
+    // 🔹 WorkManager observer untuk sinkronisasi offline
     DisposableEffect(Unit) {
         val observer = androidx.lifecycle.Observer<List<androidx.work.WorkInfo>> { workInfos ->
             val isSuccess = workInfos.any { it.state == androidx.work.WorkInfo.State.SUCCEEDED }
-            if (isSuccess) scanResult = ScanResult.SuccessImage
+            if (isSuccess) {
+                Log.d("HalamanScan", "Worker sinkronisasi offline SUCCEEDED")
+                scanResult = ScanResult.SuccessImage
+            }
         }
         workManager.getWorkInfosByTagLiveData("sync_offline_scans").observe(lifecycleOwner, observer)
-        onDispose { workManager.getWorkInfosByTagLiveData("sync_offline_scans").removeObserver(observer) }
-    }
-
-    LaunchedEffect(externalScanResult) {
-        externalScanResult?.let { result ->
-            scanResult = result
-            showCamera = result !is ScanResult.SuccessImage
+        onDispose {
+            workManager.getWorkInfosByTagLiveData("sync_offline_scans").removeObserver(observer)
         }
     }
 
-    // 🌈 UI Utama
+    // 🔹 Kamera otomatis restart setelah scan berhasil
+    LaunchedEffect(scanResult) {
+        if (scanResult is ScanResult.SuccessImage) {
+            showCamera = false
+            Log.d("HalamanScan", "Kamera dimatikan sementara (berhasil scan)")
+            delay(1000)
+            showCamera = true
+            Log.d("HalamanScan", "Kamera diaktifkan ulang")
+            scanResult = ScanResult.Message("Arahkan kamera ke QR Code")
+        }
+    }
+
+    // 🌈 UI utama
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.White)
     ) {
-        // 🔸 Background oranye di atas
+        // 🔸 Background atas
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -189,7 +218,6 @@ fun HalamanScanUI(
             verticalArrangement = Arrangement.spacedBy(12.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Card waktu
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 elevation = CardDefaults.cardElevation(6.dp),
@@ -199,7 +227,6 @@ fun HalamanScanUI(
                 CardWaktu()
             }
 
-            // Card shift
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 elevation = CardDefaults.cardElevation(6.dp),
@@ -207,10 +234,10 @@ fun HalamanScanUI(
             ) {
                 CardShift(userId = userId)
             }
-            // ✅ Kamera responsif
+
+            // ✅ Kamera tampil hanya jika ada izin & showCamera true
             if (hasCameraPermission && showCamera) {
                 val cameraHeight = (screenHeight.dp * 0.40f).coerceIn(180.dp, 320.dp)
-
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -240,7 +267,7 @@ fun HalamanScanUI(
                 }
             }
 
-            // 🔹 Hasil scan
+            // 🔹 Tampilan hasil scan
             when (scanResult) {
                 is ScanResult.Message -> Text(
                     text = (scanResult as ScanResult.Message).text,
@@ -252,8 +279,7 @@ fun HalamanScanUI(
                     Image(
                         painter = painterResource(id = R.drawable.nointernet),
                         contentDescription = "Menunggu jaringan",
-                        modifier = Modifier
-                            .size(140.dp)
+                        modifier = Modifier.size(200.dp)
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text("Menunggu jaringan...", fontSize = 14.sp, color = Color.Gray)
@@ -263,8 +289,7 @@ fun HalamanScanUI(
                     Image(
                         painter = painterResource(id = R.drawable.goodwork),
                         contentDescription = "Scan berhasil",
-                        modifier = Modifier
-                            .size(140.dp)
+                        modifier = Modifier.size(200.dp)
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text("Scan berhasil", fontSize = 14.sp, color = Color(0xFF4CAF50))
@@ -273,9 +298,7 @@ fun HalamanScanUI(
 
             // 🔹 Tombol sejajar
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .wrapContentHeight(),
+                modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 Button(
@@ -336,6 +359,7 @@ fun HalamanScanUI(
         }
     }
 }
+
 @SuppressLint("MissingPermission")
 @OptIn(ExperimentalGetImage::class)
 @Composable
@@ -345,10 +369,11 @@ fun CameraPreview(
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
-    val executor = Executors.newSingleThreadExecutor()
-    val scanner = BarcodeScanning.getClient()
+    val scanner = remember { BarcodeScanning.getClient() }
+    val executor = remember { Executors.newSingleThreadExecutor() }
 
     AndroidView(
+        modifier = modifier,
         factory = { ctx ->
             val previewView = PreviewView(ctx).apply {
                 layoutParams = ViewGroup.LayoutParams(
@@ -381,12 +406,15 @@ fun CameraPreview(
                                 for (barcode in barcodes) {
                                     val rawValue = barcode.rawValue
                                     if (rawValue != null) {
-                                        try {
-                                            cameraProvider.unbindAll()
-                                        } catch (e: Exception) {
-                                            Log.e("CameraPreview", "unbind failed", e)
+                                        ContextCompat.getMainExecutor(ctx).execute {
+                                            try {
+                                                cameraProvider.unbindAll()
+                                                Log.d("CameraPreview", "Kamera dilepas untuk hasil scan baru")
+                                            } catch (e: Exception) {
+                                                Log.e("CameraPreview", "unbindAll gagal", e)
+                                            }
+                                            onScan(rawValue)
                                         }
-                                        onScan(rawValue)
                                         break
                                     }
                                 }
@@ -410,16 +438,29 @@ fun CameraPreview(
                         preview,
                         analysis
                     )
+                    Log.d("CameraPreview", "Kamera berhasil dibuka")
                 } catch (exc: Exception) {
-                    Log.e("CameraPreview", "Use case binding failed", exc)
+                    Log.e("CameraPreview", "Binding kamera gagal", exc)
                 }
             }, ContextCompat.getMainExecutor(ctx))
 
             previewView
         },
-        modifier = modifier
+        update = { /* Tidak perlu update */ }
     )
+
+    DisposableEffect(Unit) {
+        onDispose {
+            try {
+                executor.shutdown()
+                Log.d("CameraPreview", "Executor dimatikan")
+            } catch (e: Exception) {
+                Log.e("CameraPreview", "Gagal matikan executor", e)
+            }
+        }
+    }
 }
+
 
 @SuppressLint("MissingPermission")
 fun sendToVerify(context: Context, token: String, onResult: (ScanResult) -> Unit) {

@@ -7,6 +7,7 @@ import android.content.Context
 import android.net.Uri
 import android.os.Bundle
 import android.util.Log
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
@@ -71,7 +72,7 @@ fun HalamanIzinUI() {
     val message = remember { mutableStateOf("") }
     val isLoading = remember { mutableStateOf(false) }
     val errorDetail = remember { mutableStateOf<String?>(null) }
-    val primaryColor = Color(0xFFFF6F51)
+    val primaryColor = Color(0xFFB63352)
 
     // Set tanggal otomatis
     LaunchedEffect(Unit) {
@@ -200,7 +201,7 @@ fun HalamanIzinUI() {
                 .fillMaxWidth()
                 .height(55.dp),
             colors = ButtonDefaults.buttonColors(
-                containerColor = Color(0xFFFF6F51),
+                containerColor = Color(0xFFB63352),
                 contentColor = Color.White
             ),
             shape = RoundedCornerShape(8.dp)
@@ -281,6 +282,16 @@ fun HalamanIzinUI() {
                     message.value =
                         if (result.success) "✅ ${result.message}" else "❌ ${result.message}"
                     errorDetail.value = result.errorDetail
+
+                    // ✅ Tambahan: jika hasil berhasil, arahkan ke MainActivity
+                    if (result.success) {
+                        withContext(Dispatchers.Main) {
+                            Toast.makeText(activity, "Izin berhasil dikirim!", Toast.LENGTH_LONG).show()
+                            val intent = android.content.Intent(activity, MainActivity::class.java)
+                            activity.startActivity(intent)
+                            activity.finish()
+                        }
+                    }
                 }
             },
             modifier = Modifier

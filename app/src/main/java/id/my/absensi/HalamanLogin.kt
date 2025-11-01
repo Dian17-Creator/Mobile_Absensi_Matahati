@@ -111,7 +111,7 @@ fun LoginUI() {
 
     val context = LocalContext.current as ComponentActivity
     val focusManager = LocalFocusManager.current
-    val primaryColor = Color(0xFFFF6F51)
+    val primaryColor = Color(0xFFB63352)
 
     var anyFocused by remember { mutableStateOf(false) }
 

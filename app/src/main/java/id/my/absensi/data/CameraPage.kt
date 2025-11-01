@@ -112,7 +112,7 @@ fun CameraPage(
                             }
                         )
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6F51))
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFB63352))
                 ) {
                     Text("Ambil Foto")
                 }

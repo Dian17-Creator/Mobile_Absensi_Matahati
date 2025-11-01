@@ -8,6 +8,7 @@ import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Bundle
 import android.util.Log
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
@@ -73,7 +74,7 @@ fun HalamanManualUI() {
     val message = remember { mutableStateOf("") }
     val isLoading = remember { mutableStateOf(false) }
     val errorDetail = remember { mutableStateOf<String?>(null) }
-    val primaryColor = Color(0xFFFF6F51)
+    val primaryColor = Color(0xFFB63352)
 
     // 🗓️ Set tanggal otomatis
     LaunchedEffect(Unit) {
@@ -246,6 +247,16 @@ fun HalamanManualUI() {
                     message.value =
                         if (result.success) "✅ ${result.message}" else "❌ ${result.message}"
                     errorDetail.value = result.errorDetail
+
+                    // ✅ Tambahan: jika hasil berhasil, arahkan ke MainActivity
+                    if (result.success) {
+                        withContext(Dispatchers.Main) {
+                            Toast.makeText(activity, "Izin berhasil dikirim!", Toast.LENGTH_LONG).show()
+                            val intent = android.content.Intent(activity, MainActivity::class.java)
+                            activity.startActivity(intent)
+                            activity.finish()
+                        }
+                    }
                 }
             },
             modifier = Modifier.fillMaxWidth().height(55.dp),

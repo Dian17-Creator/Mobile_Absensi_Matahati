@@ -70,7 +70,7 @@ fun UbahPasswordUI() {
 
     val bringIntoViewRequester = remember { BringIntoViewRequester() }
 
-    val primaryColor = Color(0xFFFF6F51)
+    val primaryColor = Color(0xFFB63352)
 
     BoxWithConstraints(
         modifier = Modifier
