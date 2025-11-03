@@ -100,7 +100,6 @@ fun loginUser(
         }
     })
 }
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LoginUI() {
@@ -108,13 +107,10 @@ fun LoginUI() {
     var password by rememberSaveable { mutableStateOf("") }
     var rememberMe by rememberSaveable { mutableStateOf(false) }
     var passwordVisible by rememberSaveable { mutableStateOf(false) }
-
     val context = LocalContext.current as ComponentActivity
     val focusManager = LocalFocusManager.current
     val primaryColor = Color(0xFFB63352)
-
     var anyFocused by remember { mutableStateOf(false) }
-
     val isKeyboardOpen by keyboardAsState()
     val animatedOffset by animateDpAsState(
         targetValue = if (isKeyboardOpen) (-180).dp else 0.dp,
@@ -242,7 +238,6 @@ fun handleLogin(context: ComponentActivity, email: String, password: String, rem
 
             val session = SessionManager(context.applicationContext)
 
-            // ✅ Simpan login aktif (ingatkan saya sesuai checkbox)
             session.login(id = userId, name = userName, email = userEmail, rememberMe = rememberMe)
 
             // ✅ Pindah ke MainActivity
@@ -255,8 +250,6 @@ fun handleLogin(context: ComponentActivity, email: String, password: String, rem
         }
     }
 }
-
-
 
 @Composable
 fun keyboardAsState(): State<Boolean> {
