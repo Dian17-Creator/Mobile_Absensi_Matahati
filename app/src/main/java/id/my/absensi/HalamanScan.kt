@@ -80,7 +80,6 @@ class HalamanScan : ComponentActivity() {
                 100
             )
         }
-
         setContent {
             HalamanScanUI(
                 hasCameraPermission = hasAllPermissions,
