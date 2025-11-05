@@ -6,23 +6,27 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.sqlite.db.SupportSQLiteDatabase
 import androidx.room.migration.Migration
+import id.my.absensi.data.OfflineManualAbsenDao
+import id.my.matahati.absensi.data.OfflineIzinDao
 
 @Database(
     entities = [
         OfflineScan::class,
+        OfflineManualAbsen::class,
+        OfflineIzin::class,
         UserSchedule::class,
-        AbsensiLog::class // ✅ tambahkan entitas baru untuk tabel log absensi
+        AbsensiLog::class
     ],
-    version = 5, // ⬆️ tingkatkan versi dari 4 → 5 agar schema baru diterapkan
+    version = 9, // ⬆️ pastikan versi naik setiap menambah entity baru
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
 
-    // DAO yang sudah ada
+    // ✅ Semua DAO yang tersedia
     abstract fun offlineScanDao(): OfflineScanDao
+    abstract fun offlineManualAbsenDao(): OfflineManualAbsenDao
+    abstract fun offlineIzinDao(): OfflineIzinDao
     abstract fun userScheduleDao(): UserScheduleDao
-
-    // ✅ Tambahkan DAO baru untuk AbsensiLog
     abstract fun absensiLogDao(): AbsensiLogDao
 
     companion object {
@@ -36,16 +40,14 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "app_database"
                 )
-                    // otomatis reset schema jika ada perubahan struktur
-                    .fallbackToDestructiveMigration()
-                    //.addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+                    .fallbackToDestructiveMigration() // ✅ otomatis rebuild DB jika ada tabel baru
                     .build()
                 INSTANCE = instance
                 instance
             }
         }
 
-        // Migration dari versi 1 -> 2
+        // 🧩 (Opsional) Contoh migrasi lama yang bisa kamu hapus kalau tak dipakai
         private val MIGRATION_1_2 = object : Migration(1, 2) {
             override fun migrate(database: SupportSQLiteDatabase) {
                 database.execSQL(
@@ -54,7 +56,6 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
-        // Migration dari versi 2 -> 3
         private val MIGRATION_2_3 = object : Migration(2, 3) {
             override fun migrate(database: SupportSQLiteDatabase) {
                 database.execSQL(

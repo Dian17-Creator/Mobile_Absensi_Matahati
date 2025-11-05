@@ -32,6 +32,7 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import coil.compose.rememberAsyncImagePainter
 import com.google.android.gms.location.LocationServices
+import id.my.matahati.absensi.worker.enqueueManualSyncWorker
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -44,6 +45,10 @@ import java.io.FileOutputStream
 import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.TimeUnit
+import id.my.matahati.absensi.utils.NetworkUtils
+import id.my.matahati.absensi.data.OfflineManualAbsen
+
+
 
 class HalamanManual : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -75,6 +80,46 @@ fun HalamanManualUI() {
     val isLoading = remember { mutableStateOf(false) }
     val errorDetail = remember { mutableStateOf<String?>(null) }
     val primaryColor = Color(0xFFB63352)
+
+    // ✅ Receiver untuk mendeteksi jika data offline berhasil dikirim
+    DisposableEffect(Unit) {
+        // ✅ Buat receiver
+        val receiver = object : android.content.BroadcastReceiver() {
+            override fun onReceive(context: Context?, intent: android.content.Intent?) {
+                Log.d("HalamanManual", "📡 Broadcast diterima: kembali ke halaman scan")
+                val intentToScan = android.content.Intent(activity, HalamanScan::class.java)
+                intentToScan.addFlags(android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                activity.startActivity(intentToScan)
+                activity.finish()
+            }
+        }
+
+        // ✅ Buat filter broadcast
+        val filter = android.content.IntentFilter("SYNC_MANUAL_ABSEN_SUCCESS")
+
+        try {
+            // ✅ Gunakan flag baru agar tidak crash di Android 13+
+            androidx.core.content.ContextCompat.registerReceiver(
+                activity,
+                receiver,
+                filter,
+                android.content.Context.RECEIVER_NOT_EXPORTED
+            )
+        } catch (e: Exception) {
+            // fallback untuk versi Android lama
+            activity.registerReceiver(receiver, filter)
+        }
+
+        // ✅ Bersihkan receiver saat composable dispose
+        onDispose {
+            try {
+                activity.unregisterReceiver(receiver)
+            } catch (e: Exception) {
+                Log.w("HalamanManual", "Receiver sudah dilepas: ${e.message}")
+            }
+        }
+    }
+
 
     // 🗓️ Set tanggal otomatis
     LaunchedEffect(Unit) {
@@ -249,14 +294,25 @@ fun HalamanManualUI() {
                     errorDetail.value = result.errorDetail
 
                     // ✅ Tambahan: jika hasil berhasil, arahkan ke MainActivity
-                    if (result.success) {
+                    if (result.success || result.message.contains("offline", true)) {
                         withContext(Dispatchers.Main) {
-                            Toast.makeText(activity, "Izin berhasil dikirim!", Toast.LENGTH_LONG).show()
-                            val intent = android.content.Intent(activity, MainActivity::class.java)
+                            val msg = if (result.message.contains("offline", true))
+                                "📡 Data disimpan offline. Akan dikirim otomatis saat online!"
+                            else
+                                "✅ Data berhasil dikirim ke server!"
+
+                            Toast.makeText(activity, msg, Toast.LENGTH_LONG).show()
+
+                            // 🕒 Delay sedikit agar user bisa lihat toast
+                            kotlinx.coroutines.delay(1200)
+
+                            // 🔁 Kembali ke halaman scan
+                            val intent = android.content.Intent(activity, HalamanScan::class.java)
                             activity.startActivity(intent)
                             activity.finish()
                         }
                     }
+
                 }
             },
             modifier = Modifier.fillMaxWidth().height(55.dp),
@@ -352,6 +408,31 @@ suspend fun uploadAbsenManual(
         val bytes = compressedFile.readBytes()
         val base64Image = android.util.Base64.encodeToString(bytes, android.util.Base64.NO_WRAP)
 
+        // 🔹 Cek koneksi internet
+        val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as android.net.ConnectivityManager
+        val isConnected = cm.activeNetworkInfo?.isConnected == true
+
+        if (!NetworkUtils.isOnline(context)) {
+            val absen = OfflineManualAbsen(
+                userId = userId,
+                date = date,
+                lat = lat,
+                lng = lng,
+                cplacename = cplacename,
+                reason = reason,
+                photoBase64 = base64Image,
+                createdAt = System.currentTimeMillis()
+            )
+
+            MyApp.db.offlineManualAbsenDao().insert(absen)
+
+            // 🔥 PENTING: ini yang menjadwalkan sinkronisasi otomatis
+            enqueueManualSyncWorker(context)
+
+            return@withContext UploadResult(true, "📡 Data disimpan offline dan akan dikirim otomatis")
+        }
+
+        // 🔹 Online Mode
         val jsonBody = """
         {
             "nuserId": "$userId",
@@ -364,8 +445,8 @@ suspend fun uploadAbsenManual(
         """.trimIndent()
 
         val client = OkHttpClient.Builder()
-            .connectTimeout(30, TimeUnit.SECONDS)
-            .readTimeout(30, TimeUnit.SECONDS)
+            .connectTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+            .readTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
             .build()
 
         val body = jsonBody.toRequestBody("application/json".toMediaTypeOrNull())
@@ -389,7 +470,6 @@ suspend fun uploadAbsenManual(
         UploadResult(false, "Gagal koneksi ke server", e.message)
     }
 }
-
 private fun getFileFromUri(uri: Uri, context: Context): File? {
     return try {
         when (uri.scheme) {

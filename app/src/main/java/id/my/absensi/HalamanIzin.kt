@@ -4,6 +4,7 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import android.Manifest
 import android.app.Activity
 import android.content.Context
+import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.util.Log
@@ -42,6 +43,9 @@ import java.util.concurrent.TimeUnit
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import org.json.JSONObject
+import id.my.matahati.absensi.data.OfflineIzin
+import id.my.matahati.absensi.worker.enqueueIzinSyncWorker
+import id.my.matahati.absensi.utils.NetworkUtils
 
 class HalamanIzin : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -73,6 +77,33 @@ fun HalamanIzinUI() {
     val isLoading = remember { mutableStateOf(false) }
     val errorDetail = remember { mutableStateOf<String?>(null) }
     val primaryColor = Color(0xFFB63352)
+
+    DisposableEffect(Unit) {
+
+        val receiver = object : android.content.BroadcastReceiver() {
+            override fun onReceive(context: Context?, intent: android.content.Intent?) {
+                Toast.makeText(activity, "✅ Izin offline berhasil dikirim!", Toast.LENGTH_SHORT).show()
+                val intentToHome = android.content.Intent(activity, MainActivity::class.java).apply {
+                    addFlags(android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                    addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                    addFlags(android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK)
+                }
+                activity.startActivity(intentToHome)
+                activity.finishAffinity()
+            }
+        }
+
+        val filter = android.content.IntentFilter("SYNC_IZIN_SUCCESS")
+        androidx.core.content.ContextCompat.registerReceiver(
+            activity, receiver, filter, ContextCompat.RECEIVER_NOT_EXPORTED
+
+        )
+
+        onDispose {
+            try { activity.unregisterReceiver(receiver) } catch (_: Exception) {}
+        }
+    }
+
 
     // Set tanggal otomatis
     LaunchedEffect(Unit) {
@@ -182,14 +213,14 @@ fun HalamanIzinUI() {
 
         // Preview Foto
         photoUri.value?.let {
-            Image(
-                painter = rememberAsyncImagePainter(it),
-                contentDescription = "Foto izin",
-                modifier = Modifier
-                    .size(200.dp)
-                    .align(Alignment.CenterHorizontally)
-                    .padding(8.dp)
-            )
+                Image(
+                    painter = rememberAsyncImagePainter(it),
+                    contentDescription = "Foto izin",
+                    modifier = Modifier
+                        .size(200.dp)
+                        .align(Alignment.CenterHorizontally)
+                        .padding(8.dp)
+                )
         }
 
         Spacer(modifier = Modifier.height(12.dp))
@@ -284,14 +315,22 @@ fun HalamanIzinUI() {
                     errorDetail.value = result.errorDetail
 
                     // ✅ Tambahan: jika hasil berhasil, arahkan ke MainActivity
-                    if (result.success) {
+                    if (result.success || result.message.contains("offline", true)) {
                         withContext(Dispatchers.Main) {
-                            Toast.makeText(activity, "Izin berhasil dikirim!", Toast.LENGTH_LONG).show()
-                            val intent = android.content.Intent(activity, MainActivity::class.java)
+                            val msg = if (result.message.contains("offline", true))
+                                "📡 Data disimpan offline. Akan dikirim otomatis saat online!"
+                            else
+                                "✅ Izin berhasil dikirim ke server!"
+
+                            Toast.makeText(activity, msg, Toast.LENGTH_LONG).show()
+                            kotlinx.coroutines.delay(1200)
+
+                            val intent = Intent(activity, MainActivity::class.java)
                             activity.startActivity(intent)
                             activity.finish()
                         }
                     }
+
                 }
             },
             modifier = Modifier
@@ -377,6 +416,27 @@ suspend fun uploadRequest(
 
         val bytes = file.readBytes()
         val base64Image = android.util.Base64.encodeToString(bytes, android.util.Base64.NO_WRAP)
+
+        // 🔹 Cek koneksi internet
+        if (!NetworkUtils.isOnline(context)) {
+            val izin = OfflineIzin(
+                userId = userId,
+                date = date,
+                coordinate = coordinate,
+                placeName = placeName,
+                reason = reason,
+                photoBase64 = base64Image
+            )
+
+            MyApp.db.offlineIzinDao().insert(izin)
+
+            enqueueIzinSyncWorker(context) // 🔥 aktifkan worker
+
+            return@withContext UploadResult(
+                success = true,
+                message = "📡 Data disimpan offline dan akan dikirim otomatis saat online"
+            )
+        }
 
         // ✅ JSON body termasuk placeName
         val jsonBody = """
