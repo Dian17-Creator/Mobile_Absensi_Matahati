@@ -335,25 +335,45 @@ fun HalamanScanUI(
                 }
             }
 
-            // 🔹 Tombol absen manual
-            Button(
-                onClick = {
-                    val intent = Intent(context, HalamanManual::class.java)
-                    context.startActivity(intent)
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 45.dp, max = 55.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF4C4C59),
-                    contentColor = Color.White
-                ),
-                shape = RoundedCornerShape(8.dp)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                Text("Absen Manual", fontSize = 13.sp)
-            }
+                // 🔹 Tombol absen manual
+                Button(
+                    onClick = {
+                        val intent = Intent(context, HalamanManual::class.java)
+                        context.startActivity(intent)
+                    },
+                    modifier = Modifier
+                        .weight(1f)
+                        .heightIn(min = 45.dp, max = 55.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFFE91E63),
+                        contentColor = Color.White
+                    ),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text("Absen Manual", fontSize = 13.sp)
+                }
 
-            Spacer(modifier = Modifier.height(20.dp))
+                Button(
+                    onClick = {
+                        val intent = Intent(context, HalamanAktivitas::class.java)
+                        context.startActivity(intent)
+                    },
+                    modifier = Modifier
+                        .weight(1f)
+                        .heightIn(min = 45.dp, max = 55.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF4C4C59),
+                        contentColor = Color.White
+                    ),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text("Aktivitas", fontSize = 13.sp)
+                }
+            }
         }
     }
 }

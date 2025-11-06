@@ -81,5 +81,12 @@
             android:label="@string/app_name"
             android:theme="@style/Theme.MyApplication" />
 
+        <!-- Halaman Absen Manual-->
+        <activity
+            android:name=".HalamanAktivitas"
+            android:exported="true"
+            android:label="@string/app_name"
+            android:theme="@style/Theme.MyApplication" />
+
     </application>
 </manifest>
