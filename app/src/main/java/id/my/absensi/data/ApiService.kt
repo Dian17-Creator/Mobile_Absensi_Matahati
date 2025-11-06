@@ -1,6 +1,7 @@
 package id.my.matahati.absensi.data
 
 import retrofit2.http.GET
+import retrofit2.http.Query
 import retrofit2.http.Path
 import retrofit2.Response
 
@@ -17,4 +18,10 @@ interface ApiService {
     suspend fun getLogsByUser(
         @Path("userId") userId: Int
     ): Response<List<AbsensiLogRemote>>
+
+    @GET("get_aktivitas.php")
+    suspend fun getAktivitas(
+        @Query("type") type: String,
+        @Query("userId") userId: Int
+    ): Response<ApiResult>
 }

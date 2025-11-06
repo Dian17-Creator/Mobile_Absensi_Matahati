@@ -130,4 +130,8 @@ dependencies {
     implementation("androidx.navigation:navigation-ui-ktx:2.7.2")
 
     implementation("io.coil-kt:coil-compose:2.4.0")
+
+    // 👇 Ini penting untuk preview
+    implementation("androidx.compose.ui:ui-tooling-preview:1.6.0")
+    debugImplementation("androidx.compose.ui:ui-tooling:1.6.0")
 }
