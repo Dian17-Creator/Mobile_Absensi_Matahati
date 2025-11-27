@@ -17,7 +17,7 @@ import id.my.matahati.absensi.data.OfflineIzinDao
         UserSchedule::class,
         AbsensiLog::class
     ],
-    version = 9, // ⬆️ pastikan versi naik setiap menambah entity baru
+    version = 10, // ⬆️ pastikan versi naik setiap menambah entity baru
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
