@@ -1,51 +1,56 @@
+@file:OptIn(ExperimentalMaterial3Api::class)
 package id.my.matahati.absensi
 
-import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.*
+import java.util.*
+import java.io.File
+import android.net.Uri
 import android.Manifest
+import android.util.Log
+import android.os.Bundle
+import org.json.JSONObject
+import android.widget.Toast
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
-import android.net.Uri
-import android.os.Bundle
-import android.util.Log
-import android.widget.Toast
-import androidx.activity.ComponentActivity
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.compose.setContent
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.core.app.ActivityCompat
-import androidx.core.content.ContextCompat
-import coil.compose.rememberAsyncImagePainter
-import com.google.android.gms.location.LocationServices
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import okhttp3.*
-import okhttp3.MediaType.Companion.toMediaTypeOrNull
-import java.io.File
 import java.io.FileOutputStream
 import java.text.SimpleDateFormat
-import java.util.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.unit.dp
+import androidx.compose.material3.*
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
 import java.util.concurrent.TimeUnit
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import org.json.JSONObject
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.Dispatchers
+import androidx.core.app.ActivityCompat
+import androidx.compose.foundation.Image
+import androidx.compose.ui.graphics.Color
+import androidx.core.content.ContextCompat
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import coil.compose.rememberAsyncImagePainter
 import id.my.matahati.absensi.data.OfflineIzin
-import id.my.matahati.absensi.worker.enqueueIzinSyncWorker
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.platform.LocalContext
 import id.my.matahati.absensi.utils.NetworkUtils
+import androidx.compose.foundation.verticalScroll
+import okhttp3.RequestBody.Companion.toRequestBody
+import androidx.compose.material3.DropdownMenuItem
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.material.icons.filled.ArrowBack
+import com.google.android.gms.location.LocationServices
+import androidx.compose.material3.ExposedDropdownMenuBox
+import id.my.matahati.absensi.worker.enqueueIzinSyncWorker
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 
 class HalamanIzin : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -69,13 +74,14 @@ fun HalamanIzinUI() {
     val coroutineScope = rememberCoroutineScope()
 
     val date = remember { mutableStateOf("") }
-    val locationName = remember { mutableStateOf("Mencari lokasi...") } // tampil di UI
-    val coordinate = remember { mutableStateOf("") } // dikirim ke server
+    val locationName = remember { mutableStateOf("Mencari lokasi...") }
+    val coordinate = remember { mutableStateOf("") }
     val reason = remember { mutableStateOf("") }
     val photoUri = remember { mutableStateOf<Uri?>(null) }
     val message = remember { mutableStateOf("") }
     val isLoading = remember { mutableStateOf(false) }
     val errorDetail = remember { mutableStateOf<String?>(null) }
+    val category = remember { mutableStateOf("izin") }
     val primaryColor = Color(0xFFB63352)
 
     DisposableEffect(Unit) {
@@ -189,7 +195,6 @@ fun HalamanIzinUI() {
             .padding(16.dp)
             .verticalScroll(rememberScrollState())
     ) {
-        // Header
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -211,7 +216,6 @@ fun HalamanIzinUI() {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Preview Foto
         photoUri.value?.let {
                 Image(
                     painter = rememberAsyncImagePainter(it),
@@ -267,7 +271,54 @@ fun HalamanIzinUI() {
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // Alasan
+        // 🔽 Dropdown Kategori
+        var expanded by remember { mutableStateOf(false) }
+        val kategoriList = listOf("izin", "sakit")
+
+        ExposedDropdownMenuBox(
+            expanded = expanded,
+            onExpandedChange = { expanded = !expanded }
+        ) {
+
+            OutlinedTextField(
+                value = category.value,
+                onValueChange = {},
+                readOnly = true,
+                label = { Text("Kategori") },
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = primaryColor,
+                    focusedLabelColor = primaryColor,
+                    cursorColor = primaryColor
+                ),
+                trailingIcon = {
+                    Icon(
+                        imageVector = if (expanded) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown,
+                        contentDescription = null
+                    )
+                },
+                modifier = Modifier
+                    .menuAnchor()
+                    .fillMaxWidth()
+            )
+
+            ExposedDropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false }
+            ) {
+                kategoriList.forEach { item ->
+                    DropdownMenuItem(
+                        text = { Text(item) },
+                        onClick = {
+                            category.value = item
+                            expanded = false
+                        }
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
         OutlinedTextField(
             value = reason.value,
             onValueChange = { reason.value = it },
@@ -304,6 +355,7 @@ fun HalamanIzinUI() {
                         date = date.value,
                         coordinate = coordinate.value,
                         placeName = locationName.value,
+                        category = category.value,
                         reason = reason.value.trim(),
                         photoUri = photoUri.value!!,
                         context = activity
@@ -381,17 +433,14 @@ fun HalamanIzinUI() {
     }
 }
 
-/* Upload + Helper tetap sama */
-/* -------------------------------
-   🔹 Bagian Upload dan Helper
--------------------------------- */
 suspend fun uploadRequest(
     date: String,
-    coordinate: String, // kirim nlat,nlng
-    placeName: String,  // kirim cplacename
+    photoUri: Uri,
     reason: String,
-    photoUri: Uri,      // URI dari gambar
-    context: Context    // context untuk ambil session dll
+    coordinate: String,
+    placeName: String,
+    category: String,
+    context: Context
 ): UploadResult = withContext(Dispatchers.IO) {
     try {
         Log.d("HalamanIzin", "uploadRequest: date=$date loc=$coordinate name=$placeName reasonLen=${reason.length}")
@@ -424,6 +473,7 @@ suspend fun uploadRequest(
                 date = date,
                 coordinate = coordinate,
                 placeName = placeName,
+                category = category,
                 reason = reason,
                 photoBase64 = base64Image
             )
@@ -445,6 +495,7 @@ suspend fun uploadRequest(
             "requestDate": "$date",
             "location": "$coordinate",
             "placeName": "$placeName",
+            "category": "$category",
             "reason": "$reason",
             "photoBase64": "$base64Image"
         }

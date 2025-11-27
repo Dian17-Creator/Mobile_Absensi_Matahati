@@ -10,6 +10,7 @@ data class OfflineIzin(
     val date: String,
     val coordinate: String,
     val placeName: String,
+    val category: String,
     val reason: String,
     val photoBase64: String,
     val createdAt: Long = System.currentTimeMillis()
