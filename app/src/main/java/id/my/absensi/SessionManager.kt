@@ -21,11 +21,14 @@ class SessionManager(context: Context) {
         private const val KEY_SCAN_STATE = "scan_state"
         private const val KEY_PENDING_SYNC = "pending_sync"
         private const val KEY_LAST_SYNC_ATTEMPT = "last_sync_attempt"
+        private const val KEY_FACE_STATUS = "face_status"
     }
 
     // 🔹 Flow untuk status scan — ini yang akan dipantau oleh Compose
     private val _scanStateFlow = MutableStateFlow(getScanState())
     val scanStateFlow = _scanStateFlow.asStateFlow()
+    private val _faceStatusFlow = MutableStateFlow(getFaceStatus())
+    val faceStatusFlow = _faceStatusFlow.asStateFlow()
 
     // ✅ Simpan data login (tergantung checkbox "ingatkan saya")
     fun login(id: Int, name: String, email: String, rememberMe: Boolean) {
@@ -62,6 +65,7 @@ class SessionManager(context: Context) {
     fun clearSession() {
         prefs.edit().clear().apply()
         _scanStateFlow.value = null
+        _faceStatusFlow.value = "NONE"   // ✅ reset face status juga
     }
 
     // ✅ Simpan status scan
@@ -91,4 +95,17 @@ class SessionManager(context: Context) {
     fun resetSyncState() {
         prefs.edit().remove(KEY_PENDING_SYNC).remove(KEY_LAST_SYNC_ATTEMPT).apply()
     }
+
+    fun setFaceStatus(status: String?) {
+        val editor = prefs.edit()
+        if (status == null) {
+            editor.remove(KEY_FACE_STATUS)
+        } else {
+            editor.putString(KEY_FACE_STATUS, status)
+        }
+        editor.apply()
+    }
+
+    // 🔹 Ambil status face
+    fun getFaceStatus(): String? = prefs.getString(KEY_FACE_STATUS, null)
 }

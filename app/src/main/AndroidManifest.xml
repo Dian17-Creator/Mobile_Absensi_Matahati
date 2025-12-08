@@ -81,11 +81,18 @@
             android:label="@string/app_name"
             android:theme="@style/Theme.MyApplication" />
 
-        <!-- Halaman Absen Manual-->
+        <!-- Halaman Absen Manual -->
         <activity
             android:name=".HalamanAktivitas"
             android:exported="true"
             android:label="@string/app_name"
+            android:theme="@style/Theme.MyApplication" />
+
+        <!-- Halaman Face Regist -->
+        <activity
+            android:name=".HalamanFaceRegister"
+            android:exported="true"
+            android:label="Absensi"
             android:theme="@style/Theme.MyApplication" />
 
     </application>

@@ -81,7 +81,7 @@ fun HalamanIzinUI() {
     val message = remember { mutableStateOf("") }
     val isLoading = remember { mutableStateOf(false) }
     val errorDetail = remember { mutableStateOf<String?>(null) }
-    val category = remember { mutableStateOf("izin") }
+    val category = remember { mutableStateOf("") }
     val primaryColor = Color(0xFFB63352)
 
     DisposableEffect(Unit) {
