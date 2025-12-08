@@ -55,6 +55,9 @@ import androidx.compose.ui.platform.LocalConfiguration
 import id.my.matahati.absensi.data.ScanResult
 import id.my.matahati.absensi.utils.NetworkUtils
 import java.util.Locale
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import com.google.android.datatransport.runtime.ExecutionModule_ExecutorFactory.executor
 
 class HalamanScan : ComponentActivity() {
 
@@ -136,6 +139,30 @@ fun HalamanScanUI(
     var scanResult by remember { mutableStateOf<ScanResult>(ScanResult.Message("Arahkan kamera ke QR Code")) }
     var showCamera by remember { mutableStateOf(true) }
 
+    // Kamera ikut lifecycle: ON_RESUME -> hidup, ON_PAUSE -> mati
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_RESUME -> {
+                    Log.d("HalamanScan", "ON_RESUME -> nyalakan kamera")
+                    showCamera = true      // bikin CameraPreview re-create & bind ulang
+                }
+                Lifecycle.Event.ON_PAUSE -> {
+                    Log.d("HalamanScan", "ON_PAUSE -> matikan kamera")
+                    showCamera = false     // hilangkan CameraPreview & unbind di onDispose
+                }
+                else -> Unit
+            }
+        }
+
+        lifecycleOwner.lifecycle.addObserver(observer)
+
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+
+
     val configuration = LocalConfiguration.current
     val screenHeight = configuration.screenHeightDp
     val primaryColor = Color(0xFFB63352)
@@ -167,18 +194,21 @@ fun HalamanScanUI(
 
     // 🔹 WorkManager observer untuk sinkronisasi offline
     DisposableEffect(Unit) {
-        val observer = androidx.lifecycle.Observer<List<androidx.work.WorkInfo>> { workInfos ->
-            val isSuccess = workInfos.any { it.state == androidx.work.WorkInfo.State.SUCCEEDED }
-            if (isSuccess) {
-                Log.d("HalamanScan", "Worker sinkronisasi offline SUCCEEDED")
-                scanResult = ScanResult.SuccessImage
+        onDispose {
+            try {
+                Log.d("CameraPreview", "onDispose -> unbind camera")
+
+                val cameraProviderFuture = ProcessCameraProvider.getInstance(context)
+                val cameraProvider = cameraProviderFuture.get()
+                cameraProvider.unbindAll()
+
+            } catch (e: Exception) {
+                Log.e("CameraPreview", "Gagal unbind camera di onDispose", e)
             }
         }
-        workManager.getWorkInfosByTagLiveData("sync_offline_scans").observe(lifecycleOwner, observer)
-        onDispose {
-            workManager.getWorkInfosByTagLiveData("sync_offline_scans").removeObserver(observer)
-        }
     }
+
+
 
     // 🔹 Kamera otomatis restart setelah scan berhasil
     LaunchedEffect(scanResult) {
@@ -372,6 +402,28 @@ fun HalamanScanUI(
                     shape = RoundedCornerShape(8.dp)
                 ) {
                     Text("Aktivitas", fontSize = 13.sp)
+                }
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Button(
+                    onClick = {
+                        val intent = Intent(context, HalamanFaceRegister::class.java)
+                        context.startActivity(intent)
+                    },
+                    modifier = Modifier
+                        .weight(1f)
+                        .heightIn(min = 45.dp, max = 55.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF4C4C59),
+                        contentColor = Color.White
+                    ),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text("Face Register", fontSize = 13.sp)
                 }
             }
         }
