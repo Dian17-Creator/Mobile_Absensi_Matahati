@@ -1,7 +1,7 @@
 package id.my.matahati.absensi
 
 import android.Manifest
-import android.R
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -53,10 +53,8 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
 import java.io.ByteArrayOutputStream
 import java.util.concurrent.Executors
+import androidx.compose.material.icons.filled.ArrowBack
 
-// ======================================================
-//  GLOBALS
-// ======================================================
 
 private const val TAG_FACE = "FACE_REGISTER"
 private val httpClient by lazy { OkHttpClient() }
@@ -190,12 +188,31 @@ fun FaceRegisterScreen() {
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
 
-        // margin-top 20px sebelum judul
-        Spacer(modifier = Modifier.height(20.dp))
+        // ====== TOP BAR: ARROW + TITLE ======
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 16.dp, bottom = 12.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            IconButton(
+                onClick = { (context as? android.app.Activity)?.finish() },
+                modifier = Modifier.align(Alignment.CenterStart)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.ArrowBack,
+                    contentDescription = "Kembali",
+                    tint = Color(0xFFFF6F51)
+                )
+            }
 
-        // ======= HEADER =======
-        Text("Registrasi Wajah", fontSize = 22.sp, color = Color(0xFFFF6F51))
-        Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "Registrasi Wajah",
+                fontSize = 22.sp,
+                color = Color(0xFFFF6F51),
+                fontWeight = FontWeight.Bold
+            )
+        }
 
         Text("Ikuti instruksi berikut untuk hasil yang lebih akurat")
         Spacer(modifier = Modifier.height(12.dp))
@@ -258,7 +275,6 @@ fun FaceRegisterScreen() {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // ======= THUMBNAIL POSE (RATA TENGAH) =======
         Box(
             modifier = Modifier.fillMaxWidth(),
             contentAlignment = Alignment.Center
@@ -473,6 +489,25 @@ fun FaceRegisterScreen() {
                 )
             ) {
                 Text(if (isUploading) "Mengunggah..." else "Simpan Semua Foto")
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // ✅ Tombol baru di bawahnya
+            Button(
+                onClick = {
+                    val intent = Intent(context, HalamanFaceLogin::class.java)
+                    context.startActivity(intent)
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFF4C4C59),
+                    contentColor = Color.White
+                )
+            ) {
+                Text("Face Login")
             }
         }
 
