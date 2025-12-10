@@ -423,7 +423,7 @@ fun HalamanScanUI(
                     ),
                     shape = RoundedCornerShape(8.dp)
                 ) {
-                    Text("Face Register", fontSize = 13.sp)
+                    Text("Face Recognize", fontSize = 13.sp)
                 }
             }
         }

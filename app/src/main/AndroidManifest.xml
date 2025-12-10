@@ -95,5 +95,13 @@
             android:label="Absensi"
             android:theme="@style/Theme.MyApplication" />
 
+        <!-- Halaman Face Login -->
+        <activity
+            android:name=".HalamanFaceLogin"
+            android:exported="true"
+            android:label="Absensi"
+            android:theme="@style/Theme.MyApplication"
+            />
+
     </application>
 </manifest>
