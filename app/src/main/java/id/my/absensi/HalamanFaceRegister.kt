@@ -102,9 +102,7 @@ class HalamanFaceRegister : ComponentActivity() {
         }
 }
 
-// ======================================================
-//  UI COMPOSABLE
-// ======================================================
+private val PrimaryColor = Color(0xFFB63352)
 
 @Composable
 fun FaceRegisterScreen() {
@@ -181,346 +179,381 @@ fun FaceRegisterScreen() {
     // boleh ambil ulang via kamera hanya kalau status NONE
     val canRetake = faceStatus == FaceApprovalStatus.NONE
 
-    Column(
+    // ================= LAYOUT UTAMA =================
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(20.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+            .background(Color.White)
     ) {
+        // ====== BACKGROUND SETENGAH LINGKARAN DI BAWAH ======
+//        Box(
+//            modifier = Modifier
+//                .fillMaxWidth()
+//                .height(250.dp) // bisa diubah sesuai selera
+//                .align(Alignment.BottomCenter)
+//
+//                .background(PrimaryColor)
+//        )
 
-        // ====== TOP BAR: ARROW + TITLE ======
-        Box(
+        // ====== KONTEN UTAMA ======
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 16.dp, bottom = 12.dp),
-            contentAlignment = Alignment.Center
+                .fillMaxSize()
+                .padding(20.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            IconButton(
-                onClick = { (context as? android.app.Activity)?.finish() },
-                modifier = Modifier.align(Alignment.CenterStart)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.ArrowBack,
-                    contentDescription = "Kembali",
-                    tint = Color(0xFFFF6F51)
-                )
-            }
 
-            Text(
-                text = "Registrasi Wajah",
-                fontSize = 22.sp,
-                color = Color(0xFFFF6F51),
-                fontWeight = FontWeight.Bold
-            )
-        }
-
-        Text("Ikuti instruksi berikut untuk hasil yang lebih akurat")
-        Spacer(modifier = Modifier.height(12.dp))
-
-        val poseText = if (canRetake) {
-            nextPoseIndex?.let { poses[it] } ?: "Semua pose sudah lengkap ✔"
-        } else {
-            "Semua pose sudah lengkap ✔"
-        }
-
-        Text(
-            text = "Pose: $poseText",
-            fontSize = 18.sp,
-            color = Color.DarkGray
-        )
-
-        // ======= KAMERA (hanya kalau boleh retake dan belum 3 foto) =======
-        if (canRetake && nextPoseIndex != null) {
-            Spacer(modifier = Modifier.height(12.dp))
-
+            // ====== TOP BAR: ARROW + TITLE ======
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(360.dp)
-                    .clip(RoundedCornerShape(12.dp))
+                    .padding(top = 16.dp, bottom = 12.dp),
+                contentAlignment = Alignment.Center
             ) {
-                CameraPreviewRegister(
-                    onImageCaptured = { bitmap ->
-                        Log.d(TAG_FACE, "Bitmap captured for poseIndex=$nextPoseIndex")
-                        poseBitmaps[nextPoseIndex] = bitmap
-                    }
+                IconButton(
+                    onClick = { (context as? android.app.Activity)?.finish() },
+                    modifier = Modifier.align(Alignment.CenterStart)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.ArrowBack,
+                        contentDescription = "Kembali",
+                        tint = PrimaryColor
+                    )
+                }
+
+                Text(
+                    text = "Registrasi Wajah",
+                    fontSize = 22.sp,
+                    color = PrimaryColor,
+                    fontWeight = FontWeight.Bold
                 )
+            }
+
+            Text("Ikuti instruksi berikut untuk hasil yang lebih akurat")
+            Spacer(modifier = Modifier.height(12.dp))
+
+            val poseText = if (canRetake) {
+                nextPoseIndex?.let { poses[it] } ?: "Semua pose sudah lengkap ✔"
+            } else {
+                "Semua pose sudah lengkap ✔"
+            }
+
+            Text(
+                text = "Pose: $poseText",
+                fontSize = 18.sp,
+                color = Color.DarkGray
+            )
+
+            // ======= KAMERA (hanya kalau boleh retake dan belum 3 foto) =======
+            if (canRetake && nextPoseIndex != null) {
+                Spacer(modifier = Modifier.height(12.dp))
 
                 Box(
                     modifier = Modifier
-                        .fillMaxWidth(0.7f)
-                        .aspectRatio(3f / 4f)
-                        .border(2.dp, Color(0xFFFF6F51), RoundedCornerShape(10.dp))
-                        .align(Alignment.Center)
-                )
+                        .fillMaxWidth()
+                        .height(360.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                ) {
+                    CameraPreviewRegister(
+                        onImageCaptured = { bitmap ->
+                            Log.d(TAG_FACE, "Bitmap captured for poseIndex=$nextPoseIndex")
+                            poseBitmaps[nextPoseIndex] = bitmap
+                        }
+                    )
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(0.7f)
+                            .aspectRatio(3f / 4f)
+                            .border(2.dp, Color(0xFFFF6F51), RoundedCornerShape(10.dp))
+                            .align(Alignment.Center)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Button(
+                    onClick = {
+                        Log.d(TAG_FACE, "Capture button clicked")
+                        CameraRegisterController.capture()
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6F51))
+                ) {
+                    Text("Ambil Foto")
+                }
+            } else {
+                Spacer(modifier = Modifier.height(12.dp))
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-            Button(
-                onClick = {
-                    Log.d(TAG_FACE, "Capture button clicked")
-                    CameraRegisterController.capture()
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(50.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6F51))
+            // ====== PREVIEW 3 FOTO ======
+            Box(
+                modifier = Modifier.fillMaxWidth(),
+                contentAlignment = Alignment.Center
             ) {
-                Text("Ambil Foto")
-            }
-        } else {
-            Spacer(modifier = Modifier.height(12.dp))
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Box(
-            modifier = Modifier.fillMaxWidth(),
-            contentAlignment = Alignment.Center
-        ) {
-            LazyRow(
-                modifier = Modifier.wrapContentWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                items(poses.indices.toList()) { index ->
-                    val bmp = poseBitmaps[index]
-                    if (bmp != null) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .width(90.dp)
-                                    .height(100.dp)
+                LazyRow(
+                    modifier = Modifier.wrapContentWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    items(poses.indices.toList()) { index ->
+                        val bmp = poseBitmaps[index]
+                        if (bmp != null) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally
                             ) {
                                 Box(
                                     modifier = Modifier
-                                        .size(90.dp)
-                                        .align(Alignment.BottomStart)
-                                        .clip(RoundedCornerShape(10.dp))
-                                        .border(1.dp, Color.Gray)
+                                        .width(90.dp)
+                                        .height(135.dp)
                                 ) {
-                                    Image(
-                                        bitmap = bmp.asImageBitmap(),
-                                        contentDescription = poses[index],
-                                        modifier = Modifier.matchParentSize()
-                                    )
-                                }
-                                if (canRetake) {
+                                    // ===== FRAME FOTO BARU =====
                                     Box(
                                         modifier = Modifier
-                                            .size(28.dp)
-                                            .align(Alignment.TopEnd)
-                                            .offset(x = 6.dp, y = 4.dp)
+                                            .size(120.dp)
+                                            .align(Alignment.BottomStart)
                                             .shadow(
-                                                elevation = 4.dp,
-                                                shape = CircleShape,
+                                                elevation = 6.dp,
+                                                shape = RoundedCornerShape(10.dp),
                                                 clip = false
                                             )
-                                            .background(
-                                                color = Color.White,
-                                                shape = CircleShape
-                                            )
+                                            .clip(RoundedCornerShape(10.dp))
+                                            .background(Color.White)
                                             .border(
-                                                width = 1.dp,
-                                                color = Color.LightGray,
-                                                shape = CircleShape
+                                                width = 2.dp,
+                                                color = PrimaryColor,
+                                                shape = RoundedCornerShape(10.dp)
                                             )
-                                            .clickable {
-                                                Log.d(TAG_FACE, "Delete photo at index=$index")
-                                                poseBitmaps.remove(index)
-                                                uploadStatus = null
-                                            },
-                                        contentAlignment = Alignment.Center
                                     ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Close,
-                                            contentDescription = "Hapus foto",
-                                            tint = Color.Red,
-                                            modifier = Modifier.size(18.dp)
+                                        Image(
+                                            bitmap = bmp.asImageBitmap(),
+                                            contentDescription = poses[index],
+                                            modifier = Modifier
+                                                .matchParentSize()
                                         )
                                     }
+
+                                    // Tombol hapus kecil di pojok
+                                    if (canRetake) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(28.dp)
+                                                .align(Alignment.TopEnd)
+                                                .offset(x = 6.dp, y = 4.dp)
+                                                .shadow(
+                                                    elevation = 4.dp,
+                                                    shape = CircleShape,
+                                                    clip = false
+                                                )
+                                                .background(
+                                                    color = Color.White,
+                                                    shape = CircleShape
+                                                )
+                                                .border(
+                                                    width = 1.dp,
+                                                    color = Color.LightGray,
+                                                    shape = CircleShape
+                                                )
+                                                .clickable {
+                                                    Log.d(
+                                                        TAG_FACE,
+                                                        "Delete photo at index=$index"
+                                                    )
+                                                    poseBitmaps.remove(index)
+                                                    uploadStatus = null
+                                                },
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Close,
+                                                contentDescription = "Hapus foto",
+                                                tint = Color.Red,
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                        }
+                                    }
                                 }
+
+                                Spacer(modifier = Modifier.height(4.dp))
+
+                                Text(
+                                    text = when (index) {
+                                        0 -> "Netral"
+                                        1 -> "Senyum"
+                                        2 -> "Miring"
+                                        else -> "Pose ${index + 1}"
+                                    },
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.SemiBold
+                                )
                             }
-
-                            Spacer(modifier = Modifier.height(4.dp))
-
-                            Text(
-                                text = when (index) {
-                                    0 -> "Netral"
-                                    1 -> "Senyum"
-                                    2 -> "Miring"
-                                    else -> "Pose ${index + 1}"
-                                },
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.SemiBold
-                            )
                         }
                     }
                 }
             }
-        }
 
-        Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
-        // ======= TEKS STATUS =======
-        if (faceStatus != FaceApprovalStatus.NONE || poseBitmaps.size == poses.size) {
-            when (faceStatus) {
-                FaceApprovalStatus.NONE -> {
-                    if (poseBitmaps.size == poses.size) {
+            // ======= TEKS STATUS =======
+            if (faceStatus != FaceApprovalStatus.NONE || poseBitmaps.size == poses.size) {
+                when (faceStatus) {
+                    FaceApprovalStatus.NONE -> {
+                        if (poseBitmaps.size == poses.size) {
+                            Text(
+                                text = "3 foto selesai.\nSilakan klik \"Simpan Semua Foto\".",
+                                fontSize = 13.sp,
+                                color = Color.Gray,
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                    }
+
+                    FaceApprovalStatus.PENDING -> {
                         Text(
-                            text = "3 foto selesai.\nSilakan klik \"Simpan Semua Foto\".",
+                            text = "3 foto selesai\nMenunggu persetujuan HR...",
                             fontSize = 13.sp,
-                            color = Color.Gray,
+                            color = Color(0xFFFF9800),
+                            textAlign = TextAlign.Center
+                        )
+                    }
+
+                    FaceApprovalStatus.APPROVED -> {
+                        Text(
+                            text = "3 foto selesai\nFoto telah disetujui HR.",
+                            fontSize = 13.sp,
+                            color = Color(0xFF2E7D32),
                             textAlign = TextAlign.Center
                         )
                     }
                 }
-
-                FaceApprovalStatus.PENDING -> {
-                    Text(
-                        text = "3 foto selesai\nMenunggu persetujuan HR...",
-                        fontSize = 13.sp,
-                        color = Color(0xFFFF9800),
-                        textAlign = TextAlign.Center
-                    )
-                }
-
-                FaceApprovalStatus.APPROVED -> {
-                    Text(
-                        text = "3 foto selesai\nFoto telah disetujui HR.",
-                        fontSize = 13.sp,
-                        color = Color(0xFF2E7D32),
-                        textAlign = TextAlign.Center
-                    )
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // 🔴 NEW: TOMBOL "AMBIL ULANG FOTO WAJAH" (hanya kalau APPROVED)
-        if (faceStatus == FaceApprovalStatus.APPROVED) {
-            OutlinedButton(
-                onClick = {
-                    if (userId == -1) {
-                        uploadStatus = "User tidak terdeteksi, silakan login ulang."
-                        Log.e(TAG_FACE, "USER ID INVALID (-1) saat reset")
-                        return@OutlinedButton
-                    }
-
-                    scope.launch {
-                        isResetting = true
-                        uploadStatus = "Menghapus foto lama..."
-
-                        val ok = resetFaceOnServer(userId)
-
-                        isResetting = false
-                        if (ok) {
-                            // bersihkan preview & status, kembali ke mode ambil ulang
-                            poseBitmaps.clear()
-                            faceStatus = FaceApprovalStatus.NONE
-                            session.setFaceStatus(null)
-
-                            uploadStatus =
-                                "Foto lama dihapus. Silakan ambil ulang 3 foto wajah."
-                        } else {
-                            uploadStatus =
-                                "Gagal menghapus foto lama. Coba lagi."
-                        }
-                    }
-                },
-                enabled = !isUploading && !isResetting,
-                modifier = Modifier
-                    .fillMaxWidth().height(50.dp),
-                colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = Color(0xFFC62828)
-                )
-            ) {
-                Text(if (isResetting) "Menghapus..." else "Ambil Ulang Foto Wajah")
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-        }
-
-        // ======= TOMBOL SIMPAN =======
-        if (poseBitmaps.isNotEmpty()) {
-            Button(
-                onClick = {
-                    Log.d(TAG_FACE, "Submit clicked")
-                    Log.d(TAG_FACE, "UserId = $userId")
-                    Log.d(TAG_FACE, "Total images in map = ${poseBitmaps.size}")
-
-                    if (userId == -1) {
-                        uploadStatus = "User tidak terdeteksi, silakan login ulang."
-                        Log.e(TAG_FACE, "USER ID INVALID (-1)")
-                        return@Button
-                    }
-
-                    scope.launch {
-                        isUploading = true
-                        uploadStatus = "Mengunggah foto..."
-
-                        val bitmaps = (0 until poses.size).mapNotNull { poseBitmaps[it] }
-                        Log.d(TAG_FACE, "Bitmaps prepared for upload = ${bitmaps.size}")
-
-                        val success = uploadAllFaceImages(bitmaps, userId)
-
-                        isUploading = false
-                        if (success) {
-                            faceStatus = FaceApprovalStatus.PENDING
-                            session.setFaceStatus("PENDING")
-                            uploadStatus =
-                                "Semua foto berhasil diunggah. Menunggu persetujuan HR."
-                        } else {
-                            uploadStatus = "Gagal mengunggah foto. Coba lagi."
-                        }
-
-                        Log.d(TAG_FACE, "UPLOAD RESULT = $success")
-                    }
-                },
-                enabled = canRetake && poseBitmaps.size == poses.size && !isUploading,
-                modifier = Modifier.fillMaxWidth().height(50.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF008C4A),
-                    disabledContainerColor = Color(0xFF8BC34A)
-                )
-            ) {
-                Text(if (isUploading) "Mengunggah..." else "Simpan Semua Foto")
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // ✅ Tombol baru di bawahnya
-            Button(
-                onClick = {
-                    val intent = Intent(context, HalamanFaceLogin::class.java)
-                    context.startActivity(intent)
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(50.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF4C4C59),
-                    contentColor = Color.White
-                )
-            ) {
-                Text("Face Login")
-            }
-        }
+            // 🔴 NEW: TOMBOL "AMBIL ULANG FOTO WAJAH" (hanya kalau APPROVED)
+            if (faceStatus == FaceApprovalStatus.APPROVED) {
+                OutlinedButton(
+                    onClick = {
+                        if (userId == -1) {
+                            uploadStatus = "User tidak terdeteksi, silakan login ulang."
+                            Log.e(TAG_FACE, "USER ID INVALID (-1) saat reset")
+                            return@OutlinedButton
+                        }
 
-        uploadStatus?.let {
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(text = it, fontSize = 13.sp, color = Color.DarkGray)
+                        scope.launch {
+                            isResetting = true
+                            uploadStatus = "Menghapus foto lama..."
+
+                            val ok = resetFaceOnServer(userId)
+
+                            isResetting = false
+                            if (ok) {
+                                // bersihkan preview & status, kembali ke mode ambil ulang
+                                poseBitmaps.clear()
+                                faceStatus = FaceApprovalStatus.NONE
+                                session.setFaceStatus(null)
+
+                                uploadStatus =
+                                    "Foto lama dihapus. Silakan ambil ulang 3 foto wajah."
+                            } else {
+                                uploadStatus =
+                                    "Gagal menghapus foto lama. Coba lagi."
+                            }
+                        }
+                    },
+                    enabled = !isUploading && !isResetting,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = Color(0xFFC62828)
+                    )
+                ) {
+                    Text(if (isResetting) "Menghapus..." else "Ambil Ulang Foto Wajah")
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+
+            // ======= TOMBOL SIMPAN =======
+            if (poseBitmaps.isNotEmpty()) {
+                Button(
+                    onClick = {
+                        Log.d(TAG_FACE, "Submit clicked")
+                        Log.d(TAG_FACE, "UserId = $userId")
+                        Log.d(TAG_FACE, "Total images in map = ${poseBitmaps.size}")
+
+                        if (userId == -1) {
+                            uploadStatus = "User tidak terdeteksi, silakan login ulang."
+                            Log.e(TAG_FACE, "USER ID INVALID (-1)")
+                            return@Button
+                        }
+
+                        scope.launch {
+                            isUploading = true
+                            uploadStatus = "Mengunggah foto..."
+
+                            val bitmaps =
+                                (0 until poses.size).mapNotNull { poseBitmaps[it] }
+                            Log.d(TAG_FACE, "Bitmaps prepared for upload = ${bitmaps.size}")
+
+                            val success = uploadAllFaceImages(bitmaps, userId)
+
+                            isUploading = false
+                            if (success) {
+                                faceStatus = FaceApprovalStatus.PENDING
+                                session.setFaceStatus("PENDING")
+                                uploadStatus =
+                                    "Semua foto berhasil diunggah. Menunggu persetujuan HR."
+                            } else {
+                                uploadStatus = "Gagal mengunggah foto. Coba lagi."
+                            }
+
+                            Log.d(TAG_FACE, "UPLOAD RESULT = $success")
+                        }
+                    },
+                    enabled = canRetake && poseBitmaps.size == poses.size && !isUploading,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF008C4A),
+                        disabledContainerColor = Color(0xFF8BC34A)
+                    )
+                ) {
+                    Text(if (isUploading) "Mengunggah..." else "Simpan Semua Foto")
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Button(
+                    onClick = {
+                        val intent = Intent(context, HalamanFaceLogin::class.java)
+                        context.startActivity(intent)
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF4C4C59),
+                        contentColor = Color.White
+                    )
+                ) {
+                    Text("Face Login")
+                }
+            }
+
+            uploadStatus?.let {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(text = it, fontSize = 13.sp, color = Color.DarkGray)
+            }
         }
     }
 }
-
-// ======================================================
-//  CAMERA PREVIEW + CAPTURE
-// ======================================================
 
 object CameraRegisterController {
     var capture: () -> Unit = {}

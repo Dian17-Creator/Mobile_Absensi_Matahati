@@ -2,6 +2,7 @@ package id.my.matahati.absensi
 
 import android.Manifest
 import android.app.Activity
+import android.content.Context
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.os.Bundle
@@ -32,6 +33,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import com.google.android.gms.location.LocationServices
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -45,10 +47,6 @@ import java.io.ByteArrayOutputStream
 import java.util.concurrent.Executors
 
 private const val TAG_FACE_LOGIN = "FACE_LOGIN"
-
-// Ganti ke endpoint PHP mobile kamu
-private const val FACE_LOGIN_URL =
-    "https://absensi.matahati.my.id/face_login_mobile.php"
 
 private val httpClientLogin by lazy { OkHttpClient() }
 
@@ -80,13 +78,133 @@ class HalamanFaceLogin : ComponentActivity() {
                     PackageManager.PERMISSION_GRANTED
         }
 }
+private const val API_KEY = "MH4T4H4TI_2025_ABSENSI_APP_SECRETx9P2F7Q1L8S3Z0R6W4K2D1M9B7T5"
+private const val FACE_LOGIN_URL = "https://absensi.matahati.my.id/user_face_scan_mobile.php" // sesuaikan jika berbeda
+suspend fun loginWithFaceMultipart(
+    context: android.content.Context,
+    bitmap: Bitmap,
+    userId: Int,
+    location: String = "", // "lat,lng" atau "" jika belum ada
+    place: String = ""     // nama/alamat hasil reverse geocode (opsional)
+): FaceLoginResponse = withContext(Dispatchers.IO) {
+    try {
+        // compress bitmap -> jpeg bytes
+        val bos = ByteArrayOutputStream()
+        bitmap.compress(Bitmap.CompressFormat.JPEG, 90, bos)
+        val bytes = bos.toByteArray()
+
+        // build multipart body
+        val requestBodyBuilder = okhttp3.MultipartBody.Builder().setType(okhttp3.MultipartBody.FORM)
+
+        // add text parts
+        requestBodyBuilder.addFormDataPart("api_key", API_KEY)
+        requestBodyBuilder.addFormDataPart("userId", userId.toString())
+        requestBodyBuilder.addFormDataPart("location", location)
+        requestBodyBuilder.addFormDataPart("place", place)
+
+        // add file part - "facefile"
+        val fileRequestBody = okhttp3.RequestBody.create("image/jpeg".toMediaType(), bytes)
+        requestBodyBuilder.addFormDataPart("facefile", "face.jpg", fileRequestBody)
+
+        val requestBody = requestBodyBuilder.build()
+
+        val request = Request.Builder()
+            .url(FACE_LOGIN_URL)
+            .post(requestBody)
+            .build()
+
+        httpClientLogin.newCall(request).execute().use { resp ->
+            val code = resp.code
+            val respBody = resp.body?.string() ?: ""
+            Log.d(TAG_FACE_LOGIN, "LOGIN HTTP CODE = $code")
+            Log.d(TAG_FACE_LOGIN, "LOGIN RESPONSE = $respBody")
+
+            if (!resp.isSuccessful || respBody.isEmpty()) {
+                return@withContext FaceLoginResponse(
+                    success = false,
+                    message = "Koneksi gagal. Coba lagi.",
+                    confidence = null
+                )
+            }
+
+            val obj = JSONObject(respBody)
+            val success = obj.optBoolean("success", false)
+            val message = obj.optString("message", "Terjadi kesalahan.")
+            val confidenceRaw = obj.optDouble("confidence", Double.NaN)
+            val confidence = if (confidenceRaw.isNaN()) null else confidenceRaw
+
+            FaceLoginResponse(success, message, confidence)
+        }
+    } catch (e: Exception) {
+        Log.e(TAG_FACE_LOGIN, "Exception loginWithFaceMultipart", e)
+        FaceLoginResponse(
+            success = false,
+            message = "Sistem error. Coba lagi.",
+            confidence = null
+        )
+    }
+}
+
 
 @Composable
 fun FaceLoginScreen() {
-    val context = LocalContext.current
-    val session = remember { SessionManager(context) }
 
-    // Ambil userId dari SessionManager (sama seperti HalamanFaceRegister)
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val session = remember { SessionManager(context) }
+    var coordinate by remember { mutableStateOf("") }
+    var placeName by remember { mutableStateOf("Mencari lokasi...") }
+
+    LaunchedEffect(Unit) {
+        val activity = context as Activity
+        val fused = LocationServices.getFusedLocationProviderClient(activity)
+
+        val perms = arrayOf(
+            Manifest.permission.ACCESS_FINE_LOCATION,
+            Manifest.permission.ACCESS_COARSE_LOCATION
+        )
+
+        val granted = perms.all {
+            ContextCompat.checkSelfPermission(activity, it) ==
+                    PackageManager.PERMISSION_GRANTED
+        }
+
+        if (!granted) {
+            placeName = "Izin lokasi belum diberikan"
+            ActivityCompat.requestPermissions(activity, perms, 2001)
+            return@LaunchedEffect
+        }
+
+        fused.lastLocation.addOnSuccessListener { loc ->
+            if (loc != null) {
+                coordinate = "${loc.latitude},${loc.longitude}"
+
+                scope.launch(Dispatchers.IO) {
+                    try {
+                        val url = "https://nominatim.openstreetmap.org/reverse?lat=${loc.latitude}&lon=${loc.longitude}&format=json&addressdetails=1"
+                        val request = Request.Builder()
+                            .url(url)
+                            .addHeader("User-Agent", "MatahatiApp/1.0")
+                            .build()
+
+                        val response = httpClientLogin.newCall(request).execute()
+                        val json = response.body?.string() ?: ""
+                        val obj = JSONObject(json)
+                        val display = obj.optString("display_name", coordinate)
+
+                        withContext(Dispatchers.Main) {
+                            placeName = display   // ← UI UPDATE BERHASIL
+                        }
+                    } catch (e: Exception) {
+                        withContext(Dispatchers.Main) {
+                            placeName = coordinate
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     val storedUserId = session.getUserId()
     val userId = if (storedUserId != -1) {
         storedUserId
@@ -96,11 +214,10 @@ fun FaceLoginScreen() {
             ?.getIntExtra("USER_ID", -1) ?: -1
     }
 
-    val scope = rememberCoroutineScope()
-
     var statusText by remember { mutableStateOf<String?>(null) }
     var statusColor by remember { mutableStateOf(Color.Black) }
     var isProcessing by remember { mutableStateOf(false) }
+    var place by remember { mutableStateOf("") }
 
     Column(
         modifier = Modifier
@@ -109,7 +226,6 @@ fun FaceLoginScreen() {
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
 
-        // ====== TOP BAR: BACK ARROW + TITLE CENTER ======
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -128,14 +244,13 @@ fun FaceLoginScreen() {
             }
 
             Text(
-                text = "Face Login",
+                text = "FACE LOGIN",
                 fontSize = 22.sp,
                 color = Color(0xFFFF6F51),
                 fontWeight = FontWeight.Bold
             )
         }
 
-        // ====== PREVIEW KAMERA DENGAN CORNER RADIUS 10dp ======
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -157,7 +272,25 @@ fun FaceLoginScreen() {
                         statusColor = Color.Black
                         statusText = "Memindai wajah..."
 
-                        val result = loginWithFace(bitmap, userId)
+                        val loc = getLastKnownLocationSimple(context)
+                        place = ""   // reset UI state dulu
+
+                        if (loc.isNotEmpty()) {
+                            val parts = loc.split(",")
+                            if (parts.size == 2) {
+                                val lat = parts[0].toDoubleOrNull()
+                                val lng = parts[1].toDoubleOrNull()
+                                if (lat != null && lng != null) {
+                                    statusText = "Mengambil alamat lokasi..."
+
+                                    val resolvedPlace = reverseGeocode(lat, lng)
+                                    place = resolvedPlace
+                                    Log.d("PLACE_DEBUG", "UI updated place = $resolvedPlace")
+                                }
+                            }
+                        }
+
+                        val result = loginWithFaceMultipart(context, bitmap, userId, coordinate, placeName)
 
                         isProcessing = false
                         statusColor = if (result.success) Color(0xFF2E7D32) else Color.Red
@@ -169,7 +302,6 @@ fun FaceLoginScreen() {
                         }
 
                         if (result.success) {
-                            // Delay sebentar lalu tutup halaman (mirip reload di PHP)
                             delay(2500)
                             (context as? Activity)?.finish()
                         }
@@ -177,7 +309,6 @@ fun FaceLoginScreen() {
                 }
             )
 
-            // Kotak overlay di atas preview
             Box(
                 modifier = Modifier
                     .fillMaxWidth(0.7f)
@@ -190,18 +321,25 @@ fun FaceLoginScreen() {
             )
         }
 
-        // ====== TEKS PERINGATAN DI BAWAH KAMERA ======
         Spacer(modifier = Modifier.height(16.dp))
 
         Text(
             text = "Wajah Harus Penuh (termasuk dagu) Di Dalam Kotak Merah",
             color = Color(0xFFE74C3C),
-            fontSize = 13.sp,
+            fontSize = 12.sp,
             fontWeight = FontWeight.Bold,
             textAlign = TextAlign.Center
         )
 
-        // ====== TOMBOL AMBIL FOTO ======
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Text(
+            text = "📍 $placeName",
+            color = Color.Gray,
+            fontSize = 12.sp,
+            textAlign = TextAlign.Center
+        )
+
         Spacer(modifier = Modifier.height(20.dp))
 
         Button(
@@ -228,7 +366,6 @@ fun FaceLoginScreen() {
             Text(if (isProcessing) "Memindai..." else "Ambil Foto")
         }
 
-        // ====== STATUS TEXT ======
         statusText?.let {
             Spacer(modifier = Modifier.height(12.dp))
             Text(
@@ -242,12 +379,9 @@ fun FaceLoginScreen() {
     }
 }
 
-// ================== CAMERA & NETWORK PART TETAP SAMA ==================
-
 object CameraLoginController {
     var capture: () -> Unit = {}
 }
-
 @OptIn(ExperimentalGetImage::class)
 @Composable
 fun CameraPreviewLogin(
@@ -381,3 +515,42 @@ suspend fun loginWithFace(
             )
         }
     }
+
+fun getLastKnownLocationSimple(context: Context): String {
+    val lm = context.getSystemService(Context.LOCATION_SERVICE) as android.location.LocationManager
+    val hasFine = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+    val hasCoarse = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+    if (!hasFine && !hasCoarse) return "" // belum ada permission
+
+    val providers = lm.getProviders(true)
+    var best: android.location.Location? = null
+    for (p in providers) {
+        try {
+            val l = lm.getLastKnownLocation(p) ?: continue
+            if (best == null || l.accuracy < best.accuracy) best = l
+        } catch (ex: SecurityException) {
+            // ignore
+        }
+    }
+    return if (best != null) "${best.latitude},${best.longitude}" else ""
+}
+
+suspend fun reverseGeocode(lat: Double, lng: Double): String = withContext(Dispatchers.IO) {
+    try {
+        val url = "https://nominatim.openstreetmap.org/reverse?lat=$lat&lon=$lng&format=json&zoom=18&addressdetails=0"
+        val request = okhttp3.Request.Builder()
+            .url(url)
+            .header("User-Agent", "MatahatiAbsensiMobileApp/1.0")
+            .get()
+            .build()
+
+        httpClientLogin.newCall(request).execute().use { resp ->
+            val body = resp.body?.string() ?: return@withContext ""
+            val json = JSONObject(body)
+            return@withContext json.optString("display_name", "")
+        }
+    } catch (e: Exception) {
+        Log.e(TAG_FACE_LOGIN, "Reverse geocode error", e)
+        return@withContext ""
+    }
+}
