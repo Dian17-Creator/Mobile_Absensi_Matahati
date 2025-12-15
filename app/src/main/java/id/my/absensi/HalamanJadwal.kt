@@ -221,8 +221,9 @@ fun HalamanJadwalUI(scheduleViewModel: ScheduleViewModel = viewModel()) {
                                     LazyColumn(modifier = Modifier.fillMaxSize()) {
                                         items(sortedLogs) { log ->
                                             val bgColor = when (log.typeAbsensi) {
-                                                "manual" -> Color(0xFFFFF59D)
-                                                "scan" -> Color(0xFFC8D7E6)
+                                                "manual" -> Color(0xFFFFF59D) // kuning
+                                                "scan" -> Color(0xFFC8D7E6)   // biru
+                                                "face" -> Color(0xFFBEF2B2)   // cyan / biru muda
                                                 else -> Color.White
                                             }
 
