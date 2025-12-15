@@ -47,7 +47,6 @@ import java.io.ByteArrayOutputStream
 import java.util.concurrent.Executors
 
 private const val TAG_FACE_LOGIN = "FACE_LOGIN"
-
 private val httpClientLogin by lazy { OkHttpClient() }
 
 data class FaceLoginResponse(
@@ -88,10 +87,8 @@ suspend fun loginWithFaceMultipart(
     place: String = ""     // nama/alamat hasil reverse geocode (opsional)
 ): FaceLoginResponse = withContext(Dispatchers.IO) {
     try {
-        // compress bitmap -> jpeg bytes
-        val bos = ByteArrayOutputStream()
-        bitmap.compress(Bitmap.CompressFormat.JPEG, 90, bos)
-        val bytes = bos.toByteArray()
+        // compress & resize sebelum dikirim (maxWidth 600, quality 75)
+        val bytes = compressBitmapForUpload(bitmap, maxWidth = 600, quality = 75)
 
         // build multipart body
         val requestBodyBuilder = okhttp3.MultipartBody.Builder().setType(okhttp3.MultipartBody.FORM)
@@ -122,7 +119,7 @@ suspend fun loginWithFaceMultipart(
             if (!resp.isSuccessful || respBody.isEmpty()) {
                 return@withContext FaceLoginResponse(
                     success = false,
-                    message = "Koneksi gagal. Coba lagi.",
+                    message = "Koneksi gagal. Silahkan Coba lagi.",
                     confidence = null
                 )
             }
@@ -144,7 +141,6 @@ suspend fun loginWithFaceMultipart(
         )
     }
 }
-
 
 @Composable
 fun FaceLoginScreen() {
@@ -465,9 +461,7 @@ suspend fun loginWithFace(
 ): FaceLoginResponse =
     withContext(Dispatchers.IO) {
         try {
-            val bos = ByteArrayOutputStream()
-            bitmap.compress(Bitmap.CompressFormat.JPEG, 90, bos)
-            val bytes = bos.toByteArray()
+            val bytes = compressBitmapForUpload(bitmap, maxWidth = 600, quality = 75)
             val base64 = Base64.encodeToString(bytes, Base64.NO_WRAP)
 
             val json = """
@@ -493,7 +487,7 @@ suspend fun loginWithFace(
                 if (!resp.isSuccessful || respBody.isEmpty()) {
                     return@withContext FaceLoginResponse(
                         success = false,
-                        message = "Koneksi gagal. Coba lagi.",
+                        message = "Koneksi gagal. Silahkan Coba lagi.",
                         confidence = null
                     )
                 }
@@ -515,6 +509,7 @@ suspend fun loginWithFace(
             )
         }
     }
+
 
 fun getLastKnownLocationSimple(context: Context): String {
     val lm = context.getSystemService(Context.LOCATION_SERVICE) as android.location.LocationManager
@@ -553,4 +548,17 @@ suspend fun reverseGeocode(lat: Double, lng: Double): String = withContext(Dispa
         Log.e(TAG_FACE_LOGIN, "Reverse geocode error", e)
         return@withContext ""
     }
+}
+
+private fun compressBitmapForUpload(bitmap: Bitmap, maxWidth: Int = 600, quality: Int = 75): ByteArray {
+    val srcW = bitmap.width
+    val srcH = bitmap.height
+    val scale = if (srcW > maxWidth) maxWidth.toFloat() / srcW.toFloat() else 1f
+    val newW = (srcW * scale).toInt()
+    val newH = (srcH * scale).toInt()
+    val scaled = if (scale < 1f) Bitmap.createScaledBitmap(bitmap, newW, newH, true) else bitmap
+
+    val bos = ByteArrayOutputStream()
+    scaled.compress(Bitmap.CompressFormat.JPEG, quality, bos)
+    return bos.toByteArray()
 }
