@@ -109,8 +109,10 @@ fun FaceRegisterScreen() {
 
     val poses = listOf(
         "Lihat lurus (netral)",
-        "Lihat lurus (senyum)",
-        "Miringkan sedikit ke kanan"
+        "Miringkan sedikit ke kanan",
+        "Miringkan sedikit ke kiri"
+//        "Lihat lurus (senyum)",
+//        "Miringkan sedikit ke kanan"
     )
 
     val context = LocalContext.current
@@ -383,8 +385,8 @@ fun FaceRegisterScreen() {
                                 Text(
                                     text = when (index) {
                                         0 -> "Netral"
-                                        1 -> "Senyum"
-                                        2 -> "Miring"
+                                        1 -> "Kanan"
+                                        2 -> "Kiri"
                                         else -> "Pose ${index + 1}"
                                     },
                                     fontSize = 11.sp,
