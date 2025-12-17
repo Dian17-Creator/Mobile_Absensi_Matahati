@@ -4,12 +4,8 @@ package id.my.matahati.absensi
 
 import android.Manifest
 import android.app.Activity
-import android.content.Context
-import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
-import android.graphics.Matrix
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
@@ -49,16 +45,18 @@ import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
 import java.io.ByteArrayOutputStream
-import java.nio.ByteBuffer
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
+import com.google.mlkit.vision.common.InputImage
+import com.google.mlkit.vision.face.Face
+import com.google.mlkit.vision.face.FaceDetection
+import com.google.mlkit.vision.face.FaceDetector
+import com.google.mlkit.vision.face.FaceDetectorOptions
 
-/* ================= CONFIG ================= */
 
 private const val TAG = "FACE_LOGIN"
 private const val API_KEY = "MH4T4H4TI_2025_ABSENSI_APP_SECRETx9P2F7Q1L8S3Z0R6W4K2D1M9B7T5"
-private const val FACE_LOGIN_URL =
-    "https://absensi.matahati.my.id/user_face_scan_mobile.php"
+private const val FACE_LOGIN_URL = "https://absensi.matahati.my.id/user_face_scan_mobile.php"
 
 private val httpClient by lazy {
     OkHttpClient.Builder()
@@ -69,7 +67,33 @@ private val httpClient by lazy {
         .build()
 }
 
-/* ================= ACTIVITY ================= */
+object FaceLoginDetector {
+
+    private val options = FaceDetectorOptions.Builder()
+        .setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_FAST)
+        .setLandmarkMode(FaceDetectorOptions.LANDMARK_MODE_NONE)
+        .setContourMode(FaceDetectorOptions.CONTOUR_MODE_NONE)
+        .setClassificationMode(FaceDetectorOptions.CLASSIFICATION_MODE_NONE)
+        .build()
+
+    val detector: FaceDetector by lazy {
+        FaceDetection.getClient(options)
+    }
+}
+
+fun isFaceValidForLogin(face: Face): Boolean {
+    val yaw = face.headEulerAngleY
+    val pitch = face.headEulerAngleX
+    val box = face.boundingBox
+
+    if (box.width() < 160 || box.height() < 160) return false
+    if (kotlin.math.abs(yaw) > 25) return false
+    if (kotlin.math.abs(pitch) > 20) return false
+
+    return true
+}
+
+
 
 class HalamanFaceLogin : ComponentActivity() {
 
@@ -95,8 +119,6 @@ class HalamanFaceLogin : ComponentActivity() {
     }
 }
 
-/* ================= UI ================= */
-
 @Composable
 fun FaceLoginScreen() {
 
@@ -109,14 +131,14 @@ fun FaceLoginScreen() {
     var coordinate by remember { mutableStateOf("") }
     var placeName by remember { mutableStateOf("Mengambil lokasi...") }
 
-    var isLocationReady by remember { mutableStateOf(false) }
     var isCameraReady by remember { mutableStateOf(false) }
     var isUploading by remember { mutableStateOf(false) }
+    var isCapturing by remember { mutableStateOf(false) }
 
     var statusText by remember { mutableStateOf("") }
     var statusColor by remember { mutableStateOf(Color.Black) }
 
-    /* ===== GPS (WAJIB SEBELUM CAPTURE) ===== */
+    // ===================== GPS (OPTIONAL) =====================
     LaunchedEffect(Unit) {
         val activity = context as Activity
 
@@ -131,17 +153,15 @@ fun FaceLoginScreen() {
                     ) == PackageManager.PERMISSION_GRANTED
 
         if (!hasLocationPerm) {
-            placeName = "Izin lokasi belum diberikan"
+            placeName = "Lokasi tidak diizinkan"
             return@LaunchedEffect
         }
 
-        val fused = LocationServices.getFusedLocationProviderClient(activity)
-
         try {
+            val fused = LocationServices.getFusedLocationProviderClient(activity)
             fused.lastLocation.addOnSuccessListener { loc ->
                 if (loc != null) {
                     coordinate = "${loc.latitude},${loc.longitude}"
-
                     scope.launch(Dispatchers.IO) {
                         val place = reverseGeocode(loc.latitude, loc.longitude)
                         withContext(Dispatchers.Main) {
@@ -153,8 +173,8 @@ fun FaceLoginScreen() {
                     placeName = "Lokasi tidak tersedia"
                 }
             }
-        } catch (e: SecurityException) {
-            placeName = "Akses lokasi ditolak"
+        } catch (e: Exception) {
+            placeName = "Lokasi gagal diambil"
         }
     }
     Column(
@@ -164,11 +184,8 @@ fun FaceLoginScreen() {
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
 
-        /* ===== HEADER ===== */
-        Box(
-            modifier = Modifier.fillMaxWidth(),
-            contentAlignment = Alignment.Center
-        ) {
+        // ===== TOP BAR =====
+        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
             IconButton(
                 onClick = { (context as Activity).finish() },
                 modifier = Modifier.align(Alignment.CenterStart)
@@ -186,7 +203,6 @@ fun FaceLoginScreen() {
 
         Spacer(Modifier.height(12.dp))
 
-        /* ===== CAMERA ===== */
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -198,6 +214,24 @@ fun FaceLoginScreen() {
             CameraPreview(
                 onReady = { isCameraReady = true },
                 onCaptured = { bitmap ->
+
+                    // ❌ wajah tidak valid
+                    if (bitmap == null) {
+                        statusText =
+                            "Wajah tidak terdeteksi dengan jelas.\nPastikan 1 wajah & posisi lurus."
+                        statusColor = Color.Red
+                        isCapturing = false
+                        return@CameraPreview
+                    }
+
+                    // ❌ user invalid
+                    if (userId <= 0) {
+                        statusText = "User tidak valid, silakan login ulang"
+                        statusColor = Color.Red
+                        isCapturing = false
+                        return@CameraPreview
+                    }
+
                     scope.launch {
                         isUploading = true
                         statusText = "Memindai wajah..."
@@ -211,12 +245,14 @@ fun FaceLoginScreen() {
                         )
 
                         isUploading = false
+                        isCapturing = false
+
                         statusText = result.message
                         statusColor =
                             if (result.success) Color(0xFF2E7D32) else Color.Red
 
                         if (result.success) {
-                            delay(2500)
+                            delay(2000)
                             (context as Activity).finish()
                         }
                     }
@@ -227,7 +263,7 @@ fun FaceLoginScreen() {
                 modifier = Modifier
                     .fillMaxWidth(0.7f)
                     .aspectRatio(3f / 4f)
-                    .border(3.dp, Color(0xFFFF6F51), RoundedCornerShape(12.dp))
+                    .border(3.dp, Color(0xFF82FF5C), RoundedCornerShape(12.dp))
             )
         }
 
@@ -243,26 +279,23 @@ fun FaceLoginScreen() {
         Spacer(Modifier.height(16.dp))
 
         Button(
-            enabled = isCameraReady && isLocationReady && !isUploading,
+            enabled = isCameraReady && !isUploading && !isCapturing,
             onClick = {
+                isCapturing = true
                 CameraController.capture()
             },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(50.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = Color(0xFFFF6F51)
-            )
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6F51))
         ) {
             Text(
                 when {
-                    !isLocationReady -> "Menunggu GPS..."
                     isUploading -> "Memindai..."
                     else -> "Ambil Foto"
                 }
             )
         }
-
         if (statusText.isNotEmpty()) {
             Spacer(Modifier.height(12.dp))
             Text(
@@ -275,8 +308,6 @@ fun FaceLoginScreen() {
     }
 }
 
-/* ================= CAMERA ================= */
-
 object CameraController {
     var capture: () -> Unit = {}
 }
@@ -284,7 +315,7 @@ object CameraController {
 @Composable
 fun CameraPreview(
     onReady: () -> Unit,
-    onCaptured: (Bitmap) -> Unit
+    onCaptured: (Bitmap?) -> Unit
 ) {
     val lifecycleOwner = LocalLifecycleOwner.current
     val executor = remember { Executors.newSingleThreadExecutor() }
@@ -309,17 +340,51 @@ fun CameraPreview(
                         executor,
                         object : ImageCapture.OnImageCapturedCallback() {
                             override fun onCaptureSuccess(image: ImageProxy) {
-                                val bmp = imageProxyToBitmap(image)
-                                val rotated =
-                                    rotateBitmap(bmp, image.imageInfo.rotationDegrees.toFloat())
-                                val fixed = unMirrorBitmap(rotated)
-                                image.close()
-                                onCaptured(fixed)
+                                try {
+                                    val bmp = imageProxyToBitmap(image)
+                                    val rotated =
+                                        rotateBitmap(bmp, image.imageInfo.rotationDegrees.toFloat())
+
+                                    val inputImage = InputImage.fromBitmap(rotated, 0)
+
+                                    FaceLoginDetector.detector
+                                        .process(inputImage)
+                                        .addOnSuccessListener { faces ->
+
+                                            if (faces.size != 1) {
+                                                Log.e(TAG, "Invalid face count: ${faces.size}")
+                                                image.close()
+                                                return@addOnSuccessListener
+                                            }
+
+                                            val face = faces.first()
+
+                                            if (!isFaceValidForLogin(face)) {
+                                                Log.e(TAG, "Face invalid (angle / size)")
+                                                image.close()
+                                                return@addOnSuccessListener
+                                            }
+
+                                            val cropped = cropFaceForLogin(rotated, face)
+                                            val finalFace = resizeFaceForLogin(cropped)
+
+                                            onCaptured(finalFace)
+                                            image.close()
+                                        }
+                                        .addOnFailureListener {
+                                            Log.e(TAG, "ML Kit detect failed", it)
+                                            image.close()
+                                        }
+
+                                } catch (e: Exception) {
+                                    Log.e(TAG, "Capture error", e)
+                                    image.close()
+                                }
                             }
+
                         }
                     )
                 }
-
                 cameraProvider.unbindAll()
                 cameraProvider.bindToLifecycle(
                     lifecycleOwner,
@@ -327,17 +392,13 @@ fun CameraPreview(
                     preview,
                     imageCapture
                 )
-
                 onReady()
-
             }, ContextCompat.getMainExecutor(ctx))
-
             previewView
         }
     )
 }
 
-/* ================= NETWORK ================= */
 data class FaceLoginResponse(
     val success: Boolean,
     val message: String,
@@ -385,8 +446,6 @@ suspend fun uploadFace(
     }
 }
 
-/* ================= UTIL ================= */
-
 fun compressBitmap(bitmap: Bitmap): ByteArray {
     val maxW = 600
     val scale = if (bitmap.width > maxW) maxW.toFloat() / bitmap.width else 1f
@@ -399,23 +458,15 @@ fun compressBitmap(bitmap: Bitmap): ByteArray {
                 true
             )
         else bitmap
-
     return ByteArrayOutputStream().apply {
         resized.compress(Bitmap.CompressFormat.JPEG, 75, this)
     }.toByteArray()
 }
 
-fun unMirrorBitmap(bitmap: Bitmap): Bitmap {
-    val matrix = Matrix().apply { preScale(-1f, 1f) }
-    return Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
-}
 suspend fun reverseGeocode(lat: Double, lng: Double): String =
     withContext(Dispatchers.IO) {
         try {
-            val url =
-                "https://nominatim.openstreetmap.org/reverse" +
-                        "?lat=$lat&lon=$lng&format=json&addressdetails=0"
-
+            val url = "https://nominatim.openstreetmap.org/reverse" + "?lat=$lat&lon=$lng&format=json&addressdetails=0"
             val req = Request.Builder()
                 .url(url)
                 .header("User-Agent", "MatahatiAbsensiMobileApp/1.0")
@@ -431,3 +482,18 @@ suspend fun reverseGeocode(lat: Double, lng: Double): String =
             ""
         }
     }
+
+fun cropFaceForLogin(bitmap: Bitmap, face: Face): Bitmap {
+    val box = face.boundingBox
+
+    val left = box.left.coerceAtLeast(0)
+    val top = box.top.coerceAtLeast(0)
+    val width = box.width().coerceAtMost(bitmap.width - left)
+    val height = box.height().coerceAtMost(bitmap.height - top)
+
+    return Bitmap.createBitmap(bitmap, left, top, width, height)
+}
+
+fun resizeFaceForLogin(bitmap: Bitmap, size: Int = 320): Bitmap {
+    return Bitmap.createScaledBitmap(bitmap, size, size, true)
+}

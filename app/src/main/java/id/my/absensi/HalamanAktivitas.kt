@@ -1,7 +1,6 @@
 package id.my.matahati.absensi
 
 import android.util.Log
-import androidx.compose.ui.tooling.preview.Preview
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -34,7 +33,6 @@ class HalamanAktivitas : ComponentActivity() {
     }
 }
 
-@Preview(showBackground = true, showSystemUi = true)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HalamanAktivitasScreen() {

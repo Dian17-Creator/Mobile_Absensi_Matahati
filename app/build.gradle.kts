@@ -19,10 +19,10 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         ndk {
-            abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86", "x86_64") // hanya CPU Android umum (x86/64 untuk keperluan via  emulator)
+            abiFilters += listOf("arm64-v8a", "armeabi-v7a") // hanya CPU Android umum (x86/64 untuk keperluan via  emulator)
+            //abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86", "x86_64") // hanya CPU Android umum (x86/64 untuk keperluan via  emulator)
         }
     }
-
     buildTypes {
         release {
             isMinifyEnabled = true
@@ -33,7 +33,6 @@ android {
             )
         }
     }
-
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
@@ -42,17 +41,16 @@ android {
     kotlinOptions {
         jvmTarget = "11"
     }
-
     buildFeatures {
         compose = true
-        viewBinding = true
+        viewBinding = false
     }
 }
 
 
 dependencies {
-    implementation(libs.androidx.compose.runtime.saveable)
     val camerax_version = "1.3.1"
+    implementation(libs.androidx.compose.runtime.saveable)
 
     // Room
     kapt("androidx.room:room-compiler:2.6.1")
@@ -66,8 +64,10 @@ dependencies {
 
     // Calendar library
     implementation("com.kizitonwose.calendar:compose:2.4.0")
+
     // ML Kit
     implementation("com.google.android.gms:play-services-mlkit-barcode-scanning:18.3.0")
+    implementation("com.google.android.gms:play-services-mlkit-face-detection:17.1.0")
 
     // CameraX
     implementation("androidx.camera:camera-core:$camerax_version")
@@ -113,7 +113,6 @@ dependencies {
 
     // viewmodel compose
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.6.2")
-
     implementation("androidx.core:core-ktx:1.10.1")
 
     // Material components (BottomNavigationView)
@@ -128,12 +127,7 @@ dependencies {
     // Navigation (opsional tapi direkomendasikan jika ingin NavHostFragment / navigation-ui)
     implementation("androidx.navigation:navigation-fragment-ktx:2.7.2")
     implementation("androidx.navigation:navigation-ui-ktx:2.7.2")
-
     implementation("io.coil-kt:coil-compose:2.4.0")
-
-    // 👇 Ini penting untuk preview
-    implementation("androidx.compose.ui:ui-tooling-preview:1.6.0")
-    debugImplementation("androidx.compose.ui:ui-tooling:1.6.0")
 
     implementation("androidx.compose.material3:material3:1.2.1")
     implementation("androidx.compose.material3:material3-window-size-class:1.2.1")
