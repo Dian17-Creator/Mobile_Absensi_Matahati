@@ -1,6 +1,7 @@
 package id.my.matahati.absensi
 
 import android.Manifest
+import android.R.attr.scaleX
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
@@ -54,31 +55,70 @@ import org.json.JSONObject
 import java.io.ByteArrayOutputStream
 import java.util.concurrent.Executors
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.ContentScale
+import com.google.mlkit.vision.common.InputImage
+import com.google.mlkit.vision.face.Face
+import com.google.mlkit.vision.face.FaceDetection
+import com.google.mlkit.vision.face.FaceDetector
+import com.google.mlkit.vision.face.FaceDetectorOptions
 
 
 private const val TAG_FACE = "FACE_REGISTER"
 private val httpClient by lazy { OkHttpClient() }
+private const val FACE_UPLOAD_URL = "https://absensi.matahati.my.id/user_face_mobile.php"
+private const val FACE_STATUS_URL = "https://absensi.matahati.my.id/user_face_status_mobile.php"
+private const val FACE_RESET_URL = "https://absensi.matahati.my.id/user_face_reset_mobile.php"
 
-private const val FACE_UPLOAD_URL =
-    "https://absensi.matahati.my.id/user_face_mobile.php"
-
-private const val FACE_STATUS_URL =
-    "https://absensi.matahati.my.id/user_face_status_mobile.php"
-
-// 🔴 NEW: endpoint untuk hapus semua foto & reset approval
-private const val FACE_RESET_URL =
-    "https://absensi.matahati.my.id/user_face_reset_mobile.php"
-
-// status lokal (disinkron dengan SessionManager)
 enum class FaceApprovalStatus {
-    NONE,       // belum kirim / setelah HR reject / setelah reset
-    PENDING,    // sudah upload, menunggu HR
-    APPROVED    // sudah disetujui HR
+    NONE,
+    PENDING,
+    APPROVED
 }
 
-// ======================================================
-//  ACTIVITY
-// ======================================================
+object FaceRegisterDetector {
+
+    private val options = FaceDetectorOptions.Builder()
+        .setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_FAST)
+        .setLandmarkMode(FaceDetectorOptions.LANDMARK_MODE_NONE)
+        .setContourMode(FaceDetectorOptions.CONTOUR_MODE_NONE)
+        .setClassificationMode(FaceDetectorOptions.CLASSIFICATION_MODE_NONE)
+        .build()
+
+    val detector: FaceDetector by lazy {
+        FaceDetection.getClient(options)
+    }
+}
+
+fun isFaceValid(face: Face): Boolean {
+    val yaw = face.headEulerAngleY
+    val pitch = face.headEulerAngleX
+    val box = face.boundingBox
+
+    // ukuran wajah minimal
+    if (box.width() < 200 || box.height() < 200) return false
+
+    // sudut wajah
+    if (kotlin.math.abs(yaw) > 15) return false
+    if (kotlin.math.abs(pitch) > 15) return false
+
+    return true
+}
+
+fun cropFace(bitmap: Bitmap, face: Face): Bitmap {
+    val box = face.boundingBox
+
+    val left = box.left.coerceAtLeast(0)
+    val top = box.top.coerceAtLeast(0)
+    val width = box.width().coerceAtMost(bitmap.width - left)
+    val height = box.height().coerceAtMost(bitmap.height - top)
+
+    return Bitmap.createBitmap(bitmap, left, top, width, height)
+}
+
+fun resizeFace(bitmap: Bitmap, size: Int = 360): Bitmap {
+    return Bitmap.createScaledBitmap(bitmap, size, size, true)
+}
 
 class HalamanFaceRegister : ComponentActivity() {
 
@@ -177,8 +217,6 @@ fun FaceRegisterScreen() {
 
     // 🔴 NEW: flag reset
     var isResetting by remember { mutableStateOf(false) }
-
-    // boleh ambil ulang via kamera hanya kalau status NONE
     val canRetake = faceStatus == FaceApprovalStatus.NONE
 
     // ================= LAYOUT UTAMA =================
@@ -187,17 +225,6 @@ fun FaceRegisterScreen() {
             .fillMaxSize()
             .background(Color.White)
     ) {
-        // ====== BACKGROUND SETENGAH LINGKARAN DI BAWAH ======
-//        Box(
-//            modifier = Modifier
-//                .fillMaxWidth()
-//                .height(250.dp) // bisa diubah sesuai selera
-//                .align(Alignment.BottomCenter)
-//
-//                .background(PrimaryColor)
-//        )
-
-        // ====== KONTEN UTAMA ======
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -310,73 +337,47 @@ fun FaceRegisterScreen() {
                             ) {
                                 Box(
                                     modifier = Modifier
-                                        .width(90.dp)
-                                        .height(135.dp)
+                                        .width(100.dp)
+                                        .height(125.dp)
                                 ) {
                                     // ===== FRAME FOTO BARU =====
                                     Box(
                                         modifier = Modifier
-                                            .size(120.dp)
-                                            .align(Alignment.BottomStart)
-                                            .shadow(
-                                                elevation = 6.dp,
-                                                shape = RoundedCornerShape(10.dp),
-                                                clip = false
-                                            )
+                                            .width(100.dp)
+                                            .height(125.dp)
                                             .clip(RoundedCornerShape(10.dp))
-                                            .background(Color.White)
-                                            .border(
-                                                width = 2.dp,
-                                                color = PrimaryColor,
-                                                shape = RoundedCornerShape(10.dp)
-                                            )
+                                            .border(2.dp, PrimaryColor, RoundedCornerShape(10.dp))
+                                            .background(Color.White),
+                                        contentAlignment = Alignment.Center
                                     ) {
                                         Image(
                                             bitmap = bmp.asImageBitmap(),
                                             contentDescription = poses[index],
                                             modifier = Modifier
                                                 .matchParentSize()
+                                                .graphicsLayer {
+                                                    scaleX = -1f
+                                                },
+                                            contentScale = ContentScale.Crop
                                         )
                                     }
 
-                                    // Tombol hapus kecil di pojok
                                     if (canRetake) {
-                                        Box(
+                                        Icon(
+                                            imageVector = Icons.Default.Close,
+                                            contentDescription = "Hapus foto",
+                                            tint = Color.White,
                                             modifier = Modifier
-                                                .size(28.dp)
                                                 .align(Alignment.TopEnd)
-                                                .offset(x = 6.dp, y = 4.dp)
-                                                .shadow(
-                                                    elevation = 4.dp,
-                                                    shape = CircleShape,
-                                                    clip = false
-                                                )
-                                                .background(
-                                                    color = Color.White,
-                                                    shape = CircleShape
-                                                )
-                                                .border(
-                                                    width = 1.dp,
-                                                    color = Color.LightGray,
-                                                    shape = CircleShape
-                                                )
+                                                .padding(4.dp)
+                                                .size(20.dp)
+                                                .background(Color.Red, CircleShape)
+                                                .padding(2.dp)
                                                 .clickable {
-                                                    Log.d(
-                                                        TAG_FACE,
-                                                        "Delete photo at index=$index"
-                                                    )
                                                     poseBitmaps.remove(index)
                                                     uploadStatus = null
-                                                },
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Default.Close,
-                                                contentDescription = "Hapus foto",
-                                                tint = Color.Red,
-                                                modifier = Modifier.size(18.dp)
-                                            )
-                                        }
+                                                }
+                                        )
                                     }
                                 }
 
@@ -400,7 +401,6 @@ fun FaceRegisterScreen() {
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // ======= TEKS STATUS =======
             if (faceStatus != FaceApprovalStatus.NONE || poseBitmaps.size == poses.size) {
                 when (faceStatus) {
                     FaceApprovalStatus.NONE -> {
@@ -592,41 +592,48 @@ fun CameraPreviewRegister(
                     object : ImageCapture.OnImageCapturedCallback() {
                         override fun onCaptureSuccess(image: ImageProxy) {
                             try {
-                                Log.d(TAG_FACE, "Capture success, imageProxy received")
+                                Log.d(TAG_FACE, "Capture success, processing with ML Kit")
 
                                 val rawBitmap = imageProxyToBitmap(image)
-
-                                Log.d(
-                                    TAG_FACE,
-                                    "Raw bitmap size = ${rawBitmap.width} x ${rawBitmap.height}"
-                                )
 
                                 val rotated = rotateBitmap(
                                     rawBitmap,
                                     image.imageInfo.rotationDegrees.toFloat()
                                 )
 
-                                val maxWidth = 600
-                                val ratio = maxWidth.toFloat() / rotated.width.toFloat()
-                                val thumbWidth = maxWidth
-                                val thumbHeight = (rotated.height * ratio).toInt()
+                                val inputImage = InputImage.fromBitmap(rotated, 0)
 
-                                val thumbnail = Bitmap.createScaledBitmap(
-                                    rotated,
-                                    thumbWidth,
-                                    thumbHeight,
-                                    true
-                                )
+                                FaceRegisterDetector.detector
+                                    .process(inputImage)
+                                    .addOnSuccessListener { faces ->
 
-                                Log.d(
-                                    TAG_FACE,
-                                    "Thumbnail ready = ${thumbnail.width} x ${thumbnail.height}"
-                                )
+                                        if (faces.size != 1) {
+                                            Log.e(TAG_FACE, "Invalid face count: ${faces.size}")
+                                            return@addOnSuccessListener
+                                        }
 
-                                currentOnImageCaptured(thumbnail)
+                                        val face = faces.first()
+                                        if (!isFaceValid(face)) {
+                                            Log.e(TAG_FACE, "Face invalid (angle / size)")
+                                            return@addOnSuccessListener
+                                        }
+
+                                        val cropped = cropFace(rotated, face)
+                                        val finalFace = resizeFace(cropped)
+
+                                        Log.d(
+                                            TAG_FACE,
+                                            "Final face size = ${finalFace.width} x ${finalFace.height}"
+                                        )
+
+                                        currentOnImageCaptured(finalFace)
+                                    }
+                                    .addOnFailureListener {
+                                        Log.e(TAG_FACE, "ML Kit face detection failed", it)
+                                    }
 
                             } catch (e: Exception) {
-                                Log.e(TAG_FACE, "Error in capture processing", e)
+                                Log.e(TAG_FACE, "Capture error", e)
                             } finally {
                                 image.close()
                             }
@@ -665,7 +672,6 @@ fun imageProxyToBitmap(image: ImageProxy): Bitmap {
 fun rotateBitmap(src: Bitmap, degrees: Float): Bitmap {
     val matrix = Matrix().apply {
         postRotate(degrees)
-        postScale(-1f, 1f, src.width / 2f, src.height / 2f) // unmirror
     }
     return Bitmap.createBitmap(src, 0, 0, src.width, src.height, matrix, true)
 }
