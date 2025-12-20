@@ -56,7 +56,7 @@ fun loginUser(
     onResult: (Boolean, String, JSONObject?) -> Unit
 ) {
     val client = OkHttpClient()
-    val url = "https://absensi.matahati.my.id/login.php?api=1"
+    val url = "https://absensi.matahati.my.id/user_login_mobile.php?api=1"
 
     val formBody = FormBody.Builder()
         .add("email", email)
@@ -67,6 +67,7 @@ fun loginUser(
         .url(url)
         .post(formBody)
         .addHeader("Accept", "application/json")
+        .addHeader("X-Requested-With", "XMLHttpRequest") // 🔥 WAJIB
         .build()
 
     client.newCall(request).enqueue(object : Callback {
@@ -227,20 +228,53 @@ fun LoginUI() {
     }
 }
 
-fun handleLogin(context: ComponentActivity, email: String, password: String, rememberMe: Boolean) {
+fun handleLogin(
+    context: ComponentActivity,
+    email: String,
+    password: String,
+    rememberMe: Boolean
+) {
     loginUser(context, email, password) { success, msg, userJson ->
         Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
 
         if (success && userJson != null) {
-            val userId = userJson.optString("id")?.toIntOrNull() ?: -1
+
+            val userId = userJson.optInt("id", -1)
             val userName = userJson.optString("name", "")
             val userEmail = userJson.optString("email", "")
 
+            // 🔐 AMBIL ROLE DARI API
+            val role = userJson.optJSONObject("role")
+            val fadmin = role?.optInt("fadmin", 0) ?: 0
+            val fsuper = role?.optInt("fsuper", 0) ?: 0
+            val fhrd   = role?.optInt("fhrd", 0) ?: 0
+
+            // 🔍 DEBUG (WAJIB)
+            android.util.Log.d(
+                "ROLE_LOGIN",
+                "Login role → admin=$fadmin super=$fsuper hrd=$fhrd"
+            )
+
             val session = SessionManager(context.applicationContext)
 
-            session.login(id = userId, name = userName, email = userEmail, rememberMe = rememberMe)
+            // ✅ SIMPAN ROLE KE SESSION
+            session.login(
+                id = userId,
+                name = userName,
+                email = userEmail,
+                rememberMe = rememberMe,
+                fadmin = fadmin,
+                fsuper = fsuper,
+                fhrd = fhrd
+            )
 
-            // ✅ Pindah ke MainActivity
+            // 🔍 DEBUG SESSION
+            android.util.Log.d(
+                "ROLE_SESSION",
+                "Session → admin=${session.isAdmin()} " +
+                        "captain=${session.isCaptain()} hrd=${session.isHRD()}"
+            )
+
             val intent = Intent(context, MainActivity::class.java)
             intent.putExtra("USER_ID", userId)
             intent.putExtra("USER_NAME", userName)
