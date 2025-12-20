@@ -58,6 +58,7 @@ import java.util.Locale
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import com.google.android.datatransport.runtime.ExecutionModule_ExecutorFactory.executor
+import kotlin.jvm.java
 
 class HalamanScan : ComponentActivity() {
 
@@ -132,6 +133,11 @@ fun HalamanScanUI(
 ) {
     val context = LocalContext.current
     val session = SessionManager(context)
+
+    val isCaptainOrAbove = remember {
+        session.isCaptainOrAbove()
+    }
+
     val activity = context as? ComponentActivity
     val lifecycleOwner = LocalLifecycleOwner.current
     val workManager = androidx.work.WorkManager.getInstance(context)
@@ -246,6 +252,7 @@ fun HalamanScanUI(
             verticalArrangement = Arrangement.spacedBy(12.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 elevation = CardDefaults.cardElevation(6.dp),
@@ -409,6 +416,8 @@ fun HalamanScanUI(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
+
+                // ✅ Face Recognize — SEMUA ROLE BOLEH
                 Button(
                     onClick = {
                         val intent = Intent(context, HalamanFaceRegister::class.java)
@@ -424,6 +433,26 @@ fun HalamanScanUI(
                     shape = RoundedCornerShape(8.dp)
                 ) {
                     Text("Face Recognize", fontSize = 13.sp)
+                }
+
+                // ✅ Approval — HANYA CAPTAIN KE ATAS
+                if (isCaptainOrAbove) {
+                    Button(
+                        onClick = {
+                            val intent = Intent(context, HalamanApproval::class.java)
+                            context.startActivity(intent)
+                        },
+                        modifier = Modifier
+                            .weight(1f)
+                            .heightIn(min = 45.dp, max = 55.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFF4C4C59),
+                            contentColor = Color.White
+                        ),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text("Approval", fontSize = 13.sp)
+                    }
                 }
             }
         }

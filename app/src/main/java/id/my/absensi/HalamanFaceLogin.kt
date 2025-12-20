@@ -3,7 +3,10 @@
 package id.my.matahati.absensi
 
 import android.Manifest
+import android.R.attr.scaleX
+import android.R.attr.scaleY
 import android.app.Activity
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.os.Bundle
@@ -13,17 +16,22 @@ import androidx.activity.compose.setContent
 import androidx.camera.core.*
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
@@ -52,6 +60,7 @@ import com.google.mlkit.vision.face.Face
 import com.google.mlkit.vision.face.FaceDetection
 import com.google.mlkit.vision.face.FaceDetector
 import com.google.mlkit.vision.face.FaceDetectorOptions
+import kotlin.jvm.java
 
 
 private const val TAG = "FACE_LOGIN"
@@ -122,6 +131,7 @@ class HalamanFaceLogin : ComponentActivity() {
 @Composable
 fun FaceLoginScreen() {
 
+    var showSuccessDialog by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val session = remember { SessionManager(context) }
@@ -134,6 +144,7 @@ fun FaceLoginScreen() {
     var isCameraReady by remember { mutableStateOf(false) }
     var isUploading by remember { mutableStateOf(false) }
     var isCapturing by remember { mutableStateOf(false) }
+    var isLocationReady by remember { mutableStateOf(false) }
 
     var statusText by remember { mutableStateOf("") }
     var statusColor by remember { mutableStateOf(Color.Black) }
@@ -252,8 +263,11 @@ fun FaceLoginScreen() {
                             if (result.success) Color(0xFF2E7D32) else Color.Red
 
                         if (result.success) {
-                            delay(2000)
-                            (context as Activity).finish()
+                            statusText = ""
+                            showSuccessDialog = true
+                        } else {
+                            statusText = result.message
+                            statusColor = Color.Red
                         }
                     }
                 }
@@ -303,6 +317,85 @@ fun FaceLoginScreen() {
                 color = statusColor,
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center
+            )
+        }
+
+        if (showSuccessDialog) {
+
+            val scale by animateFloatAsState(
+                targetValue = if (showSuccessDialog) 1f else 0.9f,
+                animationSpec = tween(220, easing = FastOutSlowInEasing),
+                label = "scale"
+            )
+
+            val alpha by animateFloatAsState(
+                targetValue = if (showSuccessDialog) 1f else 0f,
+                animationSpec = tween(180),
+                label = "alpha"
+            )
+
+            AlertDialog(
+                onDismissRequest = {},
+                confirmButton = {},
+
+                text = {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .graphicsLayer {
+                                scaleX = scale
+                                scaleY = scale
+                                this.alpha = alpha
+                            }
+                            .padding(vertical = 8.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+
+                        Icon(
+                            imageVector = Icons.Default.CheckCircle,
+                            contentDescription = null,
+                            tint = Color(0xFF2E7D32),
+                            modifier = Modifier.size(56.dp)
+                        )
+
+                        Text(
+                            "Absen Berhasil!",
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold,
+                            textAlign = TextAlign.Center
+                        )
+
+                        Text(
+                            "Kembali ke halaman utama",
+                            fontSize = 14.sp,
+                            color = Color.Gray,
+                            textAlign = TextAlign.Center
+                        )
+
+                        Button(
+                            onClick = {
+                                val intent = Intent(context, MainActivity::class.java).apply {
+                                    flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or
+                                            Intent.FLAG_ACTIVITY_NEW_TASK or
+                                            Intent.FLAG_ACTIVITY_CLEAR_TASK
+                                }
+                                context.startActivity(intent)
+                                (context as Activity).finish()
+                            },
+                            modifier = Modifier
+                                .width(200.dp)
+                                .height(44.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color(0xFFFF6F51),
+                                contentColor = Color.White
+                            ),
+                            shape = RoundedCornerShape(10.dp)
+                        ) {
+                            Text("OK")
+                        }
+                    }
+                }
             )
         }
     }

@@ -193,7 +193,6 @@ fun FaceRegisterScreen() {
 
         Log.d(TAG_FACE, "Server status = $serverStatus, bitmaps = ${serverBitmaps.size}")
 
-        // Update status & simpan ke session
         faceStatus = serverStatus
         when (serverStatus) {
             FaceApprovalStatus.PENDING -> session.setFaceStatus("PENDING")
