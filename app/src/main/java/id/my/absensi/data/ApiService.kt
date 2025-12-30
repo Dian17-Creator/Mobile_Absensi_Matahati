@@ -1,5 +1,6 @@
 package id.my.matahati.absensi.data
 
+import id.my.absensi.data.ScheduleApiResponse
 import retrofit2.http.GET
 import retrofit2.http.Query
 import retrofit2.http.Path
@@ -14,7 +15,7 @@ interface ApiService {
     @GET("api/schedule/{userId}")
     suspend fun getUserSchedules(
         @Path("userId") userId: Int
-    ): Response<List<UserSchedule>>
+    ): Response<ScheduleApiResponse>
 
     // Ambil log user
     @GET("api/logs/{userId}")
