@@ -16,6 +16,7 @@ import java.time.format.DateTimeFormatter
 
 class ScheduleViewModel(application: Application) : AndroidViewModel(application) {
 
+    // 🔹 Data untuk CardShift & Kalender
     private val _schedules = MutableStateFlow<List<UserSchedule>>(emptyList())
     val schedules: StateFlow<List<UserSchedule>> = _schedules
 
@@ -29,7 +30,11 @@ class ScheduleViewModel(application: Application) : AndroidViewModel(application
     private val context = getApplication<Application>().applicationContext
 
     /**
-     * Load jadwal shift berdasarkan userId (offline-first, ±7 hari)
+     * 🔹 Load jadwal (API → DB → UI)
+     * Dipakai oleh:
+     * - CardShift
+     * - Halaman Jadwal
+     * - Kalender
      */
     fun loadSchedules(userId: Int) {
         enqueueScheduleSyncWorker(context, userId)
@@ -41,14 +46,12 @@ class ScheduleViewModel(application: Application) : AndroidViewModel(application
             val today = LocalDate.now()
             val formatter = DateTimeFormatter.ISO_DATE
 
-            // 🗓 Cari Senin minggu ini
+            // Ambil range ± 1 minggu dari minggu ini
             val startOfWeek = today.with(java.time.DayOfWeek.MONDAY)
-
-            // Ambil 1 minggu sebelum & 1 minggu sesudah minggu ini
             val startDate = startOfWeek.minusWeeks(1).format(formatter)
             val endDate = startOfWeek.plusWeeks(2).minusDays(1).format(formatter)
 
-            // Ambil dari database lokal dulu
+            // ===== OFFLINE FIRST =====
             val localData = withContext(Dispatchers.IO) {
                 dao.getSchedulesInRange(userId, startDate, endDate)
             }
@@ -57,64 +60,57 @@ class ScheduleViewModel(application: Application) : AndroidViewModel(application
                 _schedules.value = localData
             }
 
-            val isConnected = NetworkUtils.isOnline(context)
-
-            if (isConnected) {
-                try {
-                    val response = ApiClient.apiService.getUserSchedules(userId)
-
-                    if (response.isSuccessful) {
-                        val serverData = response.body() ?: emptyList()
-
-                        if (serverData.isNotEmpty()) {
-                            // Filter hanya jadwal dalam 1 minggu sebelum dan sesudah minggu ini
-                            val filtered = serverData.filter { schedule ->
-                                val date = LocalDate.parse(schedule.dwork, formatter)
-                                !date.isBefore(LocalDate.parse(startDate)) && !date.isAfter(LocalDate.parse(endDate))
-                            }
-
-                            withContext(Dispatchers.IO) {
-                                filtered.forEach { item ->
-                                    val fixedItem = if (item.nuserid == 0) item.copy(nuserid = userId) else item
-                                    dao.insert(fixedItem)
-                                }
-
-                                // Bersihkan data di luar 30 hari untuk efisiensi
-                                val cleanupStart = today.minusDays(30).format(formatter)
-                                dao.deleteOutOfRange(userId, cleanupStart, endDate)
-                            }
-
-                            _schedules.value = filtered
-                        } else {
-                            _error.value = "Data dari server kosong"
-                        }
-                    } else {
-                        _error.value = "HTTP ${response.code()} - Gagal memuat data jadwal"
-                    }
-
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                    _error.value = "Gagal mengambil data dari server: ${e.localizedMessage}"
-
-                    val fallback = withContext(Dispatchers.IO) {
-                        dao.getSchedulesForUser(userId)
-                    }
-                    _schedules.value = fallback
-                }
-            } else {
-                // OFFLINE → tampilkan data lokal
-                val offlineData = withContext(Dispatchers.IO) {
-                    dao.getSchedulesInRange(userId, startDate, endDate)
-                }
-
-                if (offlineData.isEmpty()) {
-                    _error.value = "Tidak ada koneksi dan data lokal kosong"
-                }
-
-                _schedules.value = offlineData
+            if (!NetworkUtils.isOnline(context)) {
+                _loading.value = false
+                return@launch
             }
 
-            _loading.value = false
+            // ===== FETCH API =====
+            try {
+                val response = ApiClient.apiService.getUserSchedules(userId)
+
+                if (!response.isSuccessful) {
+                    _error.value = "HTTP ${response.code()}"
+                    return@launch
+                }
+
+                val body = response.body() ?: return@launch
+                if (!body.success) return@launch
+
+                // ===== CONVERT ShiftDay → UserSchedule =====
+                val apiSchedules = body.data.flatMap { day ->
+                    day.sessions.map { session ->
+                        UserSchedule(
+                            nid = 0,
+                            nuserid = userId,
+                            dwork = day.date,
+                            dstart = session.start,
+                            dend = session.end,
+                            nidsched = 0,
+                            cschedname = day.shiftName
+                        )
+                    }
+                }
+
+                val filtered = apiSchedules.filter {
+                    val d = LocalDate.parse(it.dwork)
+                    !d.isBefore(LocalDate.parse(startDate)) &&
+                            !d.isAfter(LocalDate.parse(endDate))
+                }
+
+                withContext(Dispatchers.IO) {
+                    dao.deleteOutOfRange(userId, startDate, endDate)
+                    filtered.forEach { dao.insert(it) }
+                }
+
+                _schedules.value = filtered
+
+            } catch (e: Exception) {
+                e.printStackTrace()
+                _error.value = e.localizedMessage
+            } finally {
+                _loading.value = false
+            }
         }
     }
 }

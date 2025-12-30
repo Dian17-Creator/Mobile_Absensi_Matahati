@@ -62,15 +62,15 @@ interface UserScheduleDao {
      * Ambil 1 jadwal spesifik pada tanggal tertentu
      */
     @Query("""
-        SELECT * FROM tuserschedule 
-        WHERE nuserid = :userId 
-          AND dwork = :date 
-        LIMIT 1
+    SELECT * FROM tuserschedule 
+    WHERE nuserid = :userId 
+      AND dwork = :date 
+    ORDER BY dstart
     """)
-    suspend fun getScheduleForDate(
+    suspend fun getSchedulesForDate(
         userId: Int,
         date: String
-    ): UserSchedule?
+    ): List<UserSchedule>
 
     @Query("DELETE FROM tuserschedule WHERE nuserid = :userId")
     suspend fun deleteAllForUser(userId: Int)

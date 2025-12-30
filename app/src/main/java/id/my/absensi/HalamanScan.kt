@@ -58,6 +58,9 @@ import java.util.Locale
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import com.google.android.datatransport.runtime.ExecutionModule_ExecutorFactory.executor
+import id.my.matahati.absensi.data.ScheduleViewModel
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 import kotlin.jvm.java
 
 class HalamanScan : ComponentActivity() {
@@ -729,25 +732,34 @@ fun CardWaktu() {
 @Composable
 fun CardShift(
     userId: Int,
-    scheduleViewModel: id.my.matahati.absensi.data.ScheduleViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+    scheduleViewModel: ScheduleViewModel =
+        androidx.lifecycle.viewmodel.compose.viewModel()
 ) {
-    val schedules by scheduleViewModel.schedules.collectAsState(initial = emptyList())
-    val today = java.time.LocalDate.now()
+    val schedules by scheduleViewModel.schedules.collectAsState()
+    val today = LocalDate.now()
 
-    LaunchedEffect(Unit) {
-        if (userId != -1) scheduleViewModel.loadSchedules(userId)
+    LaunchedEffect(userId) {
+        if (userId != -1) {
+            scheduleViewModel.loadSchedules(userId)
+        }
     }
 
-    val todayShift = schedules.find { it.dwork == today.toString() }
-    val shiftColor = todayShift?.let { generateColorFromShift(it.cschedname) } ?: Color(0xFFF5F5F5)
+    // ================= DATA HARI INI =================
+    val todayRows = schedules.filter { it.dwork == today.toString() }
 
-    // Dapatkan periode shift
+    val shiftNameToday = todayRows.firstOrNull()?.cschedname
+
+    val shiftColor = shiftNameToday
+        ?.let { generateColorFromShift(it) }
+        ?: Color(0xFFF5F5F5)
+
+    // ================= PERIODE SHIFT =================
     val sameShiftDates = schedules
-        .filter { it.cschedname == todayShift?.cschedname }
-        .mapNotNull { runCatching { java.time.LocalDate.parse(it.dwork) }.getOrNull() }
+        .filter { it.cschedname == shiftNameToday }
+        .mapNotNull { runCatching { LocalDate.parse(it.dwork) }.getOrNull() }
         .sorted()
 
-    val runs = mutableListOf<MutableList<java.time.LocalDate>>()
+    val runs = mutableListOf<MutableList<LocalDate>>()
     for (d in sameShiftDates) {
         if (runs.isEmpty()) {
             runs.add(mutableListOf(d))
@@ -758,15 +770,19 @@ fun CardShift(
         }
     }
 
-    val containingRun = runs.find { it.contains(today) } ?: emptyList()
-    val minDate = containingRun.minOrNull()
-    val maxDate = containingRun.maxOrNull()
+    val containingRun = runs.find { it.contains(today) }
+    val minDate = containingRun?.minOrNull()
+    val maxDate = containingRun?.maxOrNull()
 
-    val formatterShort = java.time.format.DateTimeFormatter.ofPattern("dd MMM", Locale("id", "ID"))
-    val periodeText = if (minDate != null && maxDate != null)
-        "${minDate.format(formatterShort)} - ${maxDate.format(formatterShort)}"
-    else null
+    val formatterShort =
+        DateTimeFormatter.ofPattern("dd MMM", Locale("id", "ID"))
 
+    val periodeText =
+        if (minDate != null && maxDate != null)
+            "${minDate.format(formatterShort)} - ${maxDate.format(formatterShort)}"
+        else null
+
+    // ================= UI =================
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = shiftColor),
@@ -779,34 +795,55 @@ fun CardShift(
                 .padding(vertical = 10.dp, horizontal = 12.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(
-                text = "Shift Hari Ini",
-                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                color = if (todayShift != null) Color.White else Color.Black
-            )
+
+//            Text(
+//                text = "Shift Hari Ini",
+//                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+//                color = if (todayRows.isNotEmpty()) Color.White else Color.Black
+//            )
 
             Spacer(modifier = Modifier.height(4.dp))
 
-            if (todayShift != null) {
-                // ✅ Gabungkan shift dan periode di satu baris
-                val infoShift = buildString {
-                    append(todayShift.cschedname.replaceFirstChar { it.titlecase(Locale("id", "ID")) })
-                    append(" (${todayShift.dstart} - ${todayShift.dend})")
-                    periodeText?.let {
-                        append(" | $it ${today.year}")
-                    }
+            if (todayRows.isNotEmpty()) {
+
+                // 🔹 Baris 1: Judul + Nama Shift
+                Text(
+                    text = "Shift Hari Ini : ${
+                        shiftNameToday!!.replaceFirstChar {
+                            it.titlecase(Locale("id", "ID"))
+                        }
+                    }",
+                    style = MaterialTheme.typography.bodySmall.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp
+                    ),
+                    color = Color.White
+                )
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                // 🔥 Jam shift (support split)
+                val timeText = todayRows.joinToString(" | ") {
+                    "${it.dstart.substring(0, 5)} - ${it.dend.substring(0, 5)}"
                 }
 
+                // 🔹 Baris 2: Jam + Periode
                 Text(
-                    text = infoShift,
+                    text = buildString {
+                        append("($timeText)")
+                        periodeText?.let {
+                            append(" $it ${today.year}")
+                        }
+                    },
                     style = MaterialTheme.typography.bodySmall.copy(
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 11.sp
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.SemiBold
                     ),
                     color = Color.White,
                     lineHeight = 14.sp,
-                    maxLines = 1
+                    maxLines = 2
                 )
+
             } else {
                 Text(
                     text = "Belum ada shift untuk hari ini.",
