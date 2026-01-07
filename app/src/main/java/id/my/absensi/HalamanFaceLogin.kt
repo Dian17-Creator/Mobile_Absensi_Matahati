@@ -60,10 +60,11 @@ import com.google.mlkit.vision.face.Face
 import com.google.mlkit.vision.face.FaceDetection
 import com.google.mlkit.vision.face.FaceDetector
 import com.google.mlkit.vision.face.FaceDetectorOptions
+import com.google.mlkit.vision.face.FaceLandmark
 import kotlin.jvm.java
 
-
 private const val TAG = "FACE_LOGIN"
+
 private const val API_KEY = "MH4T4H4TI_2025_ABSENSI_APP_SECRETx9P2F7Q1L8S3Z0R6W4K2D1M9B7T5"
 private const val FACE_LOGIN_URL = "https://absensi.matahati.my.id/user_face_scan_mobile.php"
 
@@ -80,9 +81,9 @@ object FaceLoginDetector {
 
     private val options = FaceDetectorOptions.Builder()
         .setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_FAST)
-        .setLandmarkMode(FaceDetectorOptions.LANDMARK_MODE_NONE)
+        .setLandmarkMode(FaceDetectorOptions.LANDMARK_MODE_ALL)
         .setContourMode(FaceDetectorOptions.CONTOUR_MODE_NONE)
-        .setClassificationMode(FaceDetectorOptions.CLASSIFICATION_MODE_NONE)
+        .setClassificationMode(FaceDetectorOptions.CLASSIFICATION_MODE_ALL)
         .build()
 
     val detector: FaceDetector by lazy {
@@ -128,8 +129,25 @@ class HalamanFaceLogin : ComponentActivity() {
     }
 }
 
+enum class LivenessStep {
+    BLINK,
+}
+
 @Composable
 fun FaceLoginScreen() {
+
+    // ================= LIVENESS STATE =================
+
+    var eyesClosed by remember { mutableStateOf(false) }
+    var blinkDone by remember { mutableStateOf(false) }
+
+    val livenessSteps = remember {
+        listOf(LivenessStep.BLINK)
+    }
+
+    var currentLivenessIndex by remember { mutableStateOf(0) }
+    val currentLivenessStep = livenessSteps.getOrNull(currentLivenessIndex)
+    val livenessPassed = currentLivenessIndex >= livenessSteps.size
 
     var showSuccessDialog by remember { mutableStateOf(false) }
     val context = LocalContext.current
@@ -214,6 +232,19 @@ fun FaceLoginScreen() {
 
         Spacer(Modifier.height(12.dp))
 
+        Text(
+            text = when (currentLivenessStep) {
+                LivenessStep.BLINK -> "👀 Kedipkan mata"
+                else -> "✅ Liveness Done."
+            },
+            fontSize = 14.sp,
+            color = if (livenessPassed) Color(0xFF2E7D32) else Color(0xFFFF9800),
+            fontWeight = FontWeight.Bold,
+            textAlign = TextAlign.Center
+        )
+
+        Spacer(Modifier.height(12.dp))
+
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -224,6 +255,68 @@ fun FaceLoginScreen() {
 
             CameraPreview(
                 onReady = { isCameraReady = true },
+
+                onFaceFrame = { face ->
+
+
+                    if (livenessPassed) return@CameraPreview
+
+                    when (currentLivenessStep) {
+
+                        LivenessStep.BLINK -> {
+                            if (blinkDone) return@CameraPreview
+
+                            val left = face.leftEyeOpenProbability
+                            val right = face.rightEyeOpenProbability
+                            if (left == null || right == null) return@CameraPreview
+
+                            // Mata tertutup
+                            if (left < 0.25f && right < 0.25f) {
+                                eyesClosed = true
+                                return@CameraPreview
+                            }
+
+                            // Valid blink: tutup → buka
+                            if (eyesClosed && left > 0.6f && right > 0.6f) {
+                                blinkDone = true
+                                eyesClosed = false
+
+                                currentLivenessIndex++
+
+                                Log.d(TAG, "✅ BLINK CONFIRMED & LOCKED")
+                            }
+                        }
+
+//                        LivenessStep.MOVE_DISTANCE -> {
+//
+//                            if (distanceConfirmed) return@CameraPreview
+//
+//                            val box = face.boundingBox
+//                            val faceSize = box.width()
+//
+//                            // Simpan ukuran awal sebagai baseline
+//                            if (baseFaceSize == null) {
+//                                baseFaceSize = faceSize
+//                                Log.d(TAG, "BASE FACE SIZE = $faceSize")
+//                                return@CameraPreview
+//                            }
+//
+//                            val diff = kotlin.math.abs(faceSize - baseFaceSize!!)
+//
+//                            Log.d(TAG, "DISTANCE diff=$diff current=$faceSize base=$baseFaceSize")
+//
+//                            // threshold lebih realistis
+//                            if (diff > 18) {
+//                                distanceConfirmed = true
+//                                currentLivenessIndex++
+//                                Log.d(TAG, "✅ FACE DISTANCE CHANGE CONFIRMED")
+//                            }
+//                        }
+
+                        else -> return@CameraPreview
+                    }
+                },
+
                 onCaptured = { bitmap ->
 
                     // ❌ wajah tidak valid
@@ -293,7 +386,7 @@ fun FaceLoginScreen() {
         Spacer(Modifier.height(16.dp))
 
         Button(
-            enabled = isCameraReady && !isUploading && !isCapturing,
+            enabled = isCameraReady && livenessPassed && !isUploading && !isCapturing,
             onClick = {
                 isCapturing = true
                 CameraController.capture()
@@ -305,6 +398,7 @@ fun FaceLoginScreen() {
         ) {
             Text(
                 when {
+                    !livenessPassed -> "Ikuti Instruksi"
                     isUploading -> "Memindai..."
                     else -> "Ambil Foto"
                 }
@@ -405,13 +499,45 @@ object CameraController {
     var capture: () -> Unit = {}
 }
 
+@OptIn(ExperimentalGetImage::class)
 @Composable
 fun CameraPreview(
     onReady: () -> Unit,
+    onFaceFrame: (Face) -> Unit,
     onCaptured: (Bitmap?) -> Unit
 ) {
     val lifecycleOwner = LocalLifecycleOwner.current
     val executor = remember { Executors.newSingleThreadExecutor() }
+
+    val imageAnalysis = ImageAnalysis.Builder()
+        .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+        .build()
+
+    imageAnalysis.setAnalyzer(executor) { imageProxy ->
+
+        val mediaImage = imageProxy.image
+        if (mediaImage != null) {
+
+            val image = InputImage.fromMediaImage(
+                mediaImage,
+                imageProxy.imageInfo.rotationDegrees
+            )
+
+            FaceLoginDetector.detector
+                .process(image)
+                .addOnSuccessListener { faces ->
+                    if (faces.size == 1) {
+                        onFaceFrame(faces.first())
+                    }
+                    imageProxy.close()
+                }
+                .addOnFailureListener {
+                    imageProxy.close()
+                }
+        } else {
+            imageProxy.close()
+        }
+    }
 
     AndroidView(
         factory = { ctx ->
@@ -431,6 +557,7 @@ fun CameraPreview(
                 CameraController.capture = {
                     imageCapture.takePicture(
                         executor,
+                        @OptIn(ExperimentalGetImage::class)
                         object : ImageCapture.OnImageCapturedCallback() {
                             override fun onCaptureSuccess(image: ImageProxy) {
                                 try {
@@ -451,6 +578,10 @@ fun CameraPreview(
                                             }
 
                                             val face = faces.first()
+
+                                            onFaceFrame(face)
+
+                                            Log.e("YAW_DEBUG", "yaw=${face.headEulerAngleY}, pitch=${face.headEulerAngleX}")
 
                                             if (!isFaceValidForLogin(face)) {
                                                 Log.e(TAG, "Face invalid (angle / size)")
@@ -483,7 +614,8 @@ fun CameraPreview(
                     lifecycleOwner,
                     CameraSelector.DEFAULT_FRONT_CAMERA,
                     preview,
-                    imageCapture
+                    imageCapture,
+                    imageAnalysis
                 )
                 onReady()
             }, ContextCompat.getMainExecutor(ctx))
