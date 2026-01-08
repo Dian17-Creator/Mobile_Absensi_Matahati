@@ -3,8 +3,6 @@
 package id.my.matahati.absensi
 
 import android.Manifest
-import android.R.attr.scaleX
-import android.R.attr.scaleY
 import android.app.Activity
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -43,7 +41,6 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.google.android.gms.location.LocationServices
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
@@ -60,11 +57,10 @@ import com.google.mlkit.vision.face.Face
 import com.google.mlkit.vision.face.FaceDetection
 import com.google.mlkit.vision.face.FaceDetector
 import com.google.mlkit.vision.face.FaceDetectorOptions
-import com.google.mlkit.vision.face.FaceLandmark
-import kotlin.jvm.java
+import android.os.Handler
+import android.os.Looper
 
 private const val TAG = "FACE_LOGIN"
-
 private const val API_KEY = "MH4T4H4TI_2025_ABSENSI_APP_SECRETx9P2F7Q1L8S3Z0R6W4K2D1M9B7T5"
 private const val FACE_LOGIN_URL = "https://absensi.matahati.my.id/user_face_scan_mobile.php"
 
@@ -78,12 +74,12 @@ private val httpClient by lazy {
 }
 
 object FaceLoginDetector {
-
     private val options = FaceDetectorOptions.Builder()
-        .setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_FAST)
+        .setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_ACCURATE)
         .setLandmarkMode(FaceDetectorOptions.LANDMARK_MODE_ALL)
         .setContourMode(FaceDetectorOptions.CONTOUR_MODE_NONE)
         .setClassificationMode(FaceDetectorOptions.CLASSIFICATION_MODE_ALL)
+        .setMinFaceSize(0.15f)
         .build()
 
     val detector: FaceDetector by lazy {
@@ -91,22 +87,22 @@ object FaceLoginDetector {
     }
 }
 
-fun isFaceValidForLogin(face: Face): Boolean {
+fun isFaceValidForLogin(face: Face, allowYaw: Boolean = false): Boolean {
     val yaw = face.headEulerAngleY
     val pitch = face.headEulerAngleX
     val box = face.boundingBox
 
     if (box.width() < 160 || box.height() < 160) return false
-    if (kotlin.math.abs(yaw) > 25) return false
-    if (kotlin.math.abs(pitch) > 20) return false
+
+    if (!allowYaw) {
+        if (kotlin.math.abs(yaw) > 25) return false
+        if (kotlin.math.abs(pitch) > 20) return false
+    }
 
     return true
 }
 
-
-
 class HalamanFaceLogin : ComponentActivity() {
-
     private val PERMISSIONS = arrayOf(
         Manifest.permission.CAMERA,
         Manifest.permission.ACCESS_FINE_LOCATION,
@@ -117,8 +113,7 @@ class HalamanFaceLogin : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         if (!PERMISSIONS.all {
-                ContextCompat.checkSelfPermission(this, it) ==
-                        PackageManager.PERMISSION_GRANTED
+                ContextCompat.checkSelfPermission(this, it) == PackageManager.PERMISSION_GRANTED
             }) {
             ActivityCompat.requestPermissions(this, PERMISSIONS, 1001)
         }
@@ -131,55 +126,47 @@ class HalamanFaceLogin : ComponentActivity() {
 
 enum class LivenessStep {
     BLINK,
+    HEAD_NOD
 }
 
 @Composable
 fun FaceLoginScreen() {
-
-    // ================= LIVENESS STATE =================
-
     var eyesClosed by remember { mutableStateOf(false) }
     var blinkDone by remember { mutableStateOf(false) }
+    var headUpDone by remember { mutableStateOf(false) }
+    var headNodDone by remember { mutableStateOf(false) }
+    var headMoveFrame by remember { mutableStateOf(0) }
 
     val livenessSteps = remember {
-        listOf(LivenessStep.BLINK)
+        listOf(LivenessStep.HEAD_NOD, LivenessStep.BLINK)
     }
 
     var currentLivenessIndex by remember { mutableStateOf(0) }
     val currentLivenessStep = livenessSteps.getOrNull(currentLivenessIndex)
     val livenessPassed = currentLivenessIndex >= livenessSteps.size
+    val isDoingLiveness = !livenessPassed
 
     var showSuccessDialog by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val session = remember { SessionManager(context) }
-
     val userId = session.getUserId()
 
     var coordinate by remember { mutableStateOf("") }
     var placeName by remember { mutableStateOf("Mengambil lokasi...") }
-
     var isCameraReady by remember { mutableStateOf(false) }
     var isUploading by remember { mutableStateOf(false) }
     var isCapturing by remember { mutableStateOf(false) }
-    var isLocationReady by remember { mutableStateOf(false) }
-
     var statusText by remember { mutableStateOf("") }
     var statusColor by remember { mutableStateOf(Color.Black) }
 
-    // ===================== GPS (OPTIONAL) =====================
     LaunchedEffect(Unit) {
         val activity = context as Activity
-
         val hasLocationPerm =
-            ContextCompat.checkSelfPermission(
-                activity,
-                Manifest.permission.ACCESS_FINE_LOCATION
-            ) == PackageManager.PERMISSION_GRANTED ||
-                    ContextCompat.checkSelfPermission(
-                        activity,
-                        Manifest.permission.ACCESS_COARSE_LOCATION
-                    ) == PackageManager.PERMISSION_GRANTED
+            ContextCompat.checkSelfPermission(activity, Manifest.permission.ACCESS_FINE_LOCATION) ==
+                    PackageManager.PERMISSION_GRANTED ||
+                    ContextCompat.checkSelfPermission(activity, Manifest.permission.ACCESS_COARSE_LOCATION) ==
+                    PackageManager.PERMISSION_GRANTED
 
         if (!hasLocationPerm) {
             placeName = "Lokasi tidak diizinkan"
@@ -195,7 +182,6 @@ fun FaceLoginScreen() {
                         val place = reverseGeocode(loc.latitude, loc.longitude)
                         withContext(Dispatchers.Main) {
                             placeName = place.ifEmpty { coordinate }
-                            isLocationReady = true
                         }
                     }
                 } else {
@@ -206,14 +192,11 @@ fun FaceLoginScreen() {
             placeName = "Lokasi gagal diambil"
         }
     }
+
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(20.dp),
+        modifier = Modifier.fillMaxSize().padding(20.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-
-        // ===== TOP BAR =====
         Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
             IconButton(
                 onClick = { (context as Activity).finish() },
@@ -221,7 +204,6 @@ fun FaceLoginScreen() {
             ) {
                 Icon(Icons.Default.ArrowBack, null, tint = Color(0xFFFF6F51))
             }
-
             Text(
                 "FACE LOGIN",
                 fontSize = 22.sp,
@@ -234,8 +216,11 @@ fun FaceLoginScreen() {
 
         Text(
             text = when (currentLivenessStep) {
-                LivenessStep.BLINK -> "👀 Kedipkan mata"
-                else -> "✅ Liveness Done."
+                LivenessStep.HEAD_NOD ->
+                    if (!headUpDone) "⬆️ Gerakkan kepala (atas/bawah)"
+                    else "⬇️ Kembali ke posisi normal"
+                LivenessStep.BLINK -> "👁️ Kedipkan Mata"
+                else -> "✅ Liveness Selesai"
             },
             fontSize = 14.sp,
             color = if (livenessPassed) Color(0xFF2E7D32) else Color(0xFFFF9800),
@@ -246,91 +231,93 @@ fun FaceLoginScreen() {
         Spacer(Modifier.height(12.dp))
 
         Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(420.dp)
-                .clip(RoundedCornerShape(16.dp)),
+            modifier = Modifier.fillMaxWidth().height(420.dp).clip(RoundedCornerShape(16.dp)),
             contentAlignment = Alignment.Center
         ) {
-
             CameraPreview(
                 onReady = { isCameraReady = true },
+                isDoingLiveness = isDoingLiveness,
+                currentStepIndex = currentLivenessIndex,  // ✅ Pass sebagai parameter
+                onFaceFrame = { face, stepIndex ->
+                    // ✅ Check stepIndex, bukan currentLivenessIndex
+                    if (stepIndex >= livenessSteps.size) return@CameraPreview
 
-                onFaceFrame = { face ->
+                    val step = livenessSteps.getOrNull(stepIndex) ?: return@CameraPreview
 
+                    when (step) {
+                        LivenessStep.HEAD_NOD -> {
+                            if (headNodDone) return@CameraPreview
 
-                    if (livenessPassed) return@CameraPreview
+                            val pitch = face.headEulerAngleX
+                            val absPitch = kotlin.math.abs(pitch)
 
-                    when (currentLivenessStep) {
+                            Log.d(TAG, "🎯 HEAD_NOD: pitch=${"%.1f".format(pitch)} abs=${"%.1f".format(absPitch)} up=$headUpDone done=$headNodDone")
+
+                            if (!headUpDone) {
+                                if (absPitch > 12f) {
+                                    headMoveFrame++
+                                    if (headMoveFrame >= 2) {
+                                        headUpDone = true
+                                        headMoveFrame = 0
+                                        Log.d(TAG, "⬆️ ✅ HEAD MOVED")
+                                    }
+                                } else {
+                                    headMoveFrame = 0
+                                }
+                                return@CameraPreview
+                            }
+
+                            if (absPitch < 6f) {
+                                Log.d(TAG, "⬇️ ✅ HEAD_NOD COMPLETE → incrementing")
+                                headNodDone = true
+                                currentLivenessIndex = stepIndex + 1  // ✅ Direct assignment
+
+                                // Reset untuk step berikutnya
+                                headUpDone = false
+                                headMoveFrame = 0
+                                blinkDone = false
+                                eyesClosed = false
+                            }
+                        }
 
                         LivenessStep.BLINK -> {
                             if (blinkDone) return@CameraPreview
 
                             val left = face.leftEyeOpenProbability
                             val right = face.rightEyeOpenProbability
+
                             if (left == null || right == null) return@CameraPreview
 
-                            // Mata tertutup
+                            Log.d(TAG, "👁️ BLINK: L=${"%.2f".format(left)} R=${"%.2f".format(right)} closed=$eyesClosed done=$blinkDone")
+
                             if (left < 0.25f && right < 0.25f) {
-                                eyesClosed = true
+                                if (!eyesClosed) {
+                                    eyesClosed = true
+                                    Log.d(TAG, "👁️ EYES CLOSED ✅")
+                                }
                                 return@CameraPreview
                             }
 
-                            // Valid blink: tutup → buka
                             if (eyesClosed && left > 0.6f && right > 0.6f) {
+                                Log.d(TAG, "👁️ ✅ BLINK COMPLETE → incrementing")
                                 blinkDone = true
+                                currentLivenessIndex = stepIndex + 1  // ✅ Direct assignment
+
                                 eyesClosed = false
-
-                                currentLivenessIndex++
-
-                                Log.d(TAG, "✅ BLINK CONFIRMED & LOCKED")
                             }
                         }
-
-//                        LivenessStep.MOVE_DISTANCE -> {
-//
-//                            if (distanceConfirmed) return@CameraPreview
-//
-//                            val box = face.boundingBox
-//                            val faceSize = box.width()
-//
-//                            // Simpan ukuran awal sebagai baseline
-//                            if (baseFaceSize == null) {
-//                                baseFaceSize = faceSize
-//                                Log.d(TAG, "BASE FACE SIZE = $faceSize")
-//                                return@CameraPreview
-//                            }
-//
-//                            val diff = kotlin.math.abs(faceSize - baseFaceSize!!)
-//
-//                            Log.d(TAG, "DISTANCE diff=$diff current=$faceSize base=$baseFaceSize")
-//
-//                            // threshold lebih realistis
-//                            if (diff > 18) {
-//                                distanceConfirmed = true
-//                                currentLivenessIndex++
-//                                Log.d(TAG, "✅ FACE DISTANCE CHANGE CONFIRMED")
-//                            }
-//                        }
-
-                        else -> return@CameraPreview
                     }
                 },
-
                 onCaptured = { bitmap ->
-
-                    // ❌ wajah tidak valid
                     if (bitmap == null) {
-                        statusText =
-                            "Wajah tidak terdeteksi dengan jelas.\nPastikan 1 wajah & posisi lurus."
+                        statusText = "Wajah tidak terdeteksi dengan jelas."
                         statusColor = Color.Red
                         isCapturing = false
                         return@CameraPreview
                     }
 
-                    // ❌ user invalid
                     if (userId <= 0) {
-                        statusText = "User tidak valid, silakan login ulang"
+                        statusText = "User tidak valid"
                         statusColor = Color.Red
                         isCapturing = false
                         return@CameraPreview
@@ -341,26 +328,16 @@ fun FaceLoginScreen() {
                         statusText = "Memindai wajah..."
                         statusColor = Color.Black
 
-                        val result = uploadFace(
-                            bitmap = bitmap,
-                            userId = userId,
-                            location = coordinate,
-                            place = placeName
-                        )
+                        val result = uploadFace(bitmap, userId, coordinate, placeName)
 
                         isUploading = false
                         isCapturing = false
-
                         statusText = result.message
-                        statusColor =
-                            if (result.success) Color(0xFF2E7D32) else Color.Red
+                        statusColor = if (result.success) Color(0xFF2E7D32) else Color.Red
 
                         if (result.success) {
                             statusText = ""
                             showSuccessDialog = true
-                        } else {
-                            statusText = result.message
-                            statusColor = Color.Red
                         }
                     }
                 }
@@ -375,14 +352,7 @@ fun FaceLoginScreen() {
         }
 
         Spacer(Modifier.height(12.dp))
-
-        Text(
-            "📍 $placeName",
-            fontSize = 12.sp,
-            color = Color.Gray,
-            textAlign = TextAlign.Center
-        )
-
+        Text("📍 $placeName", fontSize = 12.sp, color = Color.Gray, textAlign = TextAlign.Center)
         Spacer(Modifier.height(16.dp))
 
         Button(
@@ -391,9 +361,7 @@ fun FaceLoginScreen() {
                 isCapturing = true
                 CameraController.capture()
             },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(50.dp),
+            modifier = Modifier.fillMaxWidth().height(50.dp),
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6F51))
         ) {
             Text(
@@ -404,18 +372,13 @@ fun FaceLoginScreen() {
                 }
             )
         }
+
         if (statusText.isNotEmpty()) {
             Spacer(Modifier.height(12.dp))
-            Text(
-                statusText,
-                color = statusColor,
-                fontWeight = FontWeight.Bold,
-                textAlign = TextAlign.Center
-            )
+            Text(statusText, color = statusColor, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
         }
 
         if (showSuccessDialog) {
-
             val scale by animateFloatAsState(
                 targetValue = if (showSuccessDialog) 1f else 0.9f,
                 animationSpec = tween(220, easing = FastOutSlowInEasing),
@@ -431,42 +394,22 @@ fun FaceLoginScreen() {
             AlertDialog(
                 onDismissRequest = {},
                 confirmButton = {},
-
                 text = {
                     Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .graphicsLayer {
-                                scaleX = scale
-                                scaleY = scale
-                                this.alpha = alpha
-                            }
+                        modifier = Modifier.fillMaxWidth()
+                            .graphicsLayer { scaleX = scale; scaleY = scale; this.alpha = alpha }
                             .padding(vertical = 8.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-
                         Icon(
                             imageVector = Icons.Default.CheckCircle,
                             contentDescription = null,
                             tint = Color(0xFF2E7D32),
                             modifier = Modifier.size(56.dp)
                         )
-
-                        Text(
-                            "Absen Berhasil!",
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold,
-                            textAlign = TextAlign.Center
-                        )
-
-                        Text(
-                            "Kembali ke halaman utama",
-                            fontSize = 14.sp,
-                            color = Color.Gray,
-                            textAlign = TextAlign.Center
-                        )
-
+                        Text("Absen Berhasil!", fontSize = 20.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+                        Text("Kembali ke halaman utama", fontSize = 14.sp, color = Color.Gray, textAlign = TextAlign.Center)
                         Button(
                             onClick = {
                                 val intent = Intent(context, MainActivity::class.java).apply {
@@ -477,9 +420,7 @@ fun FaceLoginScreen() {
                                 context.startActivity(intent)
                                 (context as Activity).finish()
                             },
-                            modifier = Modifier
-                                .width(200.dp)
-                                .height(44.dp),
+                            modifier = Modifier.width(200.dp).height(44.dp),
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = Color(0xFFFF6F51),
                                 contentColor = Color.White
@@ -503,124 +444,155 @@ object CameraController {
 @Composable
 fun CameraPreview(
     onReady: () -> Unit,
-    onFaceFrame: (Face) -> Unit,
-    onCaptured: (Bitmap?) -> Unit
+    onFaceFrame: (Face, Int) -> Unit,
+    onCaptured: (Bitmap?) -> Unit,
+    isDoingLiveness: Boolean,
+    currentStepIndex: Int
 ) {
     val lifecycleOwner = LocalLifecycleOwner.current
+    val context = LocalContext.current
     val executor = remember { Executors.newSingleThreadExecutor() }
 
-    val imageAnalysis = ImageAnalysis.Builder()
-        .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-        .build()
+    // ✅ CRITICAL: Gunakan remember untuk capture perubahan
+    val stepIndexState = remember { mutableStateOf(currentStepIndex) }
 
-    imageAnalysis.setAnalyzer(executor) { imageProxy ->
+    // ✅ Update state setiap kali currentStepIndex berubah
+    LaunchedEffect(currentStepIndex) {
+        Log.e("CAMERA_PREVIEW", "📍 Step index changed: ${stepIndexState.value} → $currentStepIndex")
+        stepIndexState.value = currentStepIndex
+    }
 
-        val mediaImage = imageProxy.image
-        if (mediaImage != null) {
-
-            val image = InputImage.fromMediaImage(
-                mediaImage,
-                imageProxy.imageInfo.rotationDegrees
-            )
-
-            FaceLoginDetector.detector
-                .process(image)
-                .addOnSuccessListener { faces ->
-                    if (faces.size == 1) {
-                        onFaceFrame(faces.first())
-                    }
-                    imageProxy.close()
-                }
-                .addOnFailureListener {
-                    imageProxy.close()
-                }
-        } else {
-            imageProxy.close()
+    DisposableEffect(Unit) {
+        Log.d("CAMERA_PREVIEW", "🎬 Started")
+        onDispose {
+            Log.d("CAMERA_PREVIEW", "🔚 Disposing")
+            executor.shutdown()
         }
     }
 
     AndroidView(
         factory = { ctx ->
+            Log.d("CAMERA_PREVIEW", "🏭 Creating PreviewView")
             val previewView = PreviewView(ctx)
 
-            ProcessCameraProvider.getInstance(ctx).addListener({
-                val cameraProvider = ProcessCameraProvider.getInstance(ctx).get()
+            val cameraProviderFuture = ProcessCameraProvider.getInstance(ctx)
 
-                val preview = Preview.Builder().build().also {
-                    it.setSurfaceProvider(previewView.surfaceProvider)
-                }
+            cameraProviderFuture.addListener({
+                try {
+                    Log.d("CAMERA_SETUP", "📱 Listener triggered")
 
-                val imageCapture = ImageCapture.Builder()
-                    .setCaptureMode(ImageCapture.CAPTURE_MODE_MAXIMIZE_QUALITY)
-                    .build()
+                    val cameraProvider = cameraProviderFuture.get()
+                    Log.d("CAMERA_SETUP", "✅ Got provider")
 
-                CameraController.capture = {
-                    imageCapture.takePicture(
-                        executor,
-                        @OptIn(ExperimentalGetImage::class)
-                        object : ImageCapture.OnImageCapturedCallback() {
-                            override fun onCaptureSuccess(image: ImageProxy) {
-                                try {
-                                    val bmp = imageProxyToBitmap(image)
-                                    val rotated =
-                                        rotateBitmap(bmp, image.imageInfo.rotationDegrees.toFloat())
+                    val preview = Preview.Builder().build().also {
+                        it.setSurfaceProvider(previewView.surfaceProvider)
+                    }
 
-                                    val inputImage = InputImage.fromBitmap(rotated, 0)
+                    val imageCapture = ImageCapture.Builder()
+                        .setCaptureMode(ImageCapture.CAPTURE_MODE_MAXIMIZE_QUALITY)
+                        .build()
 
-                                    FaceLoginDetector.detector
-                                        .process(inputImage)
-                                        .addOnSuccessListener { faces ->
+                    val imageAnalysis = ImageAnalysis.Builder()
+                        .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                        .build()
 
-                                            if (faces.size != 1) {
-                                                Log.e(TAG, "Invalid face count: ${faces.size}")
-                                                image.close()
-                                                return@addOnSuccessListener
-                                            }
+                    imageAnalysis.setAnalyzer(executor) { imageProxy ->
+                        val mediaImage = imageProxy.image
+                        if (mediaImage != null) {
+                            val image = InputImage.fromMediaImage(
+                                mediaImage,
+                                imageProxy.imageInfo.rotationDegrees
+                            )
 
-                                            val face = faces.first()
+                            FaceLoginDetector.detector
+                                .process(image)
+                                .addOnSuccessListener { faces ->
+                                    if (faces.size == 1) {
+                                        val face = faces.first()
 
-                                            onFaceFrame(face)
-
-                                            Log.e("YAW_DEBUG", "yaw=${face.headEulerAngleY}, pitch=${face.headEulerAngleX}")
-
-                                            if (!isFaceValidForLogin(face)) {
-                                                Log.e(TAG, "Face invalid (angle / size)")
-                                                image.close()
-                                                return@addOnSuccessListener
-                                            }
-
-                                            val cropped = cropFaceForLogin(rotated, face)
-                                            val finalFace = resizeFaceForLogin(cropped)
-
-                                            onCaptured(finalFace)
-                                            image.close()
+                                        Handler(Looper.getMainLooper()).post {
+                                            // ✅ CRITICAL: Baca dari state, bukan parameter
+                                            val currentIndex = stepIndexState.value
+                                            onFaceFrame(face, currentIndex)
                                         }
-                                        .addOnFailureListener {
-                                            Log.e(TAG, "ML Kit detect failed", it)
-                                            image.close()
-                                        }
+                                    }
+                                    imageProxy.close()
+                                }
+                                .addOnFailureListener {
+                                    imageProxy.close()
+                                }
+                        } else {
+                            imageProxy.close()
+                        }
+                    }
 
-                                } catch (e: Exception) {
-                                    Log.e(TAG, "Capture error", e)
-                                    image.close()
+                    CameraController.capture = {
+                        imageCapture.takePicture(
+                            executor,
+                            object : ImageCapture.OnImageCapturedCallback() {
+                                override fun onCaptureSuccess(image: ImageProxy) {
+                                    try {
+                                        val bmp = imageProxyToBitmap(image)
+                                        val rotated = rotateBitmap(bmp, image.imageInfo.rotationDegrees.toFloat())
+                                        val inputImage = InputImage.fromBitmap(rotated, 0)
+
+                                        FaceLoginDetector.detector
+                                            .process(inputImage)
+                                            .addOnSuccessListener { faces ->
+                                                if (faces.size != 1) {
+                                                    onCaptured(null)
+                                                    image.close()
+                                                    return@addOnSuccessListener
+                                                }
+
+                                                val face = faces.first()
+
+                                                if (!isFaceValidForLogin(face, allowYaw = isDoingLiveness)) {
+                                                    onCaptured(null)
+                                                    image.close()
+                                                    return@addOnSuccessListener
+                                                }
+
+                                                val cropped = cropFaceForLogin(rotated, face)
+                                                val finalFace = resizeFaceForLogin(cropped)
+
+                                                onCaptured(finalFace)
+                                                image.close()
+                                            }
+                                            .addOnFailureListener {
+                                                onCaptured(null)
+                                                image.close()
+                                            }
+                                    } catch (e: Exception) {
+                                        onCaptured(null)
+                                        image.close()
+                                    }
                                 }
                             }
+                        )
+                    }
 
-                        }
+                    cameraProvider.unbindAll()
+                    cameraProvider.bindToLifecycle(
+                        lifecycleOwner,
+                        CameraSelector.DEFAULT_FRONT_CAMERA,
+                        preview,
+                        imageCapture,
+                        imageAnalysis
                     )
+
+                    Log.d("CAMERA_SETUP", "✅✅✅ BOUND WITH ANALYSIS!")
+                    onReady()
+
+                } catch (e: Exception) {
+                    Log.e("CAMERA_SETUP", "❌ FAILED", e)
                 }
-                cameraProvider.unbindAll()
-                cameraProvider.bindToLifecycle(
-                    lifecycleOwner,
-                    CameraSelector.DEFAULT_FRONT_CAMERA,
-                    preview,
-                    imageCapture,
-                    imageAnalysis
-                )
-                onReady()
+
             }, ContextCompat.getMainExecutor(ctx))
+
             previewView
-        }
+        },
+        modifier = Modifier.fillMaxSize()
     )
 }
 
@@ -645,11 +617,7 @@ suspend fun uploadFace(
             .addFormDataPart("userId", userId.toString())
             .addFormDataPart("location", location)
             .addFormDataPart("place", place)
-            .addFormDataPart(
-                "facefile",
-                "face.jpg",
-                bytes.toRequestBody("image/jpeg".toMediaType())
-            )
+            .addFormDataPart("facefile", "face.jpg", bytes.toRequestBody("image/jpeg".toMediaType()))
             .build()
 
         val req = Request.Builder()
@@ -674,15 +642,14 @@ suspend fun uploadFace(
 fun compressBitmap(bitmap: Bitmap): ByteArray {
     val maxW = 600
     val scale = if (bitmap.width > maxW) maxW.toFloat() / bitmap.width else 1f
-    val resized =
-        if (scale < 1f)
-            Bitmap.createScaledBitmap(
-                bitmap,
-                (bitmap.width * scale).toInt(),
-                (bitmap.height * scale).toInt(),
-                true
-            )
-        else bitmap
+    val resized = if (scale < 1f)
+        Bitmap.createScaledBitmap(
+            bitmap,
+            (bitmap.width * scale).toInt(),
+            (bitmap.height * scale).toInt(),
+            true
+        )
+    else bitmap
     return ByteArrayOutputStream().apply {
         resized.compress(Bitmap.CompressFormat.JPEG, 75, this)
     }.toByteArray()
@@ -691,7 +658,7 @@ fun compressBitmap(bitmap: Bitmap): ByteArray {
 suspend fun reverseGeocode(lat: Double, lng: Double): String =
     withContext(Dispatchers.IO) {
         try {
-            val url = "https://nominatim.openstreetmap.org/reverse" + "?lat=$lat&lon=$lng&format=json&addressdetails=0"
+            val url = "https://nominatim.openstreetmap.org/reverse?lat=$lat&lon=$lng&format=json&addressdetails=0"
             val req = Request.Builder()
                 .url(url)
                 .header("User-Agent", "MatahatiAbsensiMobileApp/1.0")
@@ -710,12 +677,10 @@ suspend fun reverseGeocode(lat: Double, lng: Double): String =
 
 fun cropFaceForLogin(bitmap: Bitmap, face: Face): Bitmap {
     val box = face.boundingBox
-
     val left = box.left.coerceAtLeast(0)
     val top = box.top.coerceAtLeast(0)
     val width = box.width().coerceAtMost(bitmap.width - left)
     val height = box.height().coerceAtMost(bitmap.height - top)
-
     return Bitmap.createBitmap(bitmap, left, top, width, height)
 }
 
