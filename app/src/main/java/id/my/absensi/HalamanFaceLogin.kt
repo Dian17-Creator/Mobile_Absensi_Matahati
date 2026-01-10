@@ -59,6 +59,10 @@ import com.google.mlkit.vision.face.FaceDetector
 import com.google.mlkit.vision.face.FaceDetectorOptions
 import android.os.Handler
 import android.os.Looper
+import kotlinx.coroutines.delay
+import androidx.compose.animation.*
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.ExperimentalAnimationApi
 
 private const val TAG = "FACE_LOGIN"
 private const val API_KEY = "MH4T4H4TI_2025_ABSENSI_APP_SECRETx9P2F7Q1L8S3Z0R6W4K2D1M9B7T5"
@@ -126,25 +130,41 @@ class HalamanFaceLogin : ComponentActivity() {
 
 enum class LivenessStep {
     BLINK,
-    HEAD_NOD
+    HEAD_NOD,
+    TURN_RIGHT,
+    TURN_LEFT,
+    SMILE
 }
 
 @Composable
 fun FaceLoginScreen() {
+    var smileDone by remember { mutableStateOf(false) }
+    var smilingFrame by remember { mutableStateOf(0) }
+    var isSessionStarted by remember { mutableStateOf(false) }
     var eyesClosed by remember { mutableStateOf(false) }
     var blinkDone by remember { mutableStateOf(false) }
     var headUpDone by remember { mutableStateOf(false) }
     var headNodDone by remember { mutableStateOf(false) }
     var headMoveFrame by remember { mutableStateOf(0) }
+    var headUpFrame by remember { mutableStateOf(0) }
+    var headDownFrame by remember { mutableStateOf(0) }
+    var turnRightDone by remember { mutableStateOf(false) }
+    var turnLeftDone by remember { mutableStateOf(false) }
+    var turnFrame by remember { mutableStateOf(0) }
+    var remainingTime by remember { mutableStateOf(0) }
+    var isTransitioningStep by remember { mutableStateOf(false) }
 
-    val livenessSteps = remember {
-        listOf(LivenessStep.HEAD_NOD, LivenessStep.BLINK)
-    }
+    val STEP_TIMEOUT_MS = 3_000L
+    val STEP_TRANSITION_DELAY_MS = 300L
+
+    var stepStartTime by remember { mutableStateOf(0L) }
+    var livenessSteps by remember { mutableStateOf<List<LivenessStep>>(emptyList()) }
 
     var currentLivenessIndex by remember { mutableStateOf(0) }
     val currentLivenessStep = livenessSteps.getOrNull(currentLivenessIndex)
     val livenessPassed = currentLivenessIndex >= livenessSteps.size
-    val isDoingLiveness = !livenessPassed
+
+    val isDoingLiveness = isSessionStarted && !livenessPassed
 
     var showSuccessDialog by remember { mutableStateOf(false) }
     val context = LocalContext.current
@@ -159,6 +179,20 @@ fun FaceLoginScreen() {
     var isCapturing by remember { mutableStateOf(false) }
     var statusText by remember { mutableStateOf("") }
     var statusColor by remember { mutableStateOf(Color.Black) }
+
+    LaunchedEffect(livenessPassed) {
+        if (
+            isSessionStarted &&
+            livenessPassed &&
+            isCameraReady &&
+            !isCapturing &&
+            !isUploading
+        ) {
+            delay(400)
+            isCapturing = true
+            CameraController.capture()
+        }
+    }
 
     LaunchedEffect(Unit) {
         val activity = context as Activity
@@ -193,6 +227,25 @@ fun FaceLoginScreen() {
         }
     }
 
+    LaunchedEffect(currentLivenessIndex) {
+        if (isSessionStarted && !livenessPassed) {
+            stepStartTime = System.currentTimeMillis()
+            Log.d(TAG, "⏱ Step $currentLivenessIndex started")
+        }
+    }
+
+    LaunchedEffect(stepStartTime, isSessionStarted) {
+        if (!isSessionStarted || stepStartTime == 0L) return@LaunchedEffect
+
+        val timeoutSec = (STEP_TIMEOUT_MS / 1000).toInt()
+
+        while (isSessionStarted && stepStartTime > 0) {
+            val elapsed = ((System.currentTimeMillis() - stepStartTime) / 1000).toInt()
+            remainingTime = (timeoutSec - elapsed).coerceAtLeast(0)
+            delay(200)
+        }
+    }
+
     Column(
         modifier = Modifier.fillMaxSize().padding(20.dp),
         horizontalAlignment = Alignment.CenterHorizontally
@@ -214,18 +267,12 @@ fun FaceLoginScreen() {
 
         Spacer(Modifier.height(12.dp))
 
-        Text(
-            text = when (currentLivenessStep) {
-                LivenessStep.HEAD_NOD ->
-                    if (!headUpDone) "⬆️ Gerakkan kepala (atas/bawah)"
-                    else "⬇️ Kembali ke posisi normal"
-                LivenessStep.BLINK -> "👁️ Kedipkan Mata"
-                else -> "✅ Liveness Selesai"
-            },
-            fontSize = 14.sp,
-            color = if (livenessPassed) Color(0xFF2E7D32) else Color(0xFFFF9800),
-            fontWeight = FontWeight.Bold,
-            textAlign = TextAlign.Center
+        //Instruksi liveness
+        LivenessInstructionText(
+            isSessionStarted = isSessionStarted,
+            currentStep = currentLivenessStep,
+            headUpDone = headUpDone,
+            livenessPassed = livenessPassed
         )
 
         Spacer(Modifier.height(12.dp))
@@ -237,10 +284,29 @@ fun FaceLoginScreen() {
             CameraPreview(
                 onReady = { isCameraReady = true },
                 isDoingLiveness = isDoingLiveness,
-                currentStepIndex = currentLivenessIndex,  // ✅ Pass sebagai parameter
+                isSessionStarted = isSessionStarted,
+                currentStepIndex = currentLivenessIndex,
                 onFaceFrame = { face, stepIndex ->
                     // ✅ Check stepIndex, bukan currentLivenessIndex
+                    if (!isSessionStarted) return@CameraPreview
                     if (stepIndex >= livenessSteps.size) return@CameraPreview
+                    val now = System.currentTimeMillis()
+
+                    if (stepStartTime > 0 && now - stepStartTime > STEP_TIMEOUT_MS) {
+                        Log.w(TAG, "⏱ STEP TIMEOUT!")
+
+                        statusText = "Waktu habis, silakan ulangi absen"
+                        statusColor = Color.Red
+
+                        // reset session
+                        isSessionStarted = false
+                        currentLivenessIndex = 0
+                        livenessSteps = emptyList()
+
+                        stepStartTime = 0L
+
+                        return@CameraPreview
+                    }
 
                     val step = livenessSteps.getOrNull(stepIndex) ?: return@CameraPreview
 
@@ -251,30 +317,42 @@ fun FaceLoginScreen() {
                             val pitch = face.headEulerAngleX
                             val absPitch = kotlin.math.abs(pitch)
 
-                            Log.d(TAG, "🎯 HEAD_NOD: pitch=${"%.1f".format(pitch)} abs=${"%.1f".format(absPitch)} up=$headUpDone done=$headNodDone")
+                            Log.d(TAG, "🎯 HEAD_NOD: pitch=${"%.1f".format(pitch)} up=$headUpDone")
 
+                            // fase naik
                             if (!headUpDone) {
                                 if (absPitch > 12f) {
-                                    headMoveFrame++
-                                    if (headMoveFrame >= 2) {
+                                    headUpFrame++
+                                    if (headUpFrame >= 2) {
                                         headUpDone = true
-                                        headMoveFrame = 0
-                                        Log.d(TAG, "⬆️ ✅ HEAD MOVED")
+                                        headUpFrame = 0
+                                        Log.d(TAG, "⬆️ HEAD UP OK")
                                     }
                                 } else {
-                                    headMoveFrame = 0
+                                    headUpFrame = 0
                                 }
                                 return@CameraPreview
                             }
 
-                            if (absPitch < 6f) {
-                                Log.d(TAG, "⬇️ ✅ HEAD_NOD COMPLETE → incrementing")
+                            // fase balik
+                            // fase balik (event-based, TIDAK pakai frame)
+                            if (absPitch < 10f) {
+                                Log.d(TAG, "⬇️ HEAD NOD COMPLETE")
                                 headNodDone = true
-                                currentLivenessIndex = stepIndex + 1  // ✅ Direct assignment
 
-                                // Reset untuk step berikutnya
+                                if (!isTransitioningStep) {
+                                    isTransitioningStep = true
+                                    scope.launch {
+                                        delay(STEP_TRANSITION_DELAY_MS)
+                                        currentLivenessIndex = stepIndex + 1
+                                        isTransitioningStep = false
+                                    }
+                                }
+
+                                // reset state
                                 headUpDone = false
-                                headMoveFrame = 0
+                                headUpFrame = 0
+                                headDownFrame = 0
                                 blinkDone = false
                                 eyesClosed = false
                             }
@@ -301,11 +379,93 @@ fun FaceLoginScreen() {
                             if (eyesClosed && left > 0.6f && right > 0.6f) {
                                 Log.d(TAG, "👁️ ✅ BLINK COMPLETE → incrementing")
                                 blinkDone = true
-                                currentLivenessIndex = stepIndex + 1  // ✅ Direct assignment
-
                                 eyesClosed = false
+
+                                if (!isTransitioningStep) {
+                                    isTransitioningStep = true
+                                    scope.launch {
+                                        delay(STEP_TRANSITION_DELAY_MS)
+                                        currentLivenessIndex = stepIndex + 1
+                                        isTransitioningStep = false
+                                    }
+                                }
                             }
                         }
+
+                        LivenessStep.TURN_RIGHT -> {
+                            if (turnRightDone) return@CameraPreview
+
+                            val yaw = face.headEulerAngleY
+                            Log.d(TAG, "➡️ TURN_RIGHT yaw=${"%.1f".format(yaw)}")
+
+                            if (yaw < -20f) {
+                                turnFrame++
+                                if (turnFrame >= 2) {
+                                    turnRightDone = true
+                                    turnFrame = 0
+
+                                    if (!isTransitioningStep) {
+                                        isTransitioningStep = true
+                                        scope.launch {
+                                            delay(STEP_TRANSITION_DELAY_MS)
+                                            currentLivenessIndex = stepIndex + 1
+                                            isTransitioningStep = false
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        LivenessStep.TURN_LEFT -> {
+                            if (turnLeftDone) return@CameraPreview
+
+                            val yaw = face.headEulerAngleY
+                            Log.d(TAG, "⬅️ TURN_LEFT yaw=${"%.1f".format(yaw)}")
+
+                            if (yaw > 20f) {
+                                turnFrame++
+                                if (turnFrame >= 2) {
+                                    turnLeftDone = true
+                                    turnFrame = 0
+
+                                    if (!isTransitioningStep) {
+                                        isTransitioningStep = true
+                                        scope.launch {
+                                            delay(STEP_TRANSITION_DELAY_MS)
+                                            currentLivenessIndex = stepIndex + 1
+                                            isTransitioningStep = false
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        LivenessStep.SMILE -> {
+                            if (smileDone) return@CameraPreview
+
+                            val smileProb = face.smilingProbability
+                            if (smileProb == null) return@CameraPreview
+
+                            Log.d(TAG, "😄 SMILE: prob=${"%.2f".format(smileProb)}")
+
+                            if (smileProb > 0.6f) {
+                                smilingFrame++
+                                if (smilingFrame >= 2) {
+                                    smileDone = true
+                                    smilingFrame = 0
+
+                                    if (!isTransitioningStep) {
+                                        isTransitioningStep = true
+                                        scope.launch {
+                                            delay(STEP_TRANSITION_DELAY_MS)
+                                            currentLivenessIndex = stepIndex + 1
+                                            isTransitioningStep = false
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
                     }
                 },
                 onCaptured = { bitmap ->
@@ -338,6 +498,7 @@ fun FaceLoginScreen() {
                         if (result.success) {
                             statusText = ""
                             showSuccessDialog = true
+                            isSessionStarted = false
                         }
                     }
                 }
@@ -349,6 +510,16 @@ fun FaceLoginScreen() {
                     .aspectRatio(3f / 4f)
                     .border(3.dp, Color(0xFF82FF5C), RoundedCornerShape(12.dp))
             )
+            if (currentLivenessStep != null && !livenessPassed) {
+                Text(
+                    text = "⏱ $remainingTime detik",
+                    fontSize = 12.sp,
+                    color = Color.Black,
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .padding(top = 8.dp)
+                )
+            }
         }
 
         Spacer(Modifier.height(12.dp))
@@ -356,19 +527,43 @@ fun FaceLoginScreen() {
         Spacer(Modifier.height(16.dp))
 
         Button(
-            enabled = isCameraReady && livenessPassed && !isUploading && !isCapturing,
+            enabled = isCameraReady && !isSessionStarted && !isUploading && !isCapturing,
             onClick = {
-                isCapturing = true
-                CameraController.capture()
+                isSessionStarted = true
+
+                livenessSteps = LivenessStep.values()
+                    .toList()
+                    .shuffled()
+                    .take(2)
+                Log.d(TAG, "🎲 Liveness steps: $livenessSteps")
+
+                currentLivenessIndex = 0
+                stepStartTime = System.currentTimeMillis()
+
+                blinkDone = false
+                headNodDone = false
+                headUpDone = false
+                eyesClosed = false
+                headUpFrame = 0
+                headDownFrame = 0
+                turnRightDone = false
+                turnLeftDone = false
+                turnFrame = 0
+                smileDone = false
+                smilingFrame = 0
+
+                statusText = ""
+                statusColor = Color.Black
             },
             modifier = Modifier.fillMaxWidth().height(50.dp),
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6F51))
         ) {
             Text(
                 when {
-                    !livenessPassed -> "Ikuti Instruksi"
-                    isUploading -> "Memindai..."
-                    else -> "Ambil Foto"
+                    isUploading -> "Memindai wajah..."
+                    isCapturing -> "Mengambil foto..."
+                    isDoingLiveness -> "Ikuti instruksi"
+                    else -> "Mulai Absen"
                 }
             )
         }
@@ -447,6 +642,7 @@ fun CameraPreview(
     onFaceFrame: (Face, Int) -> Unit,
     onCaptured: (Bitmap?) -> Unit,
     isDoingLiveness: Boolean,
+    isSessionStarted: Boolean,
     currentStepIndex: Int
 ) {
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -511,7 +707,6 @@ fun CameraPreview(
                                         val face = faces.first()
 
                                         Handler(Looper.getMainLooper()).post {
-                                            // ✅ CRITICAL: Baca dari state, bukan parameter
                                             val currentIndex = stepIndexState.value
                                             onFaceFrame(face, currentIndex)
                                         }
@@ -686,4 +881,62 @@ fun cropFaceForLogin(bitmap: Bitmap, face: Face): Bitmap {
 
 fun resizeFaceForLogin(bitmap: Bitmap, size: Int = 320): Bitmap {
     return Bitmap.createScaledBitmap(bitmap, size, size, true)
+}
+
+@OptIn(ExperimentalAnimationApi::class)
+@Composable
+fun LivenessInstructionText(
+    isSessionStarted: Boolean,
+    currentStep: LivenessStep?,
+    headUpDone: Boolean,
+    livenessPassed: Boolean
+) {
+    val instructionText = when {
+        !isSessionStarted ->
+            "Tekan tombol di bawah untuk mulai absensi"
+
+        currentStep == LivenessStep.HEAD_NOD ->
+            if (!headUpDone) "⬆️ Gerakkan kepala (atas / bawah)"
+            else "⬇️ Kembali ke posisi normal"
+
+        currentStep == LivenessStep.BLINK ->
+            "👁️ Kedipkan mata"
+
+        currentStep == LivenessStep.TURN_RIGHT ->
+            "➡️ Hadapkan wajah ke kanan"
+
+        currentStep == LivenessStep.TURN_LEFT ->
+            "⬅️ Hadapkan wajah ke kiri"
+
+        currentStep == LivenessStep.SMILE ->
+            "😄 Senyum ke kamera"
+
+        livenessPassed ->
+            "✅ Liveness selesai"
+
+        else -> ""
+    }
+
+    val instructionColor = when {
+        !isSessionStarted -> Color.Gray
+        livenessPassed -> Color(0xFF2E7D32)
+        else -> Color(0xFFFF9800)
+    }
+
+    AnimatedContent(
+        targetState = instructionText,
+        transitionSpec = {
+            (fadeIn(tween(220)) + slideInVertically { it / 4 }) with
+                    (fadeOut(tween(180)) + slideOutVertically { -it / 4 })
+        },
+        label = "LivenessInstruction"
+    ) { text ->
+        Text(
+            text = text,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Bold,
+            color = instructionColor,
+            textAlign = TextAlign.Center
+        )
+    }
 }
