@@ -166,6 +166,35 @@ fun FaceLoginScreen() {
 
     val isDoingLiveness = isSessionStarted && !livenessPassed
 
+    fun resetLiveness(autoRestart: Boolean = true) {
+        Log.w(TAG, "🔄 RESET LIVENESS")
+
+        blinkDone = false
+        eyesClosed = false
+        headUpDone = false
+        headNodDone = false
+        headUpFrame = 0
+        headDownFrame = 0
+        turnRightDone = false
+        turnLeftDone = false
+        turnFrame = 0
+        smileDone = false
+        smilingFrame = 0
+
+        isTransitioningStep = false
+        currentLivenessIndex = 0
+        stepStartTime = System.currentTimeMillis()
+
+        if (autoRestart) {
+            livenessSteps = LivenessStep.values()
+                .toList()
+                .shuffled()
+                .take(2)
+
+            isSessionStarted = true
+        }
+    }
+
     var showSuccessDialog by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -299,10 +328,8 @@ fun FaceLoginScreen() {
                         statusColor = Color.Red
 
                         // reset session
-                        isSessionStarted = false
-                        currentLivenessIndex = 0
-                        livenessSteps = emptyList()
-
+                        statusColor = Color.Red
+                        resetLiveness(autoRestart = true)
                         stepStartTime = 0L
 
                         return@CameraPreview
@@ -473,6 +500,7 @@ fun FaceLoginScreen() {
                         statusText = "Wajah tidak terdeteksi dengan jelas."
                         statusColor = Color.Red
                         isCapturing = false
+                        resetLiveness(autoRestart = true)
                         return@CameraPreview
                     }
 
@@ -480,12 +508,12 @@ fun FaceLoginScreen() {
                         statusText = "User tidak valid"
                         statusColor = Color.Red
                         isCapturing = false
+                        resetLiveness(autoRestart = true)
                         return@CameraPreview
                     }
 
                     scope.launch {
                         isUploading = true
-                        statusText = "Memindai wajah..."
                         statusColor = Color.Black
 
                         val result = uploadFace(bitmap, userId, coordinate, placeName)
@@ -496,9 +524,10 @@ fun FaceLoginScreen() {
                         statusColor = if (result.success) Color(0xFF2E7D32) else Color.Red
 
                         if (result.success) {
-                            statusText = ""
                             showSuccessDialog = true
                             isSessionStarted = false
+                        } else {
+                            resetLiveness(autoRestart = true)
                         }
                     }
                 }
@@ -511,14 +540,14 @@ fun FaceLoginScreen() {
                     .border(3.dp, Color(0xFF82FF5C), RoundedCornerShape(12.dp))
             )
             if (currentLivenessStep != null && !livenessPassed) {
-                Text(
-                    text = "⏱ $remainingTime detik",
-                    fontSize = 12.sp,
-                    color = Color.Black,
-                    modifier = Modifier
-                        .align(Alignment.TopCenter)
-                        .padding(top = 8.dp)
-                )
+//                Text(
+//                    text = "⏱ $remainingTime detik",
+//                    fontSize = 12.sp,
+//                    color = Color.Black,
+//                    modifier = Modifier
+//                        .align(Alignment.TopCenter)
+//                        .padding(top = 8.dp)
+//                )
             }
         }
 
@@ -560,8 +589,8 @@ fun FaceLoginScreen() {
         ) {
             Text(
                 when {
-                    isUploading -> "Memindai wajah..."
-                    isCapturing -> "Mengambil foto..."
+                    isUploading -> "Lihat Ke kamera"
+                    isCapturing -> "Lihat Ke kamera"
                     isDoingLiveness -> "Ikuti instruksi"
                     else -> "Mulai Absen"
                 }
