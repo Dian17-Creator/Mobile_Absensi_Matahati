@@ -81,6 +81,16 @@ fun HalamanJadwalUI(scheduleViewModel: ScheduleViewModel = viewModel()) {
     var isDescending by remember { mutableStateOf(true) }
     val sortedLogs = if (isDescending) logs.sortedByDescending { it.waktu } else logs.sortedBy { it.waktu }
 
+    val filteredLogs = remember(selectedDate, sortedLogs) {
+        if (selectedDate == null) {
+            sortedLogs
+        } else {
+            sortedLogs.filter {
+                it.waktu.startsWith(selectedDate.toString())
+            }
+        }
+    }
+
     LaunchedEffect(Unit) {
         while (isActive) {
             val newState = session.getScanState()
@@ -196,13 +206,13 @@ fun HalamanJadwalUI(scheduleViewModel: ScheduleViewModel = viewModel()) {
                             )
 
                             TextButton(
-                                onClick = { isDescending = !isDescending },
-                                contentPadding = PaddingValues(0.dp)
+                                onClick = { selectedDate = null },
+                                enabled = selectedDate != null
                             ) {
                                 Text(
-                                    text = if (isDescending) "Terbaru 🔽" else "Terlama 🔼",
-                                    color = Color.White,
-                                    style = MaterialTheme.typography.bodyMedium
+                                    "Tampilkan Semua",
+                                    color = if (selectedDate != null) Color.White else Color.LightGray,
+                                    fontSize = 12.sp
                                 )
                             }
                         }
@@ -214,16 +224,30 @@ fun HalamanJadwalUI(scheduleViewModel: ScheduleViewModel = viewModel()) {
                                 .padding(12.dp)
                         ) {
                             when {
-                                loadingLog -> Text("⏳ Memuat log absensi...", color = Color.Gray)
-                                errorLog != null -> Text("⚠️ $errorLog", color = Color.Red)
-                                sortedLogs.isEmpty() -> Text("📭 Belum ada log absensi", color = Color.Gray)
+                                loadingLog -> {
+                                    Text("⏳ Memuat log absensi...", color = Color.Gray)
+                                }
+
+                                errorLog != null -> {
+                                    Text("⚠️ $errorLog", color = Color.Red)
+                                }
+
+                                filteredLogs.isEmpty() -> {
+                                    Text(
+                                        text = if (selectedDate != null)
+                                            "📭 Belum Ada Riwayat Absensi"
+                                        else
+                                            "📭 Belum ada log absensi",
+                                        color = Color.Gray
+                                    )
+                                }
                                 else -> {
                                     LazyColumn(modifier = Modifier.fillMaxSize()) {
-                                        items(sortedLogs) { log ->
+                                        items(filteredLogs) { log ->
                                             val bgColor = when (log.typeAbsensi) {
-                                                "manual" -> Color(0xFFFFF59D) // kuning
-                                                "scan" -> Color(0xFFC8D7E6)   // biru
-                                                "face" -> Color(0xFFBEF2B2)   // cyan / biru muda
+                                                "manual" -> Color(0xFFFFF59D)
+                                                "scan" -> Color(0xFFC8D7E6)
+                                                "face" -> Color(0xFFBEF2B2)
                                                 else -> Color.White
                                             }
 
@@ -235,7 +259,7 @@ fun HalamanJadwalUI(scheduleViewModel: ScheduleViewModel = viewModel()) {
                                                 elevation = CardDefaults.cardElevation(2.dp)
                                             ) {
                                                 Column(modifier = Modifier.padding(12.dp)) {
-                                                    Text("${log.waktu}", fontWeight = FontWeight.Bold)
+                                                    Text(log.waktu, fontWeight = FontWeight.Bold)
                                                     Text("Jenis: ${log.typeAbsensi?.uppercase() ?: "-"}")
                                                 }
                                             }
@@ -243,6 +267,7 @@ fun HalamanJadwalUI(scheduleViewModel: ScheduleViewModel = viewModel()) {
                                     }
                                 }
                             }
+
                         }
                     }
                 }
