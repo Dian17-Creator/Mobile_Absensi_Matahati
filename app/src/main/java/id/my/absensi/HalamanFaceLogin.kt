@@ -63,6 +63,7 @@ import kotlinx.coroutines.delay
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.ExperimentalAnimationApi
+import kotlin.collections.getOrNull
 
 private const val TAG = "FACE_LOGIN"
 private const val API_KEY = "MH4T4H4TI_2025_ABSENSI_APP_SECRETx9P2F7Q1L8S3Z0R6W4K2D1M9B7T5"
@@ -128,73 +129,9 @@ class HalamanFaceLogin : ComponentActivity() {
     }
 }
 
-enum class LivenessStep {
-    BLINK,
-    HEAD_NOD,
-    TURN_RIGHT,
-    TURN_LEFT,
-    SMILE
-}
-
 @Composable
 fun FaceLoginScreen() {
-    var smileDone by remember { mutableStateOf(false) }
-    var smilingFrame by remember { mutableStateOf(0) }
     var isSessionStarted by remember { mutableStateOf(false) }
-    var eyesClosed by remember { mutableStateOf(false) }
-    var blinkDone by remember { mutableStateOf(false) }
-    var headUpDone by remember { mutableStateOf(false) }
-    var headNodDone by remember { mutableStateOf(false) }
-    var headMoveFrame by remember { mutableStateOf(0) }
-    var headUpFrame by remember { mutableStateOf(0) }
-    var headDownFrame by remember { mutableStateOf(0) }
-    var turnRightDone by remember { mutableStateOf(false) }
-    var turnLeftDone by remember { mutableStateOf(false) }
-    var turnFrame by remember { mutableStateOf(0) }
-    var remainingTime by remember { mutableStateOf(0) }
-    var isTransitioningStep by remember { mutableStateOf(false) }
-
-    val STEP_TIMEOUT_MS = 3_000L
-    val STEP_TRANSITION_DELAY_MS = 300L
-
-    var stepStartTime by remember { mutableStateOf(0L) }
-    var livenessSteps by remember { mutableStateOf<List<LivenessStep>>(emptyList()) }
-
-    var currentLivenessIndex by remember { mutableStateOf(0) }
-    val currentLivenessStep = livenessSteps.getOrNull(currentLivenessIndex)
-    val livenessPassed = currentLivenessIndex >= livenessSteps.size
-
-    val isDoingLiveness = isSessionStarted && !livenessPassed
-
-    fun resetLiveness(autoRestart: Boolean = true) {
-        Log.w(TAG, "🔄 RESET LIVENESS")
-
-        blinkDone = false
-        eyesClosed = false
-        headUpDone = false
-        headNodDone = false
-        headUpFrame = 0
-        headDownFrame = 0
-        turnRightDone = false
-        turnLeftDone = false
-        turnFrame = 0
-        smileDone = false
-        smilingFrame = 0
-
-        isTransitioningStep = false
-        currentLivenessIndex = 0
-        stepStartTime = System.currentTimeMillis()
-
-        if (autoRestart) {
-            livenessSteps = LivenessStep.values()
-                .toList()
-                .shuffled()
-                .take(2)
-
-            isSessionStarted = true
-        }
-    }
-
     var showSuccessDialog by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -209,19 +146,7 @@ fun FaceLoginScreen() {
     var statusText by remember { mutableStateOf("") }
     var statusColor by remember { mutableStateOf(Color.Black) }
 
-    LaunchedEffect(livenessPassed) {
-        if (
-            isSessionStarted &&
-            livenessPassed &&
-            isCameraReady &&
-            !isCapturing &&
-            !isUploading
-        ) {
-            delay(400)
-            isCapturing = true
-            CameraController.capture()
-        }
-    }
+
 
     LaunchedEffect(Unit) {
         val activity = context as Activity
@@ -256,25 +181,6 @@ fun FaceLoginScreen() {
         }
     }
 
-    LaunchedEffect(currentLivenessIndex) {
-        if (isSessionStarted && !livenessPassed) {
-            stepStartTime = System.currentTimeMillis()
-            Log.d(TAG, "⏱ Step $currentLivenessIndex started")
-        }
-    }
-
-    LaunchedEffect(stepStartTime, isSessionStarted) {
-        if (!isSessionStarted || stepStartTime == 0L) return@LaunchedEffect
-
-        val timeoutSec = (STEP_TIMEOUT_MS / 1000).toInt()
-
-        while (isSessionStarted && stepStartTime > 0) {
-            val elapsed = ((System.currentTimeMillis() - stepStartTime) / 1000).toInt()
-            remainingTime = (timeoutSec - elapsed).coerceAtLeast(0)
-            delay(200)
-        }
-    }
-
     Column(
         modifier = Modifier.fillMaxSize().padding(20.dp),
         horizontalAlignment = Alignment.CenterHorizontally
@@ -296,203 +202,19 @@ fun FaceLoginScreen() {
 
         Spacer(Modifier.height(12.dp))
 
-        //Instruksi liveness
-        LivenessInstructionText(
-            isSessionStarted = isSessionStarted,
-            currentStep = currentLivenessStep,
-            headUpDone = headUpDone,
-            livenessPassed = livenessPassed
-        )
-
-        Spacer(Modifier.height(12.dp))
-
         Box(
             modifier = Modifier.fillMaxWidth().height(420.dp).clip(RoundedCornerShape(16.dp)),
             contentAlignment = Alignment.Center
         ) {
             CameraPreview(
                 onReady = { isCameraReady = true },
-                isDoingLiveness = isDoingLiveness,
-                isSessionStarted = isSessionStarted,
-                currentStepIndex = currentLivenessIndex,
-                onFaceFrame = { face, stepIndex ->
-                    // ✅ Check stepIndex, bukan currentLivenessIndex
+                onFaceFrame = { face ->
                     if (!isSessionStarted) return@CameraPreview
-                    if (stepIndex >= livenessSteps.size) return@CameraPreview
-                    val now = System.currentTimeMillis()
+                    if (!isFaceValidForLogin(face)) return@CameraPreview
 
-                    if (stepStartTime > 0 && now - stepStartTime > STEP_TIMEOUT_MS) {
-                        Log.w(TAG, "⏱ STEP TIMEOUT!")
-
-                        statusText = "Waktu habis, silakan ulangi absen"
-                        statusColor = Color.Red
-
-                        // reset session
-                        statusColor = Color.Red
-                        resetLiveness(autoRestart = true)
-                        stepStartTime = 0L
-
-                        return@CameraPreview
-                    }
-
-                    val step = livenessSteps.getOrNull(stepIndex) ?: return@CameraPreview
-
-                    when (step) {
-                        LivenessStep.HEAD_NOD -> {
-                            if (headNodDone) return@CameraPreview
-
-                            val pitch = face.headEulerAngleX
-                            val absPitch = kotlin.math.abs(pitch)
-
-                            Log.d(TAG, "🎯 HEAD_NOD: pitch=${"%.1f".format(pitch)} up=$headUpDone")
-
-                            // fase naik
-                            if (!headUpDone) {
-                                if (absPitch > 12f) {
-                                    headUpFrame++
-                                    if (headUpFrame >= 2) {
-                                        headUpDone = true
-                                        headUpFrame = 0
-                                        Log.d(TAG, "⬆️ HEAD UP OK")
-                                    }
-                                } else {
-                                    headUpFrame = 0
-                                }
-                                return@CameraPreview
-                            }
-
-                            // fase balik
-                            // fase balik (event-based, TIDAK pakai frame)
-                            if (absPitch < 10f) {
-                                Log.d(TAG, "⬇️ HEAD NOD COMPLETE")
-                                headNodDone = true
-
-                                if (!isTransitioningStep) {
-                                    isTransitioningStep = true
-                                    scope.launch {
-                                        delay(STEP_TRANSITION_DELAY_MS)
-                                        currentLivenessIndex = stepIndex + 1
-                                        isTransitioningStep = false
-                                    }
-                                }
-
-                                // reset state
-                                headUpDone = false
-                                headUpFrame = 0
-                                headDownFrame = 0
-                                blinkDone = false
-                                eyesClosed = false
-                            }
-                        }
-
-                        LivenessStep.BLINK -> {
-                            if (blinkDone) return@CameraPreview
-
-                            val left = face.leftEyeOpenProbability
-                            val right = face.rightEyeOpenProbability
-
-                            if (left == null || right == null) return@CameraPreview
-
-                            Log.d(TAG, "👁️ BLINK: L=${"%.2f".format(left)} R=${"%.2f".format(right)} closed=$eyesClosed done=$blinkDone")
-
-                            if (left < 0.25f && right < 0.25f) {
-                                if (!eyesClosed) {
-                                    eyesClosed = true
-                                    Log.d(TAG, "👁️ EYES CLOSED ✅")
-                                }
-                                return@CameraPreview
-                            }
-
-                            if (eyesClosed && left > 0.6f && right > 0.6f) {
-                                Log.d(TAG, "👁️ ✅ BLINK COMPLETE → incrementing")
-                                blinkDone = true
-                                eyesClosed = false
-
-                                if (!isTransitioningStep) {
-                                    isTransitioningStep = true
-                                    scope.launch {
-                                        delay(STEP_TRANSITION_DELAY_MS)
-                                        currentLivenessIndex = stepIndex + 1
-                                        isTransitioningStep = false
-                                    }
-                                }
-                            }
-                        }
-
-                        LivenessStep.TURN_RIGHT -> {
-                            if (turnRightDone) return@CameraPreview
-
-                            val yaw = face.headEulerAngleY
-                            Log.d(TAG, "➡️ TURN_RIGHT yaw=${"%.1f".format(yaw)}")
-
-                            if (yaw < -20f) {
-                                turnFrame++
-                                if (turnFrame >= 2) {
-                                    turnRightDone = true
-                                    turnFrame = 0
-
-                                    if (!isTransitioningStep) {
-                                        isTransitioningStep = true
-                                        scope.launch {
-                                            delay(STEP_TRANSITION_DELAY_MS)
-                                            currentLivenessIndex = stepIndex + 1
-                                            isTransitioningStep = false
-                                        }
-                                    }
-                                }
-                            }
-                        }
-
-                        LivenessStep.TURN_LEFT -> {
-                            if (turnLeftDone) return@CameraPreview
-
-                            val yaw = face.headEulerAngleY
-                            Log.d(TAG, "⬅️ TURN_LEFT yaw=${"%.1f".format(yaw)}")
-
-                            if (yaw > 20f) {
-                                turnFrame++
-                                if (turnFrame >= 2) {
-                                    turnLeftDone = true
-                                    turnFrame = 0
-
-                                    if (!isTransitioningStep) {
-                                        isTransitioningStep = true
-                                        scope.launch {
-                                            delay(STEP_TRANSITION_DELAY_MS)
-                                            currentLivenessIndex = stepIndex + 1
-                                            isTransitioningStep = false
-                                        }
-                                    }
-                                }
-                            }
-                        }
-
-                        LivenessStep.SMILE -> {
-                            if (smileDone) return@CameraPreview
-
-                            val smileProb = face.smilingProbability
-                            if (smileProb == null) return@CameraPreview
-
-                            Log.d(TAG, "😄 SMILE: prob=${"%.2f".format(smileProb)}")
-
-                            if (smileProb > 0.6f) {
-                                smilingFrame++
-                                if (smilingFrame >= 2) {
-                                    smileDone = true
-                                    smilingFrame = 0
-
-                                    if (!isTransitioningStep) {
-                                        isTransitioningStep = true
-                                        scope.launch {
-                                            delay(STEP_TRANSITION_DELAY_MS)
-                                            currentLivenessIndex = stepIndex + 1
-                                            isTransitioningStep = false
-                                        }
-                                    }
-                                }
-                            }
-                        }
-
+                    if (!isCapturing && !isUploading) {
+                        isCapturing = true
+                        CameraController.capture()
                     }
                 },
                 onCaptured = { bitmap ->
@@ -500,7 +222,7 @@ fun FaceLoginScreen() {
                         statusText = "Wajah tidak terdeteksi dengan jelas."
                         statusColor = Color.Red
                         isCapturing = false
-                        resetLiveness(autoRestart = true)
+                        isSessionStarted = false
                         return@CameraPreview
                     }
 
@@ -508,7 +230,7 @@ fun FaceLoginScreen() {
                         statusText = "User tidak valid"
                         statusColor = Color.Red
                         isCapturing = false
-                        resetLiveness(autoRestart = true)
+                        isSessionStarted = false
                         return@CameraPreview
                     }
 
@@ -526,8 +248,6 @@ fun FaceLoginScreen() {
                         if (result.success) {
                             showSuccessDialog = true
                             isSessionStarted = false
-                        } else {
-                            resetLiveness(autoRestart = true)
                         }
                     }
                 }
@@ -539,16 +259,6 @@ fun FaceLoginScreen() {
                     .aspectRatio(3f / 4f)
                     .border(3.dp, Color(0xFF82FF5C), RoundedCornerShape(12.dp))
             )
-            if (currentLivenessStep != null && !livenessPassed) {
-//                Text(
-//                    text = "⏱ $remainingTime detik",
-//                    fontSize = 12.sp,
-//                    color = Color.Black,
-//                    modifier = Modifier
-//                        .align(Alignment.TopCenter)
-//                        .padding(top = 8.dp)
-//                )
-            }
         }
 
         Spacer(Modifier.height(12.dp))
@@ -556,31 +266,9 @@ fun FaceLoginScreen() {
         Spacer(Modifier.height(16.dp))
 
         Button(
-            enabled = isCameraReady && !isSessionStarted && !isUploading && !isCapturing,
+            enabled = isCameraReady && !isUploading && !isCapturing,
             onClick = {
                 isSessionStarted = true
-
-                livenessSteps = LivenessStep.values()
-                    .toList()
-                    .shuffled()
-                    .take(2)
-                Log.d(TAG, "🎲 Liveness steps: $livenessSteps")
-
-                currentLivenessIndex = 0
-                stepStartTime = System.currentTimeMillis()
-
-                blinkDone = false
-                headNodDone = false
-                headUpDone = false
-                eyesClosed = false
-                headUpFrame = 0
-                headDownFrame = 0
-                turnRightDone = false
-                turnLeftDone = false
-                turnFrame = 0
-                smileDone = false
-                smilingFrame = 0
-
                 statusText = ""
                 statusColor = Color.Black
             },
@@ -591,7 +279,6 @@ fun FaceLoginScreen() {
                 when {
                     isUploading -> "Lihat Ke kamera"
                     isCapturing -> "Lihat Ke kamera"
-                    isDoingLiveness -> "Ikuti instruksi"
                     else -> "Mulai Absen"
                 }
             )
@@ -668,150 +355,106 @@ object CameraController {
 @Composable
 fun CameraPreview(
     onReady: () -> Unit,
-    onFaceFrame: (Face, Int) -> Unit,
-    onCaptured: (Bitmap?) -> Unit,
-    isDoingLiveness: Boolean,
-    isSessionStarted: Boolean,
-    currentStepIndex: Int
+    onFaceFrame: (Face) -> Unit,
+    onCaptured: (Bitmap?) -> Unit
 ) {
     val lifecycleOwner = LocalLifecycleOwner.current
     val context = LocalContext.current
     val executor = remember { Executors.newSingleThreadExecutor() }
 
-    // ✅ CRITICAL: Gunakan remember untuk capture perubahan
-    val stepIndexState = remember { mutableStateOf(currentStepIndex) }
-
-    // ✅ Update state setiap kali currentStepIndex berubah
-    LaunchedEffect(currentStepIndex) {
-        Log.e("CAMERA_PREVIEW", "📍 Step index changed: ${stepIndexState.value} → $currentStepIndex")
-        stepIndexState.value = currentStepIndex
-    }
-
     DisposableEffect(Unit) {
-        Log.d("CAMERA_PREVIEW", "🎬 Started")
-        onDispose {
-            Log.d("CAMERA_PREVIEW", "🔚 Disposing")
-            executor.shutdown()
-        }
+        onDispose { executor.shutdown() }
     }
 
     AndroidView(
         factory = { ctx ->
-            Log.d("CAMERA_PREVIEW", "🏭 Creating PreviewView")
             val previewView = PreviewView(ctx)
-
             val cameraProviderFuture = ProcessCameraProvider.getInstance(ctx)
 
             cameraProviderFuture.addListener({
-                try {
-                    Log.d("CAMERA_SETUP", "📱 Listener triggered")
+                val cameraProvider = cameraProviderFuture.get()
 
-                    val cameraProvider = cameraProviderFuture.get()
-                    Log.d("CAMERA_SETUP", "✅ Got provider")
-
-                    val preview = Preview.Builder().build().also {
-                        it.setSurfaceProvider(previewView.surfaceProvider)
-                    }
-
-                    val imageCapture = ImageCapture.Builder()
-                        .setCaptureMode(ImageCapture.CAPTURE_MODE_MAXIMIZE_QUALITY)
-                        .build()
-
-                    val imageAnalysis = ImageAnalysis.Builder()
-                        .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-                        .build()
-
-                    imageAnalysis.setAnalyzer(executor) { imageProxy ->
-                        val mediaImage = imageProxy.image
-                        if (mediaImage != null) {
-                            val image = InputImage.fromMediaImage(
-                                mediaImage,
-                                imageProxy.imageInfo.rotationDegrees
-                            )
-
-                            FaceLoginDetector.detector
-                                .process(image)
-                                .addOnSuccessListener { faces ->
-                                    if (faces.size == 1) {
-                                        val face = faces.first()
-
-                                        Handler(Looper.getMainLooper()).post {
-                                            val currentIndex = stepIndexState.value
-                                            onFaceFrame(face, currentIndex)
-                                        }
-                                    }
-                                    imageProxy.close()
-                                }
-                                .addOnFailureListener {
-                                    imageProxy.close()
-                                }
-                        } else {
-                            imageProxy.close()
-                        }
-                    }
-
-                    CameraController.capture = {
-                        imageCapture.takePicture(
-                            executor,
-                            object : ImageCapture.OnImageCapturedCallback() {
-                                override fun onCaptureSuccess(image: ImageProxy) {
-                                    try {
-                                        val bmp = imageProxyToBitmap(image)
-                                        val rotated = rotateBitmap(bmp, image.imageInfo.rotationDegrees.toFloat())
-                                        val inputImage = InputImage.fromBitmap(rotated, 0)
-
-                                        FaceLoginDetector.detector
-                                            .process(inputImage)
-                                            .addOnSuccessListener { faces ->
-                                                if (faces.size != 1) {
-                                                    onCaptured(null)
-                                                    image.close()
-                                                    return@addOnSuccessListener
-                                                }
-
-                                                val face = faces.first()
-
-                                                if (!isFaceValidForLogin(face, allowYaw = isDoingLiveness)) {
-                                                    onCaptured(null)
-                                                    image.close()
-                                                    return@addOnSuccessListener
-                                                }
-
-                                                val cropped = cropFaceForLogin(rotated, face)
-                                                val finalFace = resizeFaceForLogin(cropped)
-
-                                                onCaptured(finalFace)
-                                                image.close()
-                                            }
-                                            .addOnFailureListener {
-                                                onCaptured(null)
-                                                image.close()
-                                            }
-                                    } catch (e: Exception) {
-                                        onCaptured(null)
-                                        image.close()
-                                    }
-                                }
-                            }
-                        )
-                    }
-
-                    cameraProvider.unbindAll()
-                    cameraProvider.bindToLifecycle(
-                        lifecycleOwner,
-                        CameraSelector.DEFAULT_FRONT_CAMERA,
-                        preview,
-                        imageCapture,
-                        imageAnalysis
-                    )
-
-                    Log.d("CAMERA_SETUP", "✅✅✅ BOUND WITH ANALYSIS!")
-                    onReady()
-
-                } catch (e: Exception) {
-                    Log.e("CAMERA_SETUP", "❌ FAILED", e)
+                val preview = Preview.Builder().build().also {
+                    it.setSurfaceProvider(previewView.surfaceProvider)
                 }
 
+                val imageCapture = ImageCapture.Builder()
+                    .setCaptureMode(ImageCapture.CAPTURE_MODE_MAXIMIZE_QUALITY)
+                    .build()
+
+                val imageAnalysis = ImageAnalysis.Builder()
+                    .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                    .build()
+
+                imageAnalysis.setAnalyzer(executor) { imageProxy ->
+                    val mediaImage = imageProxy.image
+                    if (mediaImage != null) {
+                        val image = InputImage.fromMediaImage(
+                            mediaImage,
+                            imageProxy.imageInfo.rotationDegrees
+                        )
+
+                        FaceLoginDetector.detector
+                            .process(image)
+                            .addOnSuccessListener { faces ->
+                                if (faces.size == 1) {
+                                    Handler(Looper.getMainLooper()).post {
+                                        onFaceFrame(faces.first())
+                                    }
+                                }
+                                imageProxy.close()
+                            }
+                            .addOnFailureListener { imageProxy.close() }
+                    } else imageProxy.close()
+                }
+
+                CameraController.capture = {
+                    imageCapture.takePicture(
+                        executor,
+                        object : ImageCapture.OnImageCapturedCallback() {
+                            override fun onCaptureSuccess(image: ImageProxy) {
+                                try {
+                                    val bmp = imageProxyToBitmap(image)
+                                    val rotated = rotateBitmap(bmp, image.imageInfo.rotationDegrees.toFloat())
+
+                                    FaceLoginDetector.detector
+                                        .process(InputImage.fromBitmap(rotated, 0))
+                                        .addOnSuccessListener { faces ->
+                                            if (faces.size != 1) {
+                                                onCaptured(null)
+                                                image.close()
+                                                return@addOnSuccessListener
+                                            }
+
+                                            val face = faces.first()
+                                            if (!isFaceValidForLogin(face)) {
+                                                onCaptured(null)
+                                                image.close()
+                                                return@addOnSuccessListener
+                                            }
+
+                                            onCaptured(resizeFaceForLogin(cropFaceForLogin(rotated, face)))
+                                            image.close()
+                                        }
+                                } catch (e: Exception) {
+                                    onCaptured(null)
+                                    image.close()
+                                }
+                            }
+                        }
+                    )
+                }
+
+                cameraProvider.unbindAll()
+                cameraProvider.bindToLifecycle(
+                    lifecycleOwner,
+                    CameraSelector.DEFAULT_FRONT_CAMERA,
+                    preview,
+                    imageCapture,
+                    imageAnalysis
+                )
+
+                onReady()
             }, ContextCompat.getMainExecutor(ctx))
 
             previewView
@@ -819,6 +462,7 @@ fun CameraPreview(
         modifier = Modifier.fillMaxSize()
     )
 }
+
 
 data class FaceLoginResponse(
     val success: Boolean,
@@ -910,62 +554,4 @@ fun cropFaceForLogin(bitmap: Bitmap, face: Face): Bitmap {
 
 fun resizeFaceForLogin(bitmap: Bitmap, size: Int = 320): Bitmap {
     return Bitmap.createScaledBitmap(bitmap, size, size, true)
-}
-
-@OptIn(ExperimentalAnimationApi::class)
-@Composable
-fun LivenessInstructionText(
-    isSessionStarted: Boolean,
-    currentStep: LivenessStep?,
-    headUpDone: Boolean,
-    livenessPassed: Boolean
-) {
-    val instructionText = when {
-        !isSessionStarted ->
-            "Tekan tombol di bawah untuk mulai absensi"
-
-        currentStep == LivenessStep.HEAD_NOD ->
-            if (!headUpDone) "⬆️ Gerakkan kepala (atas / bawah)"
-            else "⬇️ Kembali ke posisi normal"
-
-        currentStep == LivenessStep.BLINK ->
-            "👁️ Kedipkan mata"
-
-        currentStep == LivenessStep.TURN_RIGHT ->
-            "➡️ Hadapkan wajah ke kanan"
-
-        currentStep == LivenessStep.TURN_LEFT ->
-            "⬅️ Hadapkan wajah ke kiri"
-
-        currentStep == LivenessStep.SMILE ->
-            "😄 Senyum ke kamera"
-
-        livenessPassed ->
-            "✅ Liveness selesai"
-
-        else -> ""
-    }
-
-    val instructionColor = when {
-        !isSessionStarted -> Color.Gray
-        livenessPassed -> Color(0xFF2E7D32)
-        else -> Color(0xFFFF9800)
-    }
-
-    AnimatedContent(
-        targetState = instructionText,
-        transitionSpec = {
-            (fadeIn(tween(220)) + slideInVertically { it / 4 }) with
-                    (fadeOut(tween(180)) + slideOutVertically { -it / 4 })
-        },
-        label = "LivenessInstruction"
-    ) { text ->
-        Text(
-            text = text,
-            fontSize = 14.sp,
-            fontWeight = FontWeight.Bold,
-            color = instructionColor,
-            textAlign = TextAlign.Center
-        )
-    }
 }
