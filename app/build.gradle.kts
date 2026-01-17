@@ -66,7 +66,6 @@ dependencies {
     implementation("com.kizitonwose.calendar:compose:2.4.0")
 
     // ML Kit
-    implementation("com.google.android.gms:play-services-mlkit-barcode-scanning:18.3.0")
     implementation("com.google.android.gms:play-services-mlkit-face-detection:17.1.0")
 
     // CameraX

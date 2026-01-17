@@ -59,11 +59,6 @@ import com.google.mlkit.vision.face.FaceDetector
 import com.google.mlkit.vision.face.FaceDetectorOptions
 import android.os.Handler
 import android.os.Looper
-import kotlinx.coroutines.delay
-import androidx.compose.animation.*
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.ExperimentalAnimationApi
-import kotlin.collections.getOrNull
 
 private const val TAG = "FACE_LOGIN"
 private const val API_KEY = "MH4T4H4TI_2025_ABSENSI_APP_SECRETx9P2F7Q1L8S3Z0R6W4K2D1M9B7T5"
@@ -76,20 +71,6 @@ private val httpClient by lazy {
         .writeTimeout(30, TimeUnit.SECONDS)
         .retryOnConnectionFailure(true)
         .build()
-}
-
-object FaceLoginDetector {
-    private val options = FaceDetectorOptions.Builder()
-        .setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_ACCURATE)
-        .setLandmarkMode(FaceDetectorOptions.LANDMARK_MODE_ALL)
-        .setContourMode(FaceDetectorOptions.CONTOUR_MODE_NONE)
-        .setClassificationMode(FaceDetectorOptions.CLASSIFICATION_MODE_ALL)
-        .setMinFaceSize(0.15f)
-        .build()
-
-    val detector: FaceDetector by lazy {
-        FaceDetection.getClient(options)
-    }
 }
 
 fun isFaceValidForLogin(face: Face, allowYaw: Boolean = false): Boolean {
@@ -145,8 +126,6 @@ fun FaceLoginScreen() {
     var isCapturing by remember { mutableStateOf(false) }
     var statusText by remember { mutableStateOf("") }
     var statusColor by remember { mutableStateOf(Color.Black) }
-
-
 
     LaunchedEffect(Unit) {
         val activity = context as Activity
@@ -358,111 +337,127 @@ fun CameraPreview(
     onFaceFrame: (Face) -> Unit,
     onCaptured: (Bitmap?) -> Unit
 ) {
-    val lifecycleOwner = LocalLifecycleOwner.current
     val context = LocalContext.current
-    val executor = remember { Executors.newSingleThreadExecutor() }
+    val lifecycleOwner = LocalLifecycleOwner.current
 
-    DisposableEffect(Unit) {
-        onDispose { executor.shutdown() }
+    val previewView = remember {
+        PreviewView(context).apply {
+            scaleType = PreviewView.ScaleType.FILL_CENTER
+        }
+    }
+
+    val cameraProviderFuture = remember {
+        ProcessCameraProvider.getInstance(context)
+    }
+
+    val executor = remember {
+        Executors.newSingleThreadExecutor()
+    }
+
+    DisposableEffect(lifecycleOwner) {
+
+        val cameraProvider = cameraProviderFuture.get()
+
+        val preview = Preview.Builder().build().also {
+            it.setSurfaceProvider(previewView.surfaceProvider)
+        }
+
+        val imageCapture = ImageCapture.Builder()
+            .setCaptureMode(ImageCapture.CAPTURE_MODE_MAXIMIZE_QUALITY)
+            .build()
+
+        val imageAnalysis = ImageAnalysis.Builder()
+            .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+            .build()
+
+        imageAnalysis.setAnalyzer(executor) { imageProxy ->
+            val mediaImage = imageProxy.image
+            if (mediaImage != null) {
+                val image = InputImage.fromMediaImage(
+                    mediaImage,
+                    imageProxy.imageInfo.rotationDegrees
+                )
+
+                FaceLoginDetector.detector
+                    .process(image)
+                    .addOnSuccessListener { faces ->
+                        if (faces.size == 1) {
+                            Handler(Looper.getMainLooper()).post {
+                                onFaceFrame(faces.first())
+                            }
+                        }
+                        imageProxy.close()
+                    }
+                    .addOnFailureListener {
+                        imageProxy.close()
+                    }
+            } else {
+                imageProxy.close()
+            }
+        }
+
+        CameraController.capture = {
+            imageCapture.takePicture(
+                executor,
+                object : ImageCapture.OnImageCapturedCallback() {
+                    override fun onCaptureSuccess(image: ImageProxy) {
+                        try {
+                            val bmp = imageProxyToBitmap(image)
+                            val rotated = rotateBitmap(
+                                bmp,
+                                image.imageInfo.rotationDegrees.toFloat()
+                            )
+
+                            FaceLoginDetector.detector
+                                .process(InputImage.fromBitmap(rotated, 0))
+                                .addOnSuccessListener { faces ->
+                                    if (faces.size != 1) {
+                                        onCaptured(null)
+                                    } else {
+                                        val face = faces.first()
+                                        if (!isFaceValidForLogin(face)) {
+                                            onCaptured(null)
+                                        } else {
+                                            onCaptured(
+                                                resizeFaceForLogin(
+                                                    cropFaceForLogin(rotated, face)
+                                                )
+                                            )
+                                        }
+                                    }
+                                    image.close()
+                                }
+                        } catch (e: Exception) {
+                            onCaptured(null)
+                            image.close()
+                        }
+                    }
+                }
+            )
+        }
+
+        cameraProvider.unbindAll()
+        cameraProvider.bindToLifecycle(
+            lifecycleOwner,
+            CameraSelector.DEFAULT_FRONT_CAMERA,
+            preview,
+            imageCapture,
+            imageAnalysis
+        )
+
+        onReady()
+
+        onDispose {
+            cameraProvider.unbindAll()   // 🔥 INI KUNCI ANTI BLANK
+            executor.shutdown()
+        }
     }
 
     AndroidView(
-        factory = { ctx ->
-            val previewView = PreviewView(ctx)
-            val cameraProviderFuture = ProcessCameraProvider.getInstance(ctx)
-
-            cameraProviderFuture.addListener({
-                val cameraProvider = cameraProviderFuture.get()
-
-                val preview = Preview.Builder().build().also {
-                    it.setSurfaceProvider(previewView.surfaceProvider)
-                }
-
-                val imageCapture = ImageCapture.Builder()
-                    .setCaptureMode(ImageCapture.CAPTURE_MODE_MAXIMIZE_QUALITY)
-                    .build()
-
-                val imageAnalysis = ImageAnalysis.Builder()
-                    .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-                    .build()
-
-                imageAnalysis.setAnalyzer(executor) { imageProxy ->
-                    val mediaImage = imageProxy.image
-                    if (mediaImage != null) {
-                        val image = InputImage.fromMediaImage(
-                            mediaImage,
-                            imageProxy.imageInfo.rotationDegrees
-                        )
-
-                        FaceLoginDetector.detector
-                            .process(image)
-                            .addOnSuccessListener { faces ->
-                                if (faces.size == 1) {
-                                    Handler(Looper.getMainLooper()).post {
-                                        onFaceFrame(faces.first())
-                                    }
-                                }
-                                imageProxy.close()
-                            }
-                            .addOnFailureListener { imageProxy.close() }
-                    } else imageProxy.close()
-                }
-
-                CameraController.capture = {
-                    imageCapture.takePicture(
-                        executor,
-                        object : ImageCapture.OnImageCapturedCallback() {
-                            override fun onCaptureSuccess(image: ImageProxy) {
-                                try {
-                                    val bmp = imageProxyToBitmap(image)
-                                    val rotated = rotateBitmap(bmp, image.imageInfo.rotationDegrees.toFloat())
-
-                                    FaceLoginDetector.detector
-                                        .process(InputImage.fromBitmap(rotated, 0))
-                                        .addOnSuccessListener { faces ->
-                                            if (faces.size != 1) {
-                                                onCaptured(null)
-                                                image.close()
-                                                return@addOnSuccessListener
-                                            }
-
-                                            val face = faces.first()
-                                            if (!isFaceValidForLogin(face)) {
-                                                onCaptured(null)
-                                                image.close()
-                                                return@addOnSuccessListener
-                                            }
-
-                                            onCaptured(resizeFaceForLogin(cropFaceForLogin(rotated, face)))
-                                            image.close()
-                                        }
-                                } catch (e: Exception) {
-                                    onCaptured(null)
-                                    image.close()
-                                }
-                            }
-                        }
-                    )
-                }
-
-                cameraProvider.unbindAll()
-                cameraProvider.bindToLifecycle(
-                    lifecycleOwner,
-                    CameraSelector.DEFAULT_FRONT_CAMERA,
-                    preview,
-                    imageCapture,
-                    imageAnalysis
-                )
-
-                onReady()
-            }, ContextCompat.getMainExecutor(ctx))
-
-            previewView
-        },
+        factory = { previewView },
         modifier = Modifier.fillMaxSize()
     )
 }
-
 
 data class FaceLoginResponse(
     val success: Boolean,

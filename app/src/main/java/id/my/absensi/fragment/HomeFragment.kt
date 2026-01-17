@@ -60,8 +60,7 @@ class HomeFragment : Fragment() {
                             REQUIRED_PERMISSIONS,
                             100
                         )
-                    },
-                    externalScanResult = currentScanResult.value
+                    }
                 )
             }
         }

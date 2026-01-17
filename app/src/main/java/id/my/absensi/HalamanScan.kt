@@ -10,14 +10,9 @@ import android.util.Log
 import android.view.ViewGroup
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.camera.core.*
-import androidx.camera.lifecycle.ProcessCameraProvider
-import androidx.camera.view.PreviewView
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
@@ -27,44 +22,96 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import com.google.android.gms.location.LocationServices
-import com.google.mlkit.vision.barcode.BarcodeScanning
-import com.google.mlkit.vision.common.InputImage
-import okhttp3.*
-import org.json.JSONObject
-import java.io.IOException
-import java.util.concurrent.Executors
-import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.RequestBody.Companion.toRequestBody
-import androidx.camera.core.ExperimentalGetImage
 import android.annotation.SuppressLint
-import android.net.ConnectivityManager
+import android.app.Activity
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.graphics.Color
-import com.google.android.gms.location.Priority
 import kotlinx.coroutines.*
-import id.my.matahati.absensi.data.OfflineScan
-import id.my.matahati.absensi.worker.enqueueSyncWorker
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.foundation.background
-import android.os.Handler
-import android.os.Looper
+import androidx.compose.foundation.border
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Event
+import androidx.compose.material.icons.filled.Face
+import androidx.compose.material.icons.filled.List
+import androidx.compose.material.icons.filled.Logout
+import androidx.compose.material.icons.filled.Verified
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalConfiguration
-import id.my.matahati.absensi.data.ScanResult
-import id.my.matahati.absensi.utils.NetworkUtils
+import androidx.compose.ui.text.style.TextAlign
+import com.google.android.gms.location.LocationServices
+import com.google.mlkit.vision.common.InputImage
+import com.google.mlkit.vision.face.Face
+import com.google.mlkit.vision.face.FaceDetection
+import com.google.mlkit.vision.face.FaceDetector
+import com.google.mlkit.vision.face.FaceDetectorOptions
 import java.util.Locale
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
-import com.google.android.datatransport.runtime.ExecutionModule_ExecutorFactory.executor
 import id.my.matahati.absensi.data.ScheduleViewModel
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.MultipartBody
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
+import org.json.JSONObject
+import java.io.ByteArrayOutputStream
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 import kotlin.jvm.java
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.material.icons.filled.Close
+
+private const val TAG = "FACE_LOGIN"
+private const val API_KEY = "MH4T4H4TI_2025_ABSENSI_APP_SECRETx9P2F7Q1L8S3Z0R6W4K2D1M9B7T5"
+private const val FACE_LOGIN_URL = "https://absensi.matahati.my.id/user_face_scan_mobile.php"
+
+private val httpClient by lazy {
+    OkHttpClient.Builder()
+        .connectTimeout(30, TimeUnit.SECONDS)
+        .readTimeout(30, TimeUnit.SECONDS)
+        .writeTimeout(30, TimeUnit.SECONDS)
+        .retryOnConnectionFailure(true)
+        .build()
+}
+
+object FaceLoginDetector {
+    private val options = FaceDetectorOptions.Builder()
+        .setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_ACCURATE)
+        .setLandmarkMode(FaceDetectorOptions.LANDMARK_MODE_ALL)
+        .setContourMode(FaceDetectorOptions.CONTOUR_MODE_NONE)
+        .setClassificationMode(FaceDetectorOptions.CLASSIFICATION_MODE_ALL)
+        .setMinFaceSize(0.15f)
+        .build()
+
+    val detector: FaceDetector by lazy {
+        FaceDetection.getClient(options)
+    }
+}
+
+
 
 class HalamanScan : ComponentActivity() {
-
     private var hasAllPermissions by mutableStateOf(false)
 
     private val REQUIRED_PERMISSIONS = arrayOf(
@@ -126,15 +173,70 @@ class HalamanScan : ComponentActivity() {
         }
     }
 }
+
 @SuppressLint("UnusedBoxWithConstraintsScope")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HalamanScanUI(
     hasCameraPermission: Boolean,
     onRequestPermission: () -> Unit,
-    externalScanResult: ScanResult? = null
 ) {
+
+    var isSessionStarted by remember { mutableStateOf(false) }
+    var showSuccessDialog by remember { mutableStateOf(false) }
+    var isCameraReady by remember { mutableStateOf(false) }
+    var isUploading by remember { mutableStateOf(false) }
+    var isCapturing by remember { mutableStateOf(false) }
+
+    var statusText by remember { mutableStateOf("") }
+    var statusColor by remember { mutableStateOf(Color.Black) }
+
+    var coordinate by remember { mutableStateOf("") }
+    var placeName by remember { mutableStateOf("Mengambil lokasi...") }
+
     val context = LocalContext.current
+
+    LaunchedEffect(Unit) {
+        if (!hasCameraPermission) return@LaunchedEffect
+
+        val activity = context as Activity
+
+        val hasLocationPermission =
+            ContextCompat.checkSelfPermission(
+                activity,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED ||
+                    ContextCompat.checkSelfPermission(
+                        activity,
+                        Manifest.permission.ACCESS_COARSE_LOCATION
+                    ) == PackageManager.PERMISSION_GRANTED
+
+        if (!hasLocationPermission) {
+            placeName = "Lokasi tidak diizinkan"
+            return@LaunchedEffect
+        }
+
+        val fused = LocationServices.getFusedLocationProviderClient(activity)
+        fused.lastLocation
+            .addOnSuccessListener { loc ->
+                if (loc != null) {
+                    coordinate = "${loc.latitude},${loc.longitude}"
+                    CoroutineScope(Dispatchers.IO).launch {
+                        val place = reverseGeocode(loc.latitude, loc.longitude)
+                        withContext(Dispatchers.Main) {
+                            placeName = place.ifEmpty { coordinate }
+                        }
+                    }
+                } else {
+                    placeName = "Lokasi tidak tersedia"
+                }
+            }
+            .addOnFailureListener {
+                placeName = "Gagal mengambil lokasi"
+            }
+    }
+
+
     val session = SessionManager(context)
 
     val isCaptainOrAbove = remember {
@@ -142,35 +244,6 @@ fun HalamanScanUI(
     }
 
     val activity = context as? ComponentActivity
-    val lifecycleOwner = LocalLifecycleOwner.current
-    val workManager = androidx.work.WorkManager.getInstance(context)
-
-    var scanResult by remember { mutableStateOf<ScanResult>(ScanResult.Message("Arahkan kamera ke QR Code")) }
-    var showCamera by remember { mutableStateOf(true) }
-
-    // Kamera ikut lifecycle: ON_RESUME -> hidup, ON_PAUSE -> mati
-    DisposableEffect(lifecycleOwner) {
-        val observer = LifecycleEventObserver { _, event ->
-            when (event) {
-                Lifecycle.Event.ON_RESUME -> {
-                    Log.d("HalamanScan", "ON_RESUME -> nyalakan kamera")
-                    showCamera = true      // bikin CameraPreview re-create & bind ulang
-                }
-                Lifecycle.Event.ON_PAUSE -> {
-                    Log.d("HalamanScan", "ON_PAUSE -> matikan kamera")
-                    showCamera = false     // hilangkan CameraPreview & unbind di onDispose
-                }
-                else -> Unit
-            }
-        }
-
-        lifecycleOwner.lifecycle.addObserver(observer)
-
-        onDispose {
-            lifecycleOwner.lifecycle.removeObserver(observer)
-        }
-    }
-
 
     val configuration = LocalConfiguration.current
     val screenHeight = configuration.screenHeightDp
@@ -181,55 +254,6 @@ fun HalamanScanUI(
     val userName = if (storedUserId != -1) session.getUser()["name"]?.toString() ?: "" else activity?.intent?.getStringExtra("USER_NAME") ?: ""
     val userEmail = if (storedUserId != -1) session.getUser()["email"]?.toString() ?: "" else activity?.intent?.getStringExtra("USER_EMAIL") ?: ""
 
-    // 🔹 Tambahan: State reaktif koneksi
-    var isOnline by remember { mutableStateOf(NetworkUtils.isOnline(context)) }
-
-    // 🔹 Pantau koneksi setiap 2 detik
-    LaunchedEffect(Unit) {
-        while (true) {
-            val current = NetworkUtils.isOnline(context)
-            if (current != isOnline) isOnline = current
-            delay(2000L)
-        }
-    }
-
-    // 🔹 Jika koneksi kembali online dan sedang "menunggu jaringan"
-    LaunchedEffect(isOnline) {
-        if (isOnline && scanResult is ScanResult.WaitingImage) {
-            Log.d("HalamanScan", "Koneksi kembali online, ubah UI ke SuccessImage")
-            scanResult = ScanResult.SuccessImage
-        }
-    }
-
-    // 🔹 WorkManager observer untuk sinkronisasi offline
-    DisposableEffect(Unit) {
-        onDispose {
-            try {
-                Log.d("CameraPreview", "onDispose -> unbind camera")
-
-                val cameraProviderFuture = ProcessCameraProvider.getInstance(context)
-                val cameraProvider = cameraProviderFuture.get()
-                cameraProvider.unbindAll()
-
-            } catch (e: Exception) {
-                Log.e("CameraPreview", "Gagal unbind camera di onDispose", e)
-            }
-        }
-    }
-
-
-
-    // 🔹 Kamera otomatis restart setelah scan berhasil
-    LaunchedEffect(scanResult) {
-        if (scanResult is ScanResult.SuccessImage) {
-            showCamera = false
-            Log.d("HalamanScan", "Kamera dimatikan sementara (berhasil scan)")
-            delay(1000)
-            showCamera = true
-            Log.d("HalamanScan", "Kamera diaktifkan ulang")
-            scanResult = ScanResult.Message("Arahkan kamera ke QR Code")
-        }
-    }
 
     // 🌈 UI utama
     Box(
@@ -241,454 +265,280 @@ fun HalamanScanUI(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(240.dp)
+                .height(350.dp)
+                .clip(BottomCurveShape(curveHeight = 50f))
                 .background(primaryColor)
                 .align(Alignment.TopCenter)
         )
 
         // 🔸 Konten utama
-        Column(
+        LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 16.dp, vertical = 20.dp)
-                .verticalScroll(rememberScrollState()),
+                .padding(horizontal = 16.dp, vertical = 20.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                elevation = CardDefaults.cardElevation(6.dp),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFF4C4C59)),
-                shape = RoundedCornerShape(8.dp)
-            ) {
-                CardWaktu()
+            //Card Waktu
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    elevation = CardDefaults.cardElevation(6.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFF4C4C59)),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    CardWaktu()
+                }
             }
 
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                elevation = CardDefaults.cardElevation(6.dp),
-                shape = RoundedCornerShape(8.dp)
-            ) {
-                CardShift(userId = userId)
+            //Card Shift
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    elevation = CardDefaults.cardElevation(6.dp),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    CardShift(userId = userId)
+                }
             }
 
-            // ✅ Kamera tampil hanya jika ada izin & showCamera true
-            if (hasCameraPermission && showCamera) {
-                val cameraHeight = (screenHeight.dp * 0.40f).coerceIn(180.dp, 320.dp)
+            //Box Face Absensi
+            item {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(cameraHeight)
-                        .clip(RoundedCornerShape(12.dp)),
+                        .height(350.dp)
+                        .clip(RoundedCornerShape(16.dp)),
                     contentAlignment = Alignment.Center
                 ) {
                     CameraPreview(
-                        modifier = Modifier.fillMaxSize(),
-                        onScan = { rawValue ->
-                            var extractedToken: String? = null
-                            try {
-                                val obj = JSONObject(rawValue)
-                                extractedToken = obj.optString("token", null)
-                            } catch (e: Exception) {
-                                extractedToken = rawValue
+                        onReady = { isCameraReady = true },
+                        onFaceFrame = { face ->
+                            if (!isSessionStarted) return@CameraPreview
+                            if (!isFaceValidForLogin(face)) return@CameraPreview
+                            if (!isCapturing && !isUploading) {
+                                isCapturing = true
+                                CameraController.capture()
                             }
-
-                            if (extractedToken != null) {
-                                showCamera = false
-                                sendToVerify(context, extractedToken) { result -> scanResult = result }
-                            } else {
-                                scanResult = ScanResult.Message("❌ QR tidak valid (tidak ada token).")
-                            }
-                        }
-                    )
-                }
-            }
-
-            // 🔹 Tampilan hasil scan
-            when (scanResult) {
-                is ScanResult.Message -> Text(
-                    text = (scanResult as ScanResult.Message).text,
-                    fontSize = 14.sp,
-                    color = Color.DarkGray
-                )
-
-                is ScanResult.WaitingImage -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Image(
-                        painter = painterResource(id = R.drawable.nointernet),
-                        contentDescription = "Menunggu jaringan",
-                        modifier = Modifier.size(200.dp)
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text("Menunggu jaringan...", fontSize = 14.sp, color = Color.Gray)
-                }
-
-                is ScanResult.SuccessImage -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Image(
-                        painter = painterResource(id = R.drawable.goodwork),
-                        contentDescription = "Scan berhasil",
-                        modifier = Modifier.size(200.dp)
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text("Scan berhasil", fontSize = 14.sp, color = Color(0xFF4CAF50))
-                }
-            }
-
-            // 🔹 Tombol sejajar
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                Button(
-                    onClick = {
-                        val intent = Intent(context, HalamanIzin::class.java).apply {
-                            putExtra("USER_ID", userId)
-                            putExtra("USER_NAME", userName)
-                            putExtra("USER_EMAIL", userEmail)
-                        }
-                        context.startActivity(intent)
-                    },
-                    modifier = Modifier
-                        .weight(1f)
-                        .heightIn(min = 45.dp, max = 55.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = primaryColor,
-                        contentColor = Color.White
-                    ),
-                    shape = RoundedCornerShape(8.dp)
-                ) {
-                    Text("Izin Tidak Masuk", fontSize = 13.sp)
-                }
-
-                Button(
-                    onClick = { LogoutHelper.logout(context) },
-                    modifier = Modifier
-                        .weight(1f)
-                        .heightIn(min = 45.dp, max = 55.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFFFC0000),
-                        contentColor = Color.White
-                    ),
-                    shape = RoundedCornerShape(8.dp)
-                ) {
-                    Text("Logout", fontSize = 13.sp)
-                }
-            }
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                // 🔹 Tombol absen manual
-                Button(
-                    onClick = {
-                        val intent = Intent(context, HalamanManual::class.java)
-                        context.startActivity(intent)
-                    },
-                    modifier = Modifier
-                        .weight(1f)
-                        .heightIn(min = 45.dp, max = 55.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFFE91E63),
-                        contentColor = Color.White
-                    ),
-                    shape = RoundedCornerShape(8.dp)
-                ) {
-                    Text("Absen Manual", fontSize = 13.sp)
-                }
-
-                Button(
-                    onClick = {
-                        val intent = Intent(context, HalamanAktivitas::class.java)
-                        context.startActivity(intent)
-                    },
-                    modifier = Modifier
-                        .weight(1f)
-                        .heightIn(min = 45.dp, max = 55.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF4C4C59),
-                        contentColor = Color.White
-                    ),
-                    shape = RoundedCornerShape(8.dp)
-                ) {
-                    Text("Aktivitas", fontSize = 13.sp)
-                }
-            }
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-
-                // ✅ Face Recognize — SEMUA ROLE BOLEH
-                Button(
-                    onClick = {
-                        val intent = Intent(context, HalamanFaceRegister::class.java)
-                        context.startActivity(intent)
-                    },
-                    modifier = Modifier
-                        .weight(1f)
-                        .heightIn(min = 45.dp, max = 55.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF4C4C59),
-                        contentColor = Color.White
-                    ),
-                    shape = RoundedCornerShape(8.dp)
-                ) {
-                    Text("Face Recognize", fontSize = 13.sp)
-                }
-
-                // ✅ Approval — HANYA CAPTAIN KE ATAS
-                if (isCaptainOrAbove) {
-                    Button(
-                        onClick = {
-                            val intent = Intent(context, HalamanApproval::class.java)
-                            context.startActivity(intent)
                         },
-                        modifier = Modifier
-                            .weight(1f)
-                            .heightIn(min = 45.dp, max = 55.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFF4C4C59),
-                            contentColor = Color.White
-                        ),
-                        shape = RoundedCornerShape(8.dp)
-                    ) {
-                        Text("Approval", fontSize = 13.sp)
-                    }
-                }
-            }
-        }
-    }
-}
+                        onCaptured = { bitmap ->
+                            if (bitmap == null || userId <= 0) {
+                                statusText = "Wajah tidak terdeteksi"
+                                statusColor = Color.Red
+                                isCapturing = false
+                                isSessionStarted = false
+                                return@CameraPreview
+                            }
 
-@SuppressLint("MissingPermission")
-@OptIn(ExperimentalGetImage::class)
-@Composable
-fun CameraPreview(
-    modifier: Modifier = Modifier,
-    onScan: (String) -> Unit
-) {
-    val context = LocalContext.current
-    val lifecycleOwner = LocalLifecycleOwner.current
-    val scanner = remember { BarcodeScanning.getClient() }
-    val executor = remember { Executors.newSingleThreadExecutor() }
+                            CoroutineScope(Dispatchers.Main).launch {
+                                isUploading = true
+                                val result = uploadFace(bitmap, userId, coordinate, placeName)
+                                isUploading = false
+                                isCapturing = false
+                                statusText = result.message
+                                statusColor = if (result.success) Color(0xFF2E7D32) else Color.Red
 
-    AndroidView(
-        modifier = modifier,
-        factory = { ctx ->
-            val previewView = PreviewView(ctx).apply {
-                layoutParams = ViewGroup.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.MATCH_PARENT
-                )
-            }
-
-            val cameraProviderFuture = ProcessCameraProvider.getInstance(ctx)
-            cameraProviderFuture.addListener({
-                val cameraProvider = cameraProviderFuture.get()
-
-                val preview = Preview.Builder().build().also {
-                    it.setSurfaceProvider(previewView.surfaceProvider)
-                }
-
-                val analysis = ImageAnalysis.Builder()
-                    .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-                    .build()
-
-                analysis.setAnalyzer(executor) { imageProxy ->
-                    val mediaImage = imageProxy.image
-                    if (mediaImage != null) {
-                        val inputImage = InputImage.fromMediaImage(
-                            mediaImage,
-                            imageProxy.imageInfo.rotationDegrees
-                        )
-                        scanner.process(inputImage)
-                            .addOnSuccessListener { barcodes ->
-                                for (barcode in barcodes) {
-                                    val rawValue = barcode.rawValue
-                                    if (rawValue != null) {
-                                        ContextCompat.getMainExecutor(ctx).execute {
-                                            try {
-                                                cameraProvider.unbindAll()
-                                                Log.d("CameraPreview", "Kamera dilepas untuk hasil scan baru")
-                                            } catch (e: Exception) {
-                                                Log.e("CameraPreview", "unbindAll gagal", e)
-                                            }
-                                            onScan(rawValue)
-                                        }
-                                        break
-                                    }
+                                if (result.success) {
+                                    showSuccessDialog = true
+                                    isSessionStarted = false
                                 }
                             }
-                            .addOnFailureListener {
-                                Log.e("QR_SCAN", "Gagal scan", it)
-                            }
-                            .addOnCompleteListener {
-                                imageProxy.close()
-                            }
-                    } else {
-                        imageProxy.close()
-                    }
-                }
-
-                try {
-                    cameraProvider.unbindAll()
-                    cameraProvider.bindToLifecycle(
-                        lifecycleOwner,
-                        CameraSelector.DEFAULT_BACK_CAMERA,
-                        preview,
-                        analysis
+                        }
                     )
-                    Log.d("CameraPreview", "Kamera berhasil dibuka")
-                } catch (exc: Exception) {
-                    Log.e("CameraPreview", "Binding kamera gagal", exc)
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(0.7f)
+                            .aspectRatio(3f / 4f)
+                            .border(3.dp, Color(0xFF82FF5C), RoundedCornerShape(12.dp))
+                    )
                 }
-            }, ContextCompat.getMainExecutor(ctx))
-
-            previewView
-        },
-        update = { /* Tidak perlu update */ }
-    )
-
-    DisposableEffect(Unit) {
-        onDispose {
-            try {
-                executor.shutdown()
-                Log.d("CameraPreview", "Executor dimatikan")
-            } catch (e: Exception) {
-                Log.e("CameraPreview", "Gagal matikan executor", e)
             }
-        }
-    }
-}
 
+            //Lokasi text
+            item {
+                Text("📍 $placeName", fontSize = 12.sp, color = Color.Gray, textAlign = TextAlign.Center)
+            }
 
-@SuppressLint("MissingPermission")
-fun sendToVerify(context: Context, token: String, onResult: (ScanResult) -> Unit) {
-    val fusedLocationClient = LocationServices.getFusedLocationProviderClient(context)
-
-    if (ActivityCompat.checkSelfPermission(
-            context, Manifest.permission.ACCESS_FINE_LOCATION
-        ) != PackageManager.PERMISSION_GRANTED
-    ) {
-        onResult(ScanResult.Message("❌ Izin lokasi tidak diberikan"))
-        return
-    }
-
-    // 🔁 retry cari lokasi hingga dapat
-    fun tryGetLocation(retry: Int = 0) {
-        fusedLocationClient.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, null)
-            .addOnSuccessListener { location ->
-                if (location != null && location.latitude != 0.0 && location.longitude != 0.0) {
-                    val lat = location.latitude
-                    val lng = location.longitude
-                    val session = SessionManager(context)
-
-                    val userId = session.getUserId().takeIf { it != -1 }
-                        ?: (context as? ComponentActivity)?.intent?.getIntExtra("USER_ID", -1) ?: -1
-
-                    if (userId == -1) {
-                        onResult(ScanResult.Message("⚠️ User belum terdeteksi, silakan login ulang"))
-                        return@addOnSuccessListener
-                    }
-
-                    // 🌍 Ambil nama lokasi (reverse geocode via Nominatim)
-                    CoroutineScope(Dispatchers.IO).launch {
-                        var placeName = ""
-                        try {
-                            val client = OkHttpClient()
-                            val url =
-                                "https://nominatim.openstreetmap.org/reverse?lat=$lat&lon=$lng&format=json&addressdetails=1"
-                            val request = Request.Builder()
-                                .url(url)
-                                .addHeader("User-Agent", "MatahatiApp/1.0 (mailto:admin@matahati.my.id)")
-                                .build()
-                            val response = client.newCall(request).execute()
-                            val json = response.body?.string()
-                            if (response.isSuccessful && json != null) {
-                                val obj = JSONObject(json)
-                                placeName = obj.optString("display_name", "")
-                            }
-                        } catch (e: Exception) {
-                            Log.e("sendToVerify", "Reverse geocode error: ${e.message}")
+            //Button submit
+            item {
+                Button(
+                    enabled = isCameraReady && !isUploading && !isCapturing,
+                    onClick = {
+                        isSessionStarted = true
+                        statusText = ""
+                        statusColor = Color.Black
+                    },
+                    modifier = Modifier.fillMaxWidth().height(45.dp),
+                    shape = RoundedCornerShape(8.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = primaryColor
+                    )
+                ) {
+                    Text(
+                        when {
+                            isUploading -> "Lihat Ke kamera"
+                            isCapturing -> "Lihat Ke kamera"
+                            else -> "Mulai Absen"
                         }
+                    )
+                }
 
-                        // lanjut ke proses scan
-                        val scanRecord = OfflineScan(
-                            token = token,
-                            userId = userId,
-                            lat = lat,
-                            lng = lng
-                        )
+                if (statusText.isNotEmpty()) {
+                    Spacer(Modifier.height(12.dp))
+                    Text(statusText, color = statusColor, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+                }
 
-                        val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-                        val isConnected = cm.activeNetworkInfo?.isConnected == true
+                if (showSuccessDialog) {
+                    val scale by animateFloatAsState(
+                        targetValue = if (showSuccessDialog) 1f else 0.9f,
+                        animationSpec = tween(220, easing = FastOutSlowInEasing),
+                        label = "scale"
+                    )
 
-                        if (!isConnected) {
-                            CoroutineScope(Dispatchers.IO).launch {
-                                MyApp.db.offlineScanDao().insert(scanRecord)
-                                enqueueSyncWorker(context)
-                                withContext(Dispatchers.Main) {
-                                    onResult(ScanResult.WaitingImage)
+                    val alpha by animateFloatAsState(
+                        targetValue = if (showSuccessDialog) 1f else 0f,
+                        animationSpec = tween(180),
+                        label = "alpha"
+                    )
+
+                    AlertDialog(
+                        onDismissRequest = {},
+                        confirmButton = {},
+                        text = {
+                            Column(
+                                modifier = Modifier.fillMaxWidth()
+                                    .graphicsLayer { scaleX = scale; scaleY = scale; this.alpha = alpha }
+                                    .padding(vertical = 8.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.CheckCircle,
+                                    contentDescription = null,
+                                    tint = Color(0xFF2E7D32),
+                                    modifier = Modifier.size(56.dp)
+                                )
+                                Text("Absen Berhasil!", fontSize = 20.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+                                Text("Data Absen Sudah Disimpan", fontSize = 14.sp, color = Color.Gray, textAlign = TextAlign.Center)
+                                Button(
+                                    onClick = {
+                                        showSuccessDialog = false
+                                        statusText = ""
+                                    },
+                                    modifier = Modifier.width(200.dp).height(44.dp),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = Color(0xFFFF6F51),
+                                        contentColor = Color.White
+                                    ),
+                                    shape = RoundedCornerShape(10.dp)
+                                ) {
+                                    Text("OK")
                                 }
                             }
-                        } else {
-                            sendOnline(context, scanRecord, onResult, placeName)
+                        }
+                    )
+                }
+            }
+
+            //row button
+            item {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(250.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    elevation = CardDefaults.cardElevation(4.dp)
+                ) {
+
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(4), // ✅ 1 BARIS = 4 MENU
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(top = 12.dp), // 🔥 nempel atas
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                        horizontalArrangement = Arrangement.SpaceEvenly,
+                        userScrollEnabled = false // ❌ grid diam, tidak scroll
+                    ) {
+
+                        item {
+                            UserActionItem(
+                                icon = Icons.Default.Event,
+                                label = "Izin"
+                            ) {
+                                val intent = Intent(context, HalamanIzin::class.java).apply {
+                                    putExtra("USER_ID", userId)
+                                    putExtra("USER_NAME", userName)
+                                    putExtra("USER_EMAIL", userEmail)
+                                }
+                                context.startActivity(intent)
+                            }
+                        }
+
+                        item {
+                            UserActionItem(
+                                icon = Icons.Default.Edit,
+                                label = "Manual"
+                            ) {
+                                context.startActivity(Intent(context, HalamanManual::class.java))
+                            }
+                        }
+
+                        item {
+                            UserActionItem(
+                                icon = Icons.Default.List,
+                                label = "Aktivitas"
+                            ) {
+                                context.startActivity(Intent(context, HalamanAktivitas::class.java))
+                            }
+                        }
+
+                        item {
+                            UserActionItem(
+                                icon = Icons.Default.Face,
+                                label = "Face Reg"
+                            ) {
+                                context.startActivity(Intent(context, HalamanFaceRegister::class.java))
+                            }
+                        }
+
+                        item {
+                            UserActionItem(
+                                icon = Icons.Default.Close,
+                                label = "Lupa Absen"
+                            ) {
+                                context.startActivity(Intent(context, HalamanForgot::class.java))
+                            }
+                        }
+
+                        if (isCaptainOrAbove) {
+                            item {
+                                UserActionItem(
+                                    icon = Icons.Default.Verified,
+                                    label = "Approval"
+                                ) {
+                                    context.startActivity(Intent(context, HalamanApproval::class.java))
+                                }
+                            }
+                        }
+
+                        item {
+                            UserActionItem(
+                                icon = Icons.Default.Logout,
+                                label = "Logout",
+                                iconColor = Color(0xFFD32F2F)
+                            ) {
+                                LogoutHelper.logout(context)
+                            }
                         }
                     }
-                } else if (retry < 5) {
-                    Handler(Looper.getMainLooper()).postDelayed({
-                        tryGetLocation(retry + 1)
-                    }, 1000)
-                } else {
-                    onResult(ScanResult.Message("❌ Gagal mendapatkan lokasi"))
-                }
-            }
-            .addOnFailureListener {
-                onResult(ScanResult.Message("❌ Gagal membaca lokasi: ${it.message}"))
-            }
-    }
-
-    tryGetLocation()
-}
-
-fun sendOnline(context: Context, scan: OfflineScan, onResult: (ScanResult) -> Unit, placeName: String = "") {
-    val client = OkHttpClient()
-    val url = "https://absensi.matahati.my.id/verify.php"
-
-    val json = JSONObject().apply {
-        put("token", scan.token)
-        put("userId", scan.userId)
-        put("lat", scan.lat)
-        put("lng", scan.lng)
-        put("cplacename", placeName) // ✅ kirim nama lokasi ke server
-    }
-
-    val body = json.toString()
-        .toRequestBody("application/json; charset=utf-8".toMediaType())
-
-    val request = Request.Builder().url(url).post(body).build()
-
-    client.newCall(request).enqueue(object : Callback {
-        override fun onFailure(call: Call, e: IOException) {
-            (context as ComponentActivity).runOnUiThread {
-                onResult(ScanResult.WaitingImage)
-            }
-        }
-
-        override fun onResponse(call: Call, response: Response) {
-            (context as ComponentActivity).runOnUiThread {
-                if (response.isSuccessful) {
-                    onResult(ScanResult.SuccessImage)
-                    Handler(Looper.getMainLooper()).postDelayed({
-                        onResult(ScanResult.Message("Arahkan kamera ke QR Code"))
-                    }, 2000)
                 }
             }
         }
-    })
+    }
 }
+
 /* 🔹 CARD WAKTU (real-time, versi ringkas satu baris) */
 @Composable
 fun CardWaktu() {
@@ -853,4 +703,75 @@ fun CardShift(
             }
         }
     }
+}
+
+@Composable
+fun UserActionItem(
+    icon: ImageVector,
+    label: String,
+    iconColor: Color = Color(0xFFB63352),
+    onClick: () -> Unit
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier.width(72.dp)
+    ) {
+        Card(
+            modifier = Modifier
+                .size(55.dp), // 🔥 kotak kecil
+            shape = RoundedCornerShape(10.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            elevation = CardDefaults.cardElevation(2.dp),
+            onClick = onClick
+        ) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = label,
+                    tint = iconColor,
+                    modifier = Modifier.size(26.dp)
+                )
+            }
+        }
+
+        Spacer(Modifier.height(6.dp))
+
+        Text(
+            text = label,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Medium,
+            color = Color(0xFFB63352),
+            textAlign = TextAlign.Center,
+            maxLines = 1
+        )
+    }
+}
+
+class BottomCurveShape(
+    private val curveHeight: Float = 120f // tinggi lengkungan
+) : Shape {
+    override fun createOutline(
+        size: Size,
+        layoutDirection: LayoutDirection,
+        density: Density
+    ) = androidx.compose.ui.graphics.Outline.Generic(
+        Path().apply {
+            moveTo(0f, 0f)
+            lineTo(0f, size.height - curveHeight)
+
+            // ⭕ Lengkungan setengah lingkaran
+            quadraticBezierTo(
+                size.width / 2,
+                size.height + curveHeight,
+                size.width,
+                size.height - curveHeight
+            )
+
+            lineTo(size.width, 0f)
+            close()
+        }
+    )
 }
