@@ -83,17 +83,17 @@ fun HalamanForgotUI() {
 
     /* 📍 Lokasi */
     LaunchedEffect(Unit) {
-        val hasLocationPermission =
-            ContextCompat.checkSelfPermission(
-                activity,
-                Manifest.permission.ACCESS_FINE_LOCATION
-            ) == PackageManager.PERMISSION_GRANTED ||
-                    ContextCompat.checkSelfPermission(
-                        activity,
-                        Manifest.permission.ACCESS_COARSE_LOCATION
-                    ) == PackageManager.PERMISSION_GRANTED
+        val permissions = arrayOf(
+            Manifest.permission.ACCESS_FINE_LOCATION,
+            Manifest.permission.ACCESS_COARSE_LOCATION
+        )
 
-        if (!hasLocationPermission) {
+        val allGranted = permissions.all {
+            ContextCompat.checkSelfPermission(activity, it) ==
+                    PackageManager.PERMISSION_GRANTED
+        }
+
+        if (!allGranted) {
             location.value = "Izin lokasi belum diberikan"
             return@LaunchedEffect
         }
@@ -101,8 +101,47 @@ fun HalamanForgotUI() {
         val fused = LocationServices.getFusedLocationProviderClient(activity)
         fused.lastLocation.addOnSuccessListener { loc ->
             if (loc != null) {
-                coords.value = Pair(loc.latitude.toString(), loc.longitude.toString())
+                coords.value = Pair(
+                    loc.latitude.toString(),
+                    loc.longitude.toString()
+                )
+
+                // default fallback
                 location.value = "${loc.latitude}, ${loc.longitude}"
+
+                scope.launch(Dispatchers.IO) {
+                    try {
+                        val client = OkHttpClient()
+                        val url =
+                            "https://nominatim.openstreetmap.org/reverse" +
+                                    "?lat=${loc.latitude}&lon=${loc.longitude}" +
+                                    "&format=json&addressdetails=1"
+
+                        val request = Request.Builder()
+                            .url(url)
+                            .addHeader(
+                                "User-Agent",
+                                "MatahatiApp/1.0 (mailto:admin@matahati.my.id)"
+                            )
+                            .build()
+
+                        val response = client.newCall(request).execute()
+                        val json = response.body?.string()
+
+                        if (response.isSuccessful && json != null) {
+                            val obj = org.json.JSONObject(json)
+                            val displayName = obj.optString("display_name", "")
+
+                            withContext(Dispatchers.Main) {
+                                if (displayName.isNotBlank()) {
+                                    location.value = displayName
+                                }
+                            }
+                        }
+                    } catch (e: Exception) {
+                        // fallback tetap koordinat
+                    }
+                }
             } else {
                 location.value = "Lokasi tidak tersedia"
             }
@@ -271,7 +310,7 @@ fun HalamanForgotUI() {
                     message.value = result.message
 
                     if (result.success) {
-                        Toast.makeText(context, "", Toast.LENGTH_LONG).show()
+                        Toast.makeText(context, "Absen Berhasil Dikirim", Toast.LENGTH_LONG).show()
                         activity.finish()
                     }
                 }
