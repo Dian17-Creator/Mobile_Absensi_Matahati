@@ -248,6 +248,7 @@ fun HalamanScanUI(
     val configuration = LocalConfiguration.current
     val screenHeight = configuration.screenHeightDp
     val primaryColor = Color(0xFFB63352)
+    val backColor = Color(0xFFFFF5F5)
 
     val storedUserId = session.getUserId()
     val userId = if (storedUserId != -1) storedUserId else activity?.intent?.getIntExtra("USER_ID", -1) ?: -1
@@ -259,7 +260,7 @@ fun HalamanScanUI(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.White)
+            .background(backColor)
     ) {
         // 🔸 Background atas
         Box(
@@ -275,6 +276,7 @@ fun HalamanScanUI(
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
+//                .background(backColor)
                 .padding(horizontal = 16.dp, vertical = 20.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
             horizontalAlignment = Alignment.CenterHorizontally
