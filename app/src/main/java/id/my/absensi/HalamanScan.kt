@@ -501,7 +501,12 @@ fun HalamanScanUI(
                                 icon = Icons.Default.Face,
                                 label = "Face Reg"
                             ) {
-                                context.startActivity(Intent(context, HalamanFaceRegister::class.java))
+                                val intent = Intent(context, HalamanFaceRegister::class.java).apply {
+                                    putExtra("USER_ID", userId)
+                                    putExtra("USER_NAME", userName)
+                                    putExtra("USER_EMAIL", userEmail)
+                                }
+                                context.startActivity(intent)
                             }
                         }
 

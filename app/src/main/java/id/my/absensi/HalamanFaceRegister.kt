@@ -147,12 +147,17 @@ private val PrimaryColor = Color(0xFFB63352)
 @Composable
 fun FaceRegisterScreen() {
 
+    val scope = rememberCoroutineScope()
+    var uploadStatus by remember { mutableStateOf<String?>(null) }
+    var isUploading by remember { mutableStateOf(false) }
+    var isResetting by remember { mutableStateOf(false) }
+    var faceStatus by remember { mutableStateOf(FaceApprovalStatus.NONE) }
+    var isFaceLoaded by remember { mutableStateOf(false) }
+
     val poses = listOf(
         "Lihat lurus (netral)",
         "Miringkan sedikit ke kanan",
         "Miringkan sedikit ke kiri"
-//        "Lihat lurus (senyum)",
-//        "Miringkan sedikit ke kanan"
     )
 
     val context = LocalContext.current
@@ -175,32 +180,28 @@ fun FaceRegisterScreen() {
         remember { mutableStateMapOf<Int, Bitmap>() }
 
     // ------------ STATUS FACE DARI SESSION ------------
-    var faceStatus by remember {
-        mutableStateOf(
-            when (session.getFaceStatus()) {
-                "PENDING" -> FaceApprovalStatus.PENDING
-                "APPROVED" -> FaceApprovalStatus.APPROVED
-                else -> FaceApprovalStatus.NONE
-            }
-        )
-    }
+
 
     // 🚀 Load status + foto dari server saat screen dibuka
-    LaunchedEffect(userId) {
-        if (userId == -1) return@LaunchedEffect
+    LaunchedEffect(Unit) {
 
-        val (serverStatus, serverBitmaps) = fetchFaceStatusFromServer(userId)
+        val uid =
+            session.getUserId().takeIf { it != -1 }
+                ?: (context as? ComponentActivity)
+                    ?.intent
+                    ?.getIntExtra("USER_ID", -1)
+                ?: -1
 
-        Log.d(TAG_FACE, "Server status = $serverStatus, bitmaps = ${serverBitmaps.size}")
-
-        faceStatus = serverStatus
-        when (serverStatus) {
-            FaceApprovalStatus.PENDING -> session.setFaceStatus("PENDING")
-            FaceApprovalStatus.APPROVED -> session.setFaceStatus("APPROVED")
-            FaceApprovalStatus.NONE -> session.setFaceStatus(null)   // clear -> boleh retake
+        if (uid == -1) {
+            uploadStatus = "Sesi login tidak valid. Silakan login ulang."
+            return@LaunchedEffect
         }
 
-        // Isi ulang preview dari server (kalau ada)
+        val (serverStatus, serverBitmaps) = fetchFaceStatusFromServer(uid)
+
+        faceStatus = serverStatus
+        isFaceLoaded = true
+
         poseBitmaps.clear()
         serverBitmaps.forEachIndexed { index, bmp ->
             poseBitmaps[index] = bmp
@@ -210,13 +211,7 @@ fun FaceRegisterScreen() {
     // pose berikutnya yang harus diambil (0..2) atau null kalau sudah lengkap
     val nextPoseIndex = (0 until poses.size).firstOrNull { !poseBitmaps.containsKey(it) }
 
-    val scope = rememberCoroutineScope()
-    var uploadStatus by remember { mutableStateOf<String?>(null) }
-    var isUploading by remember { mutableStateOf(false) }
-
-    // 🔴 NEW: flag reset
-    var isResetting by remember { mutableStateOf(false) }
-    val canRetake = faceStatus == FaceApprovalStatus.NONE
+    val canRetake = isFaceLoaded && faceStatus == FaceApprovalStatus.NONE
 
     // ================= LAYOUT UTAMA =================
     Box(
@@ -456,7 +451,6 @@ fun FaceRegisterScreen() {
                                 // bersihkan preview & status, kembali ke mode ambil ulang
                                 poseBitmaps.clear()
                                 faceStatus = FaceApprovalStatus.NONE
-                                session.setFaceStatus(null)
 
                                 uploadStatus =
                                     "Foto lama dihapus. Silakan ambil ulang 3 foto wajah."
@@ -507,7 +501,6 @@ fun FaceRegisterScreen() {
                             isUploading = false
                             if (success) {
                                 faceStatus = FaceApprovalStatus.PENDING
-                                session.setFaceStatus("PENDING")
                                 uploadStatus =
                                     "Semua foto berhasil diunggah. Menunggu persetujuan HR."
                             } else {
