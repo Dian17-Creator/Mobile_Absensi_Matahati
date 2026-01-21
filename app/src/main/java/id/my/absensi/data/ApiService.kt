@@ -1,6 +1,7 @@
 package id.my.matahati.absensi.data
 
 import id.my.absensi.data.ScheduleApiResponse
+import id.my.matahati.absensi.data.UserContractResponse
 import retrofit2.http.GET
 import retrofit2.http.Query
 import retrofit2.http.Path
@@ -8,6 +9,7 @@ import retrofit2.Response
 import retrofit2.http.FormUrlEncoded
 import retrofit2.http.POST
 import retrofit2.http.Field
+import retrofit2.http.Url
 
 interface ApiService {
 
@@ -44,4 +46,10 @@ interface ApiService {
         @Field("type") type: String,
         @Field("action") action: String
     ): Response<ApiResponse>
+
+    //    Kontrak kerja user
+    @GET
+    suspend fun getUserContract(
+        @Url url: String
+    ): Response<UserContractResponse>
 }
