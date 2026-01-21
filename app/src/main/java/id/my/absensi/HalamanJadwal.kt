@@ -40,6 +40,11 @@ import java.time.LocalDate
 import java.time.YearMonth
 import androidx.compose.foundation.lazy.items
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import id.my.matahati.absensi.RuntimeSession.userId
+import id.my.matahati.absensi.data.UserContract
+import id.my.matahati.absensi.data.UserContractViewModel
 
 
 class HalamanJadwal : ComponentActivity() {
@@ -58,9 +63,15 @@ class HalamanJadwal : ComponentActivity() {
 @Composable
 fun HalamanJadwalUI(scheduleViewModel: ScheduleViewModel = viewModel()) {
     val absensiViewModel: AbsensiViewModel = viewModel()
+    val contractViewModel: UserContractViewModel = viewModel()
+
     val logs by absensiViewModel.logs.collectAsState()
     val loadingLog by absensiViewModel.loading.collectAsState()
     val errorLog by absensiViewModel.error.collectAsState()
+
+    val contract by contractViewModel.contract.collectAsState()
+    val loadingContract by contractViewModel.loading.collectAsState()
+    val errorContract by contractViewModel.error.collectAsState()
 
     val schedules by scheduleViewModel.schedules.collectAsState(initial = emptyList())
     val isLoading by scheduleViewModel.loading.collectAsState()
@@ -111,6 +122,10 @@ fun HalamanJadwalUI(scheduleViewModel: ScheduleViewModel = viewModel()) {
         if (userId != -1) absensiViewModel.loadLogs(userId)
     }
 
+    LaunchedEffect(userId) {
+        contractViewModel.loadUserContract(userId)
+    }
+
     val calendarBackground = Color(0xFFF5F5F5)
     val configuration = LocalConfiguration.current
     val screenHeight = configuration.screenHeightDp.dp
@@ -118,6 +133,7 @@ fun HalamanJadwalUI(scheduleViewModel: ScheduleViewModel = viewModel()) {
     Box(
         modifier = Modifier
             .fillMaxSize()
+            .fillMaxWidth()
             .background(Color.White)
     ) {
         Box(
@@ -135,142 +151,175 @@ fun HalamanJadwalUI(scheduleViewModel: ScheduleViewModel = viewModel()) {
         ) {
             val calendarHeight = maxHeight * 0.45f
 
-            Column(
+            LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(top = screenHeight * 0.05f)
-                    .padding(bottom = screenHeight * 0.10f),
+                    .padding(top = screenHeight * 0.05f),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                // === Judul ===
-                Text(
-                    text = "Jadwal & Shift",
-                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                    color = Color.White
+                horizontalAlignment = Alignment.CenterHorizontally,
+                contentPadding = PaddingValues(
+                    bottom = 50.dp
                 )
-
-                // === ✅ Kalender selalu muncul meskipun schedule kosong ===
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(calendarHeight),
-                    elevation = CardDefaults.cardElevation(6.dp),
-                    colors = CardDefaults.cardColors(containerColor = calendarBackground),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    CalendarCardContent(
-                        currentMonth = currentMonth,
-                        onMonthChange = { currentMonth = it },
-                        selectedDate = selectedDate,
-                        onDateSelected = { selectedDate = it },
-                        today = today,
-                        schedules = schedules // kosong juga tidak masalah
-                    )
-                }
-
-                // === 🔹 Pesan jika tidak ada shift ===
-                if (schedules.isEmpty()) {
+            ) {
+                item {
+                    // === Judul ===
                     Text(
-                        text = "📭 Belum ada jadwal shift untuk bulan ini",
-                        color = Color.Gray,
-                        style = MaterialTheme.typography.bodySmall
+                        text = "Jadwal & Shift",
+                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                        color = Color.White
                     )
                 }
 
-                Spacer(modifier = Modifier.height(2.dp))
+                item{
+                    // === ✅ Kalender selalu muncul meskipun schedule kosong ===
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(calendarHeight),
+                        elevation = CardDefaults.cardElevation(6.dp),
+                        colors = CardDefaults.cardColors(containerColor = calendarBackground),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        CalendarCardContent(
+                            currentMonth = currentMonth,
+                            onMonthChange = { currentMonth = it },
+                            selectedDate = selectedDate,
+                            onDateSelected = { selectedDate = it },
+                            today = today,
+                            schedules = schedules // kosong juga tidak masalah
+                        )
+                    }
 
-                // === Card Log Absensi ===
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(200.dp),
-                    elevation = CardDefaults.cardElevation(6.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White)
-                ) {
-                    Column(modifier = Modifier.fillMaxSize()) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .background(Color(0xFF4C4C59))
-                                .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
-                                .padding(horizontal = 16.dp, vertical = 10.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = "Log Absensi",
-                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                                color = Color.White
-                            )
+                    // === 🔹 Pesan jika tidak ada shift ===
+//                    if (schedules.isEmpty()) {
+//                        Text(
+//                            text = "📭 Belum ada jadwal shift untuk bulan ini",
+//                            color = Color.Gray,
+//                            style = MaterialTheme.typography.bodySmall
+//                        )
+//                    }
 
-                            TextButton(
-                                onClick = { selectedDate = null },
-                                enabled = selectedDate != null
-                            ) {
-                                Text(
-                                    "Tampilkan Semua",
-                                    color = if (selectedDate != null) Color.White else Color.LightGray,
-                                    fontSize = 12.sp
+                    Spacer(modifier = Modifier.height(2.dp))
+                }
+
+                item {
+                    when {
+                        loadingContract -> {
+                            Text("⏳ Memuat kontrak...")
+                        }
+
+                        contract != null -> {
+                            contract?.let { kontrak ->
+                                KontrakKerjaCard(
+                                    kontrak = kontrak
                                 )
                             }
                         }
 
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .background(Color(0xFFFFF9F2))
-                                .padding(12.dp)
-                        ) {
-                            when {
-                                loadingLog -> {
-                                    Text("⏳ Memuat log absensi...", color = Color.Gray)
-                                }
+                        else -> {
+                            Text(
+                                text = "📭 Tidak ada kontrak aktif",
+                                color = Color.Gray
+                            )
+                        }
+                    }
+                }
 
-                                errorLog != null -> {
-                                    Text("⚠️ $errorLog", color = Color.Red)
-                                }
+                item {
+                    // === Card Log Absensi ===
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(200.dp)
+                            .padding(bottom = 30.dp),
+                        elevation = CardDefaults.cardElevation(6.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color.White)
+                    ) {
+                        Column(modifier = Modifier.fillMaxSize()) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(Color(0xFF4C4C59))
+                                    .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
+                                    .padding(horizontal = 16.dp, vertical = 10.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "Log Absensi",
+                                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                    color = Color.White
+                                )
 
-                                filteredLogs.isEmpty() -> {
+                                TextButton(
+                                    onClick = { selectedDate = null },
+                                    enabled = selectedDate != null
+                                ) {
                                     Text(
-                                        text = if (selectedDate != null)
-                                            "📭 Belum Ada Riwayat Absensi"
-                                        else
-                                            "📭 Belum ada log absensi",
-                                        color = Color.Gray
+                                        "Tampilkan Semua",
+                                        color = if (selectedDate != null) Color.White else Color.LightGray,
+                                        fontSize = 12.sp
                                     )
                                 }
-                                else -> {
-                                    LazyColumn(modifier = Modifier.fillMaxSize()) {
-                                        items(filteredLogs) { log ->
-                                            val bgColor = when (log.typeAbsensi) {
-                                                "manual" -> Color(0xFFFFF59D)
-                                                "scan" -> Color(0xFFC8D7E6)
-                                                "face" -> Color(0xFFBEF2B2)
-                                                else -> Color.White
-                                            }
+                            }
 
-                                            Card(
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .padding(vertical = 4.dp),
-                                                colors = CardDefaults.cardColors(containerColor = bgColor),
-                                                elevation = CardDefaults.cardElevation(2.dp)
-                                            ) {
-                                                Column(modifier = Modifier.padding(12.dp)) {
-                                                    Text(log.waktu, fontWeight = FontWeight.Bold)
-                                                    Text("Jenis: ${log.typeAbsensi?.uppercase() ?: "-"}")
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(Color(0xFFFFF9F2))
+                                    .padding(12.dp)
+                            ) {
+                                when {
+                                    loadingLog -> {
+                                        Text("⏳ Memuat log absensi...", color = Color.Gray)
+                                    }
+
+                                    errorLog != null -> {
+                                        Text("⚠️ $errorLog", color = Color.Red)
+                                    }
+
+                                    filteredLogs.isEmpty() -> {
+                                        Text(
+                                            text = if (selectedDate != null)
+                                                "📭 Belum Ada Riwayat Absensi"
+                                            else
+                                                "📭 Belum ada log absensi",
+                                            color = Color.Gray
+                                        )
+                                    }
+                                    else -> {
+                                        LazyColumn(modifier = Modifier.fillMaxSize()) {
+                                            items(filteredLogs) { log ->
+                                                val bgColor = when (log.typeAbsensi) {
+                                                    "manual" -> Color(0xFFFFF59D)
+                                                    "scan" -> Color(0xFFC8D7E6)
+                                                    "face" -> Color(0xFFBEF2B2)
+                                                    else -> Color.White
+                                                }
+
+                                                Card(
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .padding(vertical = 4.dp),
+                                                    colors = CardDefaults.cardColors(containerColor = bgColor),
+                                                    elevation = CardDefaults.cardElevation(2.dp)
+                                                ) {
+                                                    Column(modifier = Modifier.padding(12.dp)) {
+                                                        Text(log.waktu, fontWeight = FontWeight.Bold)
+                                                        Text("Jenis: ${log.typeAbsensi?.uppercase() ?: "-"}")
+                                                    }
                                                 }
                                             }
                                         }
                                     }
                                 }
-                            }
 
+                            }
                         }
                     }
                 }
+
             }
         }
     }
@@ -435,4 +484,80 @@ private fun DayCell(
             }
         }
     }
+}
+
+@Composable
+fun KontrakKerjaCard(
+    kontrak: UserContract
+) {
+    // 🔥 PARSE STRING → LocalDate
+    val start = remember(kontrak.startDate) {
+        LocalDate.parse(kontrak.startDate)
+    }
+    val end = remember(kontrak.endDate) {
+        LocalDate.parse(kontrak.endDate)
+    }
+
+    val today = LocalDate.now()
+    val remainingDays =
+        java.time.temporal.ChronoUnit.DAYS.between(today, end)
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        elevation = CardDefaults.cardElevation(6.dp),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Column {
+            // Header
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color(0xFF4C4C59))
+                    .padding(16.dp)
+            ) {
+                Text(
+                    text = "Kontrak Kerja",
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
+            // Body
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+
+                // Tanggal kontrak (kiri)
+                Text(
+                    text = "${start.formatIndonesia()} – ${end.formatIndonesia()}",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+
+                // Sisa hari (kanan)
+                Text(
+                    text = "(${remainingDays} Hari)",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = when {
+                        remainingDays < 0 -> Color.Red
+                        remainingDays <= 7 -> Color(0xFFD32F2F)
+                        remainingDays <= 30 -> Color(0xFFF57C00)
+                        else -> Color(0xFF388E3C)
+                    }
+                )
+            }
+        }
+    }
+}
+
+fun LocalDate.formatIndonesia(): String {
+    val formatter = java.time.format.DateTimeFormatter.ofPattern(
+        "dd MMMM yyyy",
+        Locale("id", "ID")
+    )
+    return this.format(formatter)
 }
