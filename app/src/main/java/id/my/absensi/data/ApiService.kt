@@ -52,4 +52,12 @@ interface ApiService {
     suspend fun getUserContract(
         @Url url: String
     ): Response<UserContractResponse>
+
+    //Gaji user
+    @GET("api/user/gaji/{userId}")
+    suspend fun getUserSalary(
+        @Path("userId") userId: Int,
+        @Query("year") year: Int? = null,
+        @Query("month") month: Int? = null
+    ): Response<SalaryResponse>
 }
