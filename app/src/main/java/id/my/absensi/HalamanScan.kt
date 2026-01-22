@@ -80,7 +80,10 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.filled.Close
+import id.my.matahati.absensi.RuntimeSession.userId
+import id.my.matahati.absensi.data.RetrofitClient
 
 private const val TAG = "FACE_LOGIN"
 private const val API_KEY = "MH4T4H4TI_2025_ABSENSI_APP_SECRETx9P2F7Q1L8S3Z0R6W4K2D1M9B7T5"
@@ -181,7 +184,7 @@ fun HalamanScanUI(
     hasCameraPermission: Boolean,
     onRequestPermission: () -> Unit,
 ) {
-
+    var hasPendingApproval by remember { mutableStateOf(false) }
     var isSessionStarted by remember { mutableStateOf(false) }
     var showSuccessDialog by remember { mutableStateOf(false) }
     var isCameraReady by remember { mutableStateOf(false) }
@@ -236,7 +239,6 @@ fun HalamanScanUI(
             }
     }
 
-
     val session = SessionManager(context)
 
     val isCaptainOrAbove = remember {
@@ -255,6 +257,44 @@ fun HalamanScanUI(
     val userName = if (storedUserId != -1) session.getUser()["name"]?.toString() ?: "" else activity?.intent?.getStringExtra("USER_NAME") ?: ""
     val userEmail = if (storedUserId != -1) session.getUser()["email"]?.toString() ?: "" else activity?.intent?.getStringExtra("USER_EMAIL") ?: ""
 
+    //Untuk pending absen manual/izin
+    LaunchedEffect(isCaptainOrAbove) {
+        if (!isCaptainOrAbove) return@LaunchedEffect
+
+        try {
+            val manual =
+                RetrofitClient.instance.getApprovalList("mscan_manual", userId)
+            val izin =
+                RetrofitClient.instance.getApprovalList("mrequest", userId)
+
+            hasPendingApproval =
+                (manual.body()?.data?.isNotEmpty() == true) ||
+                        (izin.body()?.data?.isNotEmpty() == true)
+
+        } catch (e: Exception) {
+            hasPendingApproval = false
+        }
+    }
+
+    val lifecycleOwner = LocalLifecycleOwner.current
+
+    DisposableEffect(lifecycleOwner) {
+        val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+            if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
+                // 🔥 RELOAD SAAT BALIK KE HOME
+                CoroutineScope(Dispatchers.Main).launch {
+                    hasPendingApproval =
+                        checkPendingApproval(userId, isCaptainOrAbove)
+                }
+            }
+        }
+
+        lifecycleOwner.lifecycle.addObserver(observer)
+
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
 
     // 🌈 UI utama
     Box(
@@ -523,7 +563,8 @@ fun HalamanScanUI(
                             item {
                                 UserActionItem(
                                     icon = Icons.Default.Verified,
-                                    label = "Approval"
+                                    label = "Approval",
+                                    showBadge = hasPendingApproval
                                 ) {
                                     context.startActivity(Intent(context, HalamanApproval::class.java))
                                 }
@@ -717,29 +758,47 @@ fun UserActionItem(
     icon: ImageVector,
     label: String,
     iconColor: Color = Color(0xFFB63352),
+    showBadge: Boolean = false,
     onClick: () -> Unit
 ) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier.width(72.dp)
     ) {
-        Card(
-            modifier = Modifier
-                .size(55.dp), // 🔥 kotak kecil
-            shape = RoundedCornerShape(10.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White),
-            elevation = CardDefaults.cardElevation(2.dp),
-            onClick = onClick
+
+        Box( // 🔥 PARENT UTAMA
+            modifier = Modifier.size(64.dp)
         ) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
+
+            Card(
+                modifier = Modifier
+                    .size(60.dp)
+                    .align(Alignment.Center),
+                shape = RoundedCornerShape(10.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                elevation = CardDefaults.cardElevation(2.dp),
+                onClick = onClick
             ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = label,
-                    tint = iconColor,
-                    modifier = Modifier.size(26.dp)
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = label,
+                        tint = iconColor,
+                        modifier = Modifier.size(26.dp)
+                    )
+                }
+            }
+
+            if (showBadge) {
+                Box(
+                    modifier = Modifier
+                        .size(12.dp)
+                        .background(Color.Red, shape = CircleShape)
+                        .align(Alignment.TopEnd)
+                        .offset(x = 5.dp, y = (-5).dp)
                 )
             }
         }
@@ -756,6 +815,7 @@ fun UserActionItem(
         )
     }
 }
+
 
 class BottomCurveShape(
     private val curveHeight: Float = 120f // tinggi lengkungan
@@ -781,4 +841,24 @@ class BottomCurveShape(
             close()
         }
     )
+}
+
+suspend fun checkPendingApproval(
+    userId: Int,
+    isCaptainOrAbove: Boolean
+): Boolean {
+    if (!isCaptainOrAbove) return false
+
+    return try {
+        val manual =
+            RetrofitClient.instance.getApprovalList("mscan_manual", userId)
+        val izin =
+            RetrofitClient.instance.getApprovalList("mrequest", userId)
+
+        (manual.body()?.data?.isNotEmpty() == true) ||
+                (izin.body()?.data?.isNotEmpty() == true)
+
+    } catch (e: Exception) {
+        false
+    }
 }
