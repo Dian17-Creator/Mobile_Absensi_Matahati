@@ -82,6 +82,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.MonetizationOn
 import id.my.matahati.absensi.RuntimeSession.userId
 import id.my.matahati.absensi.data.RetrofitClient
 
@@ -556,6 +557,15 @@ fun HalamanScanUI(
                                 label = "Lupa Absen"
                             ) {
                                 context.startActivity(Intent(context, HalamanForgot::class.java))
+                            }
+                        }
+
+                        item {
+                            UserActionItem(
+                                icon = Icons.Default.MonetizationOn,
+                                label = "Gaji"
+                            ) {
+                                context.startActivity(Intent(context, HalamanGaji::class.java))
                             }
                         }
 
