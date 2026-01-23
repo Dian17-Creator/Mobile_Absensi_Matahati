@@ -60,4 +60,15 @@ interface ApiService {
         @Query("year") year: Int? = null,
         @Query("month") month: Int? = null
     ): Response<SalaryResponse>
+
+    @FormUrlEncoded
+    @POST("api/user/gaji/status")
+    suspend fun updateSalaryStatus(
+        @Field("user_id") userId: Int,
+        @Field("year") year: Int,
+        @Field("month") month: Int,
+        @Field("status") status: String,
+        @Field("note") note: String?
+    ): Response<Unit>
+
 }
