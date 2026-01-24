@@ -4,6 +4,7 @@ import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.Arrangement
@@ -30,8 +31,15 @@ import androidx.compose.ui.window.Dialog
 import kotlinx.coroutines.launch
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.LayoutDirection
 
 class HalamanGaji : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -52,6 +60,8 @@ fun HalamanGajiScreen() {
     var gajiList by remember { mutableStateOf<List<SalaryItem>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
     var selectedGaji by remember { mutableStateOf<SalaryItem?>(null) }
+
+    val primaryColor = Color(0xFFB63352)
 
     /* ================= LOAD DATA ================= */
     LaunchedEffect(Unit) {
@@ -90,8 +100,15 @@ fun HalamanGajiScreen() {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp)
     ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(400.dp)
+                .clip(BottomCurveShape(curveHeight = 50f))
+                .background(primaryColor)
+                .align(Alignment.TopCenter)
+        )
 
         Column(
             modifier = Modifier
@@ -104,6 +121,7 @@ fun HalamanGajiScreen() {
                 text = "Slip Gaji Saya",
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
+                color = Color.White,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 24.dp),
@@ -134,57 +152,22 @@ fun HalamanGajiScreen() {
 
                 else -> {
                     LazyColumn(
+                        modifier = Modifier.weight(1f), // 🔥 INI KUNCINYA
                         verticalArrangement = Arrangement.spacedBy(14.dp),
                         contentPadding = PaddingValues(bottom = 24.dp)
                     ) {
 
                         items(gajiList) { item ->
 
-                            Card(
-                                onClick = { selectedGaji = item },
-                                modifier = Modifier
-                                    .fillMaxWidth(), // 🔥 FULL WIDTH FIX
-                                elevation = CardDefaults.cardElevation(6.dp),
-                                shape = MaterialTheme.shapes.large
-                            ) {
-
-                                Column(
-                                    modifier = Modifier.padding(18.dp)
-                                ) {
-
-                                    Text(
-                                        "Gaji ${item.period_month}/${item.period_year}",
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 16.sp
-                                    )
-
-                                    Spacer(Modifier.height(6.dp))
-
-                                    Text("Jabatan : ${item.jabatan}")
-                                    Text("Masuk : ${item.jumlah_masuk} hari")
-                                    Text("Total : ${item.total_gaji.toRupiah()}")
-
-                                    Spacer(Modifier.height(8.dp))
-
-                                    val statusColor = when (item.status) {
-                                        "APPROVED" -> Color(0xFF2E7D32)
-                                        "REJECTED" -> Color.Red
-                                        else -> Color(0xFFFF9800)
-                                    }
-
-                                    Text(
-                                        item.status,
-                                        color = statusColor,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                }
-                            }
+                            SalaryCard(
+                                item = item,
+                                onClick = { selectedGaji = item }
+                            )
                         }
                     }
                 }
             }
         }
-
 
         selectedGaji?.let {
             DetailGajiDialog(
@@ -217,8 +200,14 @@ fun DetailGajiDialog(
     onDismiss: () -> Unit,
     onUpdated: suspend () -> Unit
 ) {
+    val borderColor = when (gaji.status) {
+        "APPROVED" -> Color(0xFF2E7D32) // hijau
+        "REJECTED" -> Color(0xFFD32F2F) // merah
+        else -> Color(0xFFFF9800) // orange (pending)
+    }
 
     val scope = rememberCoroutineScope()
+    val primaryColor = Color(0xFFB63352)
 
     var showRejectDialog by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(false) }
@@ -252,7 +241,11 @@ fun DetailGajiDialog(
     /* ================= DIALOG ================= */
     Dialog(onDismissRequest = onDismiss) {
 
-        Card(shape = MaterialTheme.shapes.large) {
+        Card(
+            shape = RoundedCornerShape(18.dp),
+            border = BorderStroke(1.dp, borderColor), // 🔥 INI
+            elevation = CardDefaults.cardElevation(10.dp)
+        ) {
 
             Box {
 
@@ -340,19 +333,34 @@ fun DetailGajiDialog(
                     if (gaji.status == "PENDING") {
 
                         Row(
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            modifier = Modifier.fillMaxWidth()
                         ) {
 
+                            /* 🔴 Reject (outline primary) */
                             OutlinedButton(
                                 modifier = Modifier.weight(1f),
-                                onClick = { showRejectDialog = true }
+                                onClick = { showRejectDialog = true },
+                                shape = RoundedCornerShape(50), // 🔥 pill
+                                border = ButtonDefaults.outlinedButtonBorder.copy(
+                                    brush = androidx.compose.ui.graphics.SolidColor(primaryColor)
+                                ),
+                                colors = ButtonDefaults.outlinedButtonColors(
+                                    contentColor = primaryColor
+                                )
                             ) {
                                 Text("Reject")
                             }
 
+                            /* 🟣 Approve (solid primary) */
                             Button(
                                 modifier = Modifier.weight(1f),
-                                onClick = { updateStatus("APPROVED") }
+                                onClick = { updateStatus("APPROVED") },
+                                shape = RoundedCornerShape(50), // 🔥 pill
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = primaryColor,
+                                    contentColor = Color.White
+                                )
                             ) {
                                 Text("Approve")
                             }
@@ -387,34 +395,170 @@ fun RejectReasonDialog(
     onSubmit: (String) -> Unit
 ) {
     var reason by remember { mutableStateOf("") }
+    val primaryColor = Color(0xFFB63352)
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Alasan Penolakan") },
+
+        shape = RoundedCornerShape(22.dp), // 🔥 rounded dialog
+
+        title = {
+            Text(
+                "Alasan Penolakan",
+                fontWeight = FontWeight.Bold,
+                color = primaryColor
+            )
+        },
+
         text = {
             OutlinedTextField(
                 value = reason,
                 onValueChange = { reason = it },
                 placeholder = { Text("Isi alasan...") },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+
+                /* 🔥 warna focus ikut primary */
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = primaryColor,
+                    focusedLabelColor = primaryColor,
+                    cursorColor = primaryColor
+                ),
+
+                shape = RoundedCornerShape(14.dp)
             )
         },
+
+        /* 🔥 tombol kirim solid primary */
         confirmButton = {
             Button(
                 enabled = reason.isNotBlank(),
-                onClick = { onSubmit(reason) }
+                onClick = { onSubmit(reason) },
+                shape = RoundedCornerShape(50),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = primaryColor,
+                    contentColor = Color.White
+                )
             ) {
-                Text("Kirim")
+                Text("Kirim", fontWeight = FontWeight.SemiBold)
             }
         },
+
+        /* 🔥 batal outline primary */
         dismissButton = {
-            TextButton(onClick = onDismiss) {
+            OutlinedButton(
+                onClick = onDismiss,
+                shape = RoundedCornerShape(50),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    contentColor = primaryColor
+                ),
+                border = ButtonDefaults.outlinedButtonBorder.copy(
+                    brush = androidx.compose.ui.graphics.SolidColor(primaryColor)
+                )
+            ) {
                 Text("Batal")
             }
         }
     )
 }
 
+@Composable
+fun SalaryCard(
+    item: SalaryItem,
+    onClick: () -> Unit
+) {
+    val statusColor = when (item.status) {
+        "APPROVED" -> Color(0xFF2E7D32)
+        "REJECTED" -> Color(0xFFD32F2F)
+        else -> Color(0xFFFF9800)
+    }
+
+    val borderColor = when (item.status) {
+        "APPROVED" -> Color(0xFF2E7D32)
+        "REJECTED" -> Color(0xFFD32F2F)
+        else -> Color(0xFFFF9800)
+    }
+
+    val primaryColor = Color(0xFFB63352)
+
+    Card(
+        onClick = onClick,
+        shape = RoundedCornerShape(17.dp),
+        elevation = CardDefaults.cardElevation(10.dp),
+        border = BorderStroke(1.dp, borderColor),
+        colors = CardDefaults.cardColors(
+            containerColor = Color.White
+        ),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+
+        Column(
+            modifier = Modifier.padding(20.dp)
+        ) {
+
+            /* ===== Header Row ===== */
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+
+                Text(
+                    text = "${item.period_month}/${item.period_year}",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 14.sp,
+                    color = Color.Gray
+                )
+
+                /* 🔥 status badge */
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(25))
+                        .background(statusColor.copy(alpha = 0.15f))
+                        .padding(horizontal = 12.dp, vertical = 4.dp)
+                ) {
+                    Text(
+                        item.status,
+                        color = statusColor,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(14.dp))
+
+            /* 🔥 TOTAL GAJI BESAR */
+            Text(
+                text = item.total_gaji.toRupiah(),
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Bold,
+                color = primaryColor
+            )
+
+            Spacer(Modifier.height(10.dp))
+
+            Divider(color = Color(0xFFEAEAEA))
+
+            Spacer(Modifier.height(10.dp))
+
+            /* ===== Info kecil ===== */
+            Row(
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column {
+                    Text("Jabatan", fontSize = 12.sp, color = Color.Gray)
+                    Text(item.jabatan, fontWeight = FontWeight.Medium)
+                }
+
+                Column(horizontalAlignment = Alignment.End) {
+                    Text("Masuk", fontSize = 12.sp, color = Color.Gray)
+                    Text("${item.jumlah_masuk} hari", fontWeight = FontWeight.Medium)
+                }
+            }
+        }
+    }
+}
 
 @Composable
 fun RowItem(
