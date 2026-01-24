@@ -83,6 +83,8 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.MonetizationOn
+import androidx.compose.material.icons.filled.Payment
+import androidx.compose.material.icons.filled.Payments
 import id.my.matahati.absensi.RuntimeSession.userId
 import id.my.matahati.absensi.data.RetrofitClient
 
@@ -562,7 +564,7 @@ fun HalamanScanUI(
 
                         item {
                             UserActionItem(
-                                icon = Icons.Default.MonetizationOn,
+                                icon = Icons.Default.Payments,
                                 label = "Gaji"
                             ) {
                                 context.startActivity(Intent(context, HalamanGaji::class.java))
