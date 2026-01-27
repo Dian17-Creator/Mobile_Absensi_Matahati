@@ -1,5 +1,6 @@
 package id.my.matahati.absensi
 
+import android.app.Activity
 import android.util.Log
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -9,6 +10,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -80,21 +83,32 @@ fun HalamanAktivitasScreen() {
     Column(
         modifier = Modifier
             .fillMaxSize()
+//            .padding(20.dp)
             .background(Color.White)
     ) {
         // Header
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(75.dp)
+                .height(85.dp)
                 .background(Color(0xFFB63352)),
-            contentAlignment = Alignment.Center
+            contentAlignment = Alignment.BottomCenter
         ) {
+            IconButton(
+            onClick = { (context as Activity).finish() },
+            modifier = Modifier
+                .align(Alignment.BottomStart)
+                .padding(horizontal = 20.dp, vertical = 0.dp)
+        ) {
+            Icon(Icons.Default.ArrowBack, null, tint = Color(0xFFFFFFFF))
+        }
             Text(
                 text = "AKTIVITAS",
                 fontWeight = FontWeight.Bold,
                 fontSize = 20.sp,
-                color = Color.White
+                color = Color.White,
+                modifier = Modifier
+                    .padding(horizontal = 0.dp, vertical = 15.dp)
             )
         }
 
