@@ -1,5 +1,6 @@
 package id.my.matahati.absensi
 
+import android.app.Activity
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
@@ -33,6 +34,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Path
@@ -113,20 +115,27 @@ fun HalamanGajiScreen() {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 16.dp)
+                .padding(25.dp)
         ) {
+            Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                IconButton(
+                    onClick = { (context as Activity).finish() },
+                    modifier = Modifier.align(Alignment.CenterStart)
+                ) {
+                    Icon(Icons.Default.ArrowBack, null, tint = Color(0xFFFFFFFF))
+                }
 
-            /* ================= TITLE ================= */
-            Text(
-                text = "Slip Gaji Saya",
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.White,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 24.dp),
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center
-            )
+                /* ================= TITLE ================= */
+                Text(
+                    text = "Slip Gaji Saya",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White,
+                    modifier = Modifier
+                        .fillMaxWidth(),
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                )
+            }
 
             Spacer(Modifier.height(20.dp))
 
