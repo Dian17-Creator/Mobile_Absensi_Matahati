@@ -17,7 +17,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -35,6 +34,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Path
@@ -199,9 +199,7 @@ fun HalamanGajiScreen() {
 }
 
 
-/* ===================================================
-   DETAIL DIALOG
-   =================================================== */
+//Detail Dialog
 @Composable
 fun DetailGajiDialog(
     userId: Int, // 🔥 tambah ini
@@ -257,6 +255,21 @@ fun DetailGajiDialog(
         ) {
 
             Box {
+                IconButton(
+                    onClick = onDismiss,
+                    modifier = Modifier
+                        .align (Alignment.TopEnd)
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .background(Color.White)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Close",
+                        tint = Color.Red,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
 
                 Column(
                     modifier = Modifier
@@ -265,17 +278,7 @@ fun DetailGajiDialog(
                         .verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-//                    IconButton(
-//                        onClick = onDismiss,
-//                        modifier = Modifier.align(Alignment.End)
-//                    ) {
-//                        Icon(
-//                            imageVector = Icons.Default.Close,
-//                            contentDescription = "Close",
-//                            tint = Color.Red,
-//                            modifier = Modifier.size(24.dp)
-//                        )
-//                    }
+
 
                     /* ================= HEADER ================= */
                     Box(
@@ -491,7 +494,7 @@ fun SalaryCard(
 
     Card(
         onClick = onClick,
-        shape = RoundedCornerShape(17.dp),
+        shape = RoundedCornerShape(10.dp),
         elevation = CardDefaults.cardElevation(10.dp),
         border = BorderStroke(1.dp, borderColor),
         colors = CardDefaults.cardColors(
@@ -521,7 +524,7 @@ fun SalaryCard(
                 /* 🔥 status badge */
                 Box(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(25))
+                        .clip(RoundedCornerShape(15))
                         .background(statusColor.copy(alpha = 0.15f))
                         .padding(horizontal = 12.dp, vertical = 4.dp)
                 ) {
@@ -576,10 +579,33 @@ fun RowItem(
     isBold: Boolean = false
 ) {
     Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 3.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(label, fontWeight = if (isBold) FontWeight.Bold else FontWeight.Normal)
-        Text(value, fontWeight = if (isBold) FontWeight.Bold else FontWeight.Normal)
+
+        /* ===== LABEL ===== */
+        Text(
+            text = label,
+            modifier = Modifier.weight(2f),
+            fontWeight = if (isBold) FontWeight.Bold else FontWeight.Normal
+        )
+
+        /* ===== RP (CENTERED COLUMN) ===== */
+        Text(
+            text = "Rp",
+            textAlign = TextAlign.Center,
+            modifier = Modifier.weight(0.6f),
+            fontWeight = if (isBold) FontWeight.Bold else FontWeight.Normal
+        )
+
+        /* ===== NOMINAL (RIGHT ALIGN biar rapi angka) ===== */
+        Text(
+            text = value,
+            textAlign = TextAlign.End,
+            modifier = Modifier.weight(1.4f),
+            fontWeight = if (isBold) FontWeight.Bold else FontWeight.Bold
+        )
     }
 }
