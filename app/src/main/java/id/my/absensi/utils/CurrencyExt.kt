@@ -11,5 +11,5 @@ fun String?.toRupiah(): String {
         maximumFractionDigits = 2
     }
 
-    return "Rp ${formatter.format(number)}"
+    return "${formatter.format(number)}"
 }
