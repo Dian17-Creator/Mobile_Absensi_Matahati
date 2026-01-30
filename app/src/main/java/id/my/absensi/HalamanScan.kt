@@ -553,14 +553,14 @@ fun HalamanScanUI(
                             }
                         }
 
-                        item {
-                            UserActionItem(
-                                icon = Icons.Default.Close,
-                                label = "Lupa Absen"
-                            ) {
-                                context.startActivity(Intent(context, HalamanForgot::class.java))
-                            }
-                        }
+//                        item {
+//                            UserActionItem(
+//                                icon = Icons.Default.Close,
+//                                label = "Lupa Absen"
+//                            ) {
+//                                context.startActivity(Intent(context, HalamanForgot::class.java))
+//                            }
+//                        }
 
                         item {
                             UserActionItem(

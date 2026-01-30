@@ -20,6 +20,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -47,8 +49,9 @@ import java.util.*
 import java.util.concurrent.TimeUnit
 import id.my.matahati.absensi.utils.NetworkUtils
 import id.my.matahati.absensi.data.OfflineManualAbsen
-
-
+import android.app.TimePickerDialog
+import android.app.DatePickerDialog
+import android.content.Intent
 
 class HalamanManual : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -69,9 +72,9 @@ class HalamanManual : ComponentActivity() {
 @Composable
 fun HalamanManualUI() {
     val activity = LocalContext.current as Activity
+    val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
 
-    val date = remember { mutableStateOf("") }
     val location = remember { mutableStateOf("Mencari lokasi...") }
     val coords = remember { mutableStateOf(Pair("0", "0")) } // ✅ koordinat asli
     val reason = remember { mutableStateOf("") }
@@ -80,6 +83,27 @@ fun HalamanManualUI() {
     val isLoading = remember { mutableStateOf(false) }
     val errorDetail = remember { mutableStateOf<String?>(null) }
     val primaryColor = Color(0xFFB63352)
+
+    val cal = Calendar.getInstance()
+
+    val date = remember {
+        mutableStateOf(
+            "%04d-%02d-%02d".format(
+                cal.get(Calendar.YEAR),
+                cal.get(Calendar.MONTH) + 1,
+                cal.get(Calendar.DAY_OF_MONTH)
+            )
+        )
+    }
+
+    val time = remember {
+        mutableStateOf(
+            "%02d:%02d:00".format(
+                cal.get(Calendar.HOUR_OF_DAY),
+                cal.get(Calendar.MINUTE)
+            )
+        )
+    }
 
     // ✅ Receiver untuk mendeteksi jika data offline berhasil dikirim
     DisposableEffect(Unit) {
@@ -99,18 +123,18 @@ fun HalamanManualUI() {
 
         try {
             // ✅ Gunakan flag baru agar tidak crash di Android 13+
-            androidx.core.content.ContextCompat.registerReceiver(
+            ContextCompat.registerReceiver(
                 activity,
                 receiver,
                 filter,
-                android.content.Context.RECEIVER_NOT_EXPORTED
+                ContextCompat.RECEIVER_NOT_EXPORTED
             )
+
         } catch (e: Exception) {
             // fallback untuk versi Android lama
             activity.registerReceiver(receiver, filter)
         }
 
-        // ✅ Bersihkan receiver saat composable dispose
         onDispose {
             try {
                 activity.unregisterReceiver(receiver)
@@ -246,6 +270,68 @@ fun HalamanManualUI() {
 
         Spacer(modifier = Modifier.height(16.dp))
 
+        OutlinedTextField(
+            value = date.value,
+            onValueChange = {},
+            readOnly = true,
+            label = { Text("Tanggal Absen") },
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = primaryColor,
+                focusedLabelColor = primaryColor,
+                cursorColor = primaryColor
+            ),
+            modifier = Modifier.fillMaxWidth(),
+            trailingIcon = {
+                IconButton(onClick = {
+                    val cal = Calendar.getInstance()
+                    DatePickerDialog(
+                        context,
+                        { _, y, m, d ->
+                            date.value = String.format("%04d-%02d-%02d", y, m + 1, d)
+                        },
+                        cal.get(Calendar.YEAR),
+                        cal.get(Calendar.MONTH),
+                        cal.get(Calendar.DAY_OF_MONTH)
+                    ).show()
+                }) {
+                    Icon(Icons.Default.DateRange, null)
+                }
+            }
+        )
+
+        Spacer(Modifier.height(12.dp))
+
+        OutlinedTextField(
+            value = time.value,
+            onValueChange = {},
+            readOnly = true,
+            label = { Text("Jam Absen") },
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = primaryColor,
+                focusedLabelColor = primaryColor,
+                cursorColor = primaryColor
+            ),
+            modifier = Modifier.fillMaxWidth(),
+            trailingIcon = {
+                IconButton(onClick = {
+                    val cal = Calendar.getInstance()
+                    TimePickerDialog(
+                        context,
+                        { _, h, m ->
+                            time.value = String.format("%02d:%02d:00", h, m)
+                        },
+                        cal.get(Calendar.HOUR_OF_DAY),
+                        cal.get(Calendar.MINUTE),
+                        true
+                    ).show()
+                }) {
+                    Icon(Icons.Default.Schedule, null)
+                }
+            }
+        )
+
+        Spacer(Modifier.height(16.dp))
+
         // Alasan
         OutlinedTextField(
             value = reason.value,
@@ -280,6 +366,7 @@ fun HalamanManualUI() {
 
                     val result = uploadAbsenManual(
                         date.value,
+                        time.value,
                         coords.value.first,
                         coords.value.second,
                         location.value,
@@ -307,7 +394,7 @@ fun HalamanManualUI() {
                             kotlinx.coroutines.delay(1200)
 
                             // 🔁 Kembali ke halaman scan
-                            val intent = android.content.Intent(activity, HalamanScan::class.java)
+                            val intent = Intent(activity, MainActivity::class.java)
                             activity.startActivity(intent)
                             activity.finish()
                         }
@@ -387,6 +474,7 @@ fun compressImageFile(originalFile: File, context: Context): File {
 
 suspend fun uploadAbsenManual(
     date: String,
+    time: String,
     lat: String,
     lng: String,
     cplacename: String,
@@ -436,6 +524,7 @@ suspend fun uploadAbsenManual(
         val jsonBody = """
         {
             "nuserId": "$userId",
+            "dscanned": "$date $time",
             "nlat": "$lat",
             "nlng": "$lng",
             "cplacename": "${cplacename.replace("\"", "'")}",
@@ -451,7 +540,7 @@ suspend fun uploadAbsenManual(
 
         val body = jsonBody.toRequestBody("application/json".toMediaTypeOrNull())
         val request = Request.Builder()
-            .url("https://absensi.matahati.my.id/mscan_manual.php")
+            .url("https://absensi.matahati.my.id/mscan_manual_mobile.php")
             .post(body)
             .addHeader("Accept", "application/json")
             .build()
