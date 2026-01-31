@@ -90,7 +90,7 @@ import id.my.matahati.absensi.data.RetrofitClient
 
 private const val TAG = "FACE_LOGIN"
 private const val API_KEY = "MH4T4H4TI_2025_ABSENSI_APP_SECRETx9P2F7Q1L8S3Z0R6W4K2D1M9B7T5"
-private const val FACE_LOGIN_URL = "https://absensi.matahati.my.id/user_face_scan_mobile.php"
+private const val FACE_LOGIN_URL = "https://absensi.matahati.my.id/user_face_scan_ssid.php"
 
 private val httpClient by lazy {
     OkHttpClient.Builder()
@@ -377,7 +377,7 @@ fun HalamanScanUI(
 
                             CoroutineScope(Dispatchers.Main).launch {
                                 isUploading = true
-                                val result = uploadFace(bitmap, userId, coordinate, placeName)
+                                val result = uploadFace(context, bitmap, userId, coordinate, placeName)
                                 isUploading = false
                                 isCapturing = false
                                 statusText = result.message
@@ -385,6 +385,8 @@ fun HalamanScanUI(
 
                                 if (result.success) {
                                     showSuccessDialog = true
+                                    isSessionStarted = false
+                                } else {
                                     isSessionStarted = false
                                 }
                             }

@@ -4,6 +4,7 @@ package id.my.matahati.absensi
 
 import android.Manifest
 import android.app.Activity
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
@@ -59,10 +60,11 @@ import com.google.mlkit.vision.face.FaceDetector
 import com.google.mlkit.vision.face.FaceDetectorOptions
 import android.os.Handler
 import android.os.Looper
+import android.net.wifi.WifiManager
 
 private const val TAG = "FACE_LOGIN"
 private const val API_KEY = "MH4T4H4TI_2025_ABSENSI_APP_SECRETx9P2F7Q1L8S3Z0R6W4K2D1M9B7T5"
-private const val FACE_LOGIN_URL = "https://absensi.matahati.my.id/user_face_scan_mobile.php"
+private const val FACE_LOGIN_URL = "https://absensi.matahati.my.id/user_face_scan_ssid.php"
 
 private val httpClient by lazy {
     OkHttpClient.Builder()
@@ -217,7 +219,7 @@ fun FaceLoginScreen() {
                         isUploading = true
                         statusColor = Color.Black
 
-                        val result = uploadFace(bitmap, userId, coordinate, placeName)
+                        val result = uploadFace(context, bitmap, userId, coordinate, placeName)
 
                         isUploading = false
                         isCapturing = false
@@ -466,6 +468,7 @@ data class FaceLoginResponse(
 )
 
 suspend fun uploadFace(
+    context: Context,
     bitmap: Bitmap,
     userId: Int,
     location: String,
@@ -474,12 +477,20 @@ suspend fun uploadFace(
     try {
         val bytes = compressBitmap(bitmap)
 
+        val wifiManager = context.applicationContext
+            .getSystemService(Context.WIFI_SERVICE) as WifiManager
+
+        val ssid = wifiManager.connectionInfo.ssid
+            ?.replace("\"", "")
+            ?.trim() ?: ""
+
         val body = MultipartBody.Builder()
             .setType(MultipartBody.FORM)
             .addFormDataPart("api_key", API_KEY)
             .addFormDataPart("userId", userId.toString())
             .addFormDataPart("location", location)
             .addFormDataPart("place", place)
+            .addFormDataPart("ssid", ssid)
             .addFormDataPart("facefile", "face.jpg", bytes.toRequestBody("image/jpeg".toMediaType()))
             .build()
 
@@ -489,15 +500,28 @@ suspend fun uploadFace(
             .build()
 
         httpClient.newCall(req).execute().use { resp ->
-            val json = resp.body?.string() ?: ""
-            val obj = JSONObject(json)
+
+            val code = resp.code
+            val raw = resp.body?.string()
+
+            Log.e("UPLOAD_FACE", "HTTP CODE = $code")
+            Log.e("UPLOAD_FACE", "RAW BODY = $raw")
+
+            if (raw.isNullOrBlank()) {
+                return@withContext FaceLoginResponse(false, "Server kosong / error $code", null)
+            }
+
+            val obj = JSONObject(raw)
+
             FaceLoginResponse(
                 obj.optBoolean("success"),
                 obj.optString("message"),
                 obj.optDouble("confidence")
             )
         }
+
     } catch (e: Exception) {
+        Log.e("UPLOAD_FACE", "ERROR =", e)
         FaceLoginResponse(false, "Koneksi gagal", null)
     }
 }
