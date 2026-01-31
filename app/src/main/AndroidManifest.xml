@@ -5,10 +5,18 @@
 
     <!-- Permission kamera -->
     <uses-permission android:name="android.permission.CAMERA" />
+
+    <!-- Permission Internet-->
     <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- Permission Lokasi-->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
     <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
+
+    <!-- Permission SSID WIFI-->
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE"/>
+
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" tools:ignore="UnusedAttribute" />
 
     <!-- Nyatakan kamera opsional -->
