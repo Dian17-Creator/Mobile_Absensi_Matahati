@@ -39,6 +39,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
@@ -207,6 +208,14 @@ fun DetailGajiDialog(
     onDismiss: () -> Unit,
     onUpdated: suspend () -> Unit
 ) {
+    val config = LocalConfiguration.current
+
+    val maxWidth = config.screenWidthDp.dp * 0.95f
+    val maxHeight = config.screenHeightDp.dp * 0.85f
+
+    val isSmall = config.screenWidthDp < 360
+    val textSize = if (isSmall) 12.sp else 14.sp
+
     val borderColor = when (gaji.status) {
         "APPROVED" -> Color(0xFF2E7D32) // hijau
         "REJECTED" -> Color(0xFFD32F2F) // merah
@@ -249,6 +258,9 @@ fun DetailGajiDialog(
     Dialog(onDismissRequest = onDismiss) {
 
         Card(
+            modifier = Modifier
+                .widthIn(max = maxWidth)
+                .heightIn(max = maxHeight),
             shape = RoundedCornerShape(18.dp),
             border = BorderStroke(1.dp, borderColor), // 🔥 INI
             elevation = CardDefaults.cardElevation(10.dp)

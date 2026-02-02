@@ -223,23 +223,38 @@ fun HalamanScanUI(
         }
 
         val fused = LocationServices.getFusedLocationProviderClient(activity)
-        fused.lastLocation
-            .addOnSuccessListener { loc ->
-                if (loc != null) {
-                    coordinate = "${loc.latitude},${loc.longitude}"
-                    CoroutineScope(Dispatchers.IO).launch {
-                        val place = reverseGeocode(loc.latitude, loc.longitude)
-                        withContext(Dispatchers.Main) {
-                            placeName = place.ifEmpty { coordinate }
-                        }
+        fused.lastLocation.addOnSuccessListener { loc ->
+
+            if (loc != null) {
+                coordinate = "${loc.latitude},${loc.longitude}"
+
+                CoroutineScope(Dispatchers.IO).launch {
+                    val place = reverseGeocode(loc.latitude, loc.longitude)
+                    withContext(Dispatchers.Main) {
+                        placeName = place.ifEmpty { coordinate }
                     }
-                } else {
-                    placeName = "Lokasi tidak tersedia"
+                }
+
+            } else {
+                // 🔥 fallback real-time request
+                fused.getCurrentLocation(
+                    com.google.android.gms.location.Priority.PRIORITY_HIGH_ACCURACY,
+                    null
+                ).addOnSuccessListener { fresh ->
+                    if (fresh != null) {
+                        coordinate = "${fresh.latitude},${fresh.longitude}"
+                        CoroutineScope(Dispatchers.IO).launch {
+                            val place = reverseGeocode(fresh.latitude, fresh.longitude)
+                            withContext(Dispatchers.Main) {
+                                placeName = place.ifEmpty { coordinate }
+                            }
+                        }
+                    } else {
+                        placeName = "Lokasi tidak tersedia"
+                    }
                 }
             }
-            .addOnFailureListener {
-                placeName = "Gagal mengambil lokasi"
-            }
+        }
     }
 
     val session = SessionManager(context)
