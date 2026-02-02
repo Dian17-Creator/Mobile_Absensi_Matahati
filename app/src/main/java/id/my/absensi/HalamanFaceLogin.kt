@@ -480,9 +480,12 @@ suspend fun uploadFace(
         val wifiManager = context.applicationContext
             .getSystemService(Context.WIFI_SERVICE) as WifiManager
 
-        val ssid = wifiManager.connectionInfo.ssid
-            ?.replace("\"", "")
-            ?.trim() ?: ""
+        val rawSsid = wifiManager.connectionInfo?.ssid ?: ""
+
+        val ssid = rawSsid
+            .replace("\"", "")
+            .takeIf { it != "<unknown ssid>" }
+            ?: ""
 
         val body = MultipartBody.Builder()
             .setType(MultipartBody.FORM)

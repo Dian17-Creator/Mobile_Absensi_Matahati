@@ -556,7 +556,7 @@ fun KontrakKerjaCard(
 
 fun LocalDate.formatIndonesia(): String {
     val formatter = java.time.format.DateTimeFormatter.ofPattern(
-        "dd MMMM yyyy",
+        "dd MMM yyyy",
         Locale("id", "ID")
     )
     return this.format(formatter)
