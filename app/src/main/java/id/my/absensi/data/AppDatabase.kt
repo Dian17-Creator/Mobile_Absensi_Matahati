@@ -15,9 +15,10 @@ import id.my.matahati.absensi.data.OfflineIzinDao
         OfflineManualAbsen::class,
         OfflineIzin::class,
         UserSchedule::class,
-        AbsensiLog::class
+        AbsensiLog::class,
+        UserAgenda::class
     ],
-    version = 10, // ⬆️ pastikan versi naik setiap menambah entity baru
+    version = 12, // ⬆️ pastikan versi naik setiap menambah entity baru
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -28,6 +29,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun offlineIzinDao(): OfflineIzinDao
     abstract fun userScheduleDao(): UserScheduleDao
     abstract fun absensiLogDao(): AbsensiLogDao
+    abstract fun userAgendaDao(): UserAgendaDao
 
     companion object {
         @Volatile

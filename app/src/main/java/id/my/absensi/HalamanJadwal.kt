@@ -42,9 +42,17 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import id.my.matahati.absensi.data.UserAgendaViewModel
 import id.my.matahati.absensi.RuntimeSession.userId
+import id.my.matahati.absensi.data.UserAgenda
 import id.my.matahati.absensi.data.UserContract
 import id.my.matahati.absensi.data.UserContractViewModel
+import id.my.matahati.absensi.data.UserAgendaViewModelFactory
+import id.my.matahati.absensi.data.UserAgendaRepository
+import androidx.compose.ui.window.Dialog
 
 
 class HalamanJadwal : ComponentActivity() {
@@ -62,8 +70,18 @@ class HalamanJadwal : ComponentActivity() {
 
 @Composable
 fun HalamanJadwalUI(scheduleViewModel: ScheduleViewModel = viewModel()) {
+    val context = LocalContext.current
+
     val absensiViewModel: AbsensiViewModel = viewModel()
     val contractViewModel: UserContractViewModel = viewModel()
+
+    val agendaViewModel: UserAgendaViewModel = viewModel(
+        factory = UserAgendaViewModelFactory(
+            UserAgendaRepository(context)
+        )
+    )
+    val agendas by agendaViewModel.agendas.collectAsState()
+    var showAgendaDialog by remember { mutableStateOf(false) }
 
     val logs by absensiViewModel.logs.collectAsState()
     val loadingLog by absensiViewModel.loading.collectAsState()
@@ -81,7 +99,7 @@ fun HalamanJadwalUI(scheduleViewModel: ScheduleViewModel = viewModel()) {
     val today = remember { LocalDate.now() }
     var selectedDate by remember { mutableStateOf<LocalDate?>(today) }
 
-    val context = LocalContext.current
+
     val activity = context as? ComponentActivity
     val session = remember { SessionManager(context.applicationContext) }
 
@@ -124,6 +142,10 @@ fun HalamanJadwalUI(scheduleViewModel: ScheduleViewModel = viewModel()) {
 
     LaunchedEffect(userId) {
         contractViewModel.loadUserContract(userId)
+    }
+
+    LaunchedEffect(currentMonth) {
+        agendaViewModel.loadAgenda(currentMonth.toString())
     }
 
     val calendarBackground = Color(0xFFF5F5F5)
@@ -184,9 +206,14 @@ fun HalamanJadwalUI(scheduleViewModel: ScheduleViewModel = viewModel()) {
                             currentMonth = currentMonth,
                             onMonthChange = { currentMonth = it },
                             selectedDate = selectedDate,
-                            onDateSelected = { selectedDate = it },
+                            onDateSelected =
+                                {
+                                    selectedDate = it
+                                    showAgendaDialog = true
+                                },
                             today = today,
-                            schedules = schedules // kosong juga tidak masalah
+                            schedules = schedules,
+                            agendas = agendas
                         )
                     }
 
@@ -322,6 +349,150 @@ fun HalamanJadwalUI(scheduleViewModel: ScheduleViewModel = viewModel()) {
 
             }
         }
+
+        if (showAgendaDialog && selectedDate != null) {
+
+            val selected = selectedDate!!
+
+            val agendaToday = agendas.filter { agenda ->
+                val start = LocalDate.parse(agenda.startAt.substring(0, 10))
+                val end = LocalDate.parse(
+                    agenda.endAt?.substring(0, 10)
+                        ?: agenda.startAt.substring(0, 10)
+                )
+
+                !selected.isBefore(start) && !selected.isAfter(end)
+            }
+
+            Dialog(onDismissRequest = { showAgendaDialog = false }) {
+
+                val config = LocalConfiguration.current
+                val maxWidth = config.screenWidthDp.dp * 0.95f
+                val maxHeight = config.screenHeightDp.dp * 0.80f
+
+                val agendaColors = listOf(
+                    Color(0xFFE3F2FD),
+                    Color(0xFFFFF3E0),
+                    Color(0xFFE8F5E9),
+                    Color(0xFFF3E5F5),
+                    Color(0xFFFFEBEE)
+                )
+
+                Card(
+                    modifier = Modifier
+                        .widthIn(max = maxWidth)
+                        .heightIn(max = maxHeight),
+                    shape = RoundedCornerShape(18.dp),
+                    elevation = CardDefaults.cardElevation(10.dp)
+                ) {
+
+                    Box {
+
+                        /* 🔴 CLOSE BUTTON */
+                        IconButton(
+                            onClick = { showAgendaDialog = false },
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .padding(4.dp)
+                                .size(28.dp)
+                                .clip(CircleShape)
+                                .background(Color.White)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Close",
+                                tint = Color.Red
+                            )
+                        }
+
+                        Column(
+                            modifier = Modifier
+                                .padding(20.dp)
+                                .fillMaxWidth()
+                        ) {
+
+                            /* 🔹 HEADER */
+                            Text(
+                                text = "Agenda ${selected.formatIndonesia()}",
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold
+                            )
+
+                            Spacer(Modifier.height(12.dp))
+
+                            Divider()
+
+                            Spacer(Modifier.height(12.dp))
+
+                            /* 🔹 LIST */
+                            LazyColumn(
+                                verticalArrangement = Arrangement.spacedBy(10.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+
+                                if (agendaToday.isEmpty()) {
+                                    item {
+                                        Text(
+                                            "📭 Tidak ada agenda",
+                                            color = Color.Gray
+                                        )
+                                    }
+                                }
+
+                                itemsIndexed(agendaToday) { index, agenda ->
+
+                                    val bgColor =
+                                        agendaColors[index % agendaColors.size]
+
+                                    Card(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(bottom = 5.dp),
+                                        shape = RoundedCornerShape(12.dp),
+                                        colors = CardDefaults.cardColors(
+                                            containerColor = bgColor
+                                        ),
+                                        elevation = CardDefaults.cardElevation(2.dp)
+                                    ) {
+                                        Column(
+                                            modifier = Modifier.padding(14.dp)
+                                        ) {
+
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.SpaceBetween,
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+
+                                                Text(
+                                                    text = agenda.title,
+                                                    fontWeight = FontWeight.Bold
+                                                )
+
+                                                val startTime = agenda.startAt.substring(11, 16)
+                                                val endTime = agenda.endAt?.substring(11, 16) ?: startTime
+
+                                                Text(
+                                                    text = "$startTime - $endTime",
+                                                    fontSize = 12.sp,
+                                                    color = Color.DarkGray
+                                                )
+                                            }
+
+                                            agenda.description?.let {
+                                                Spacer(Modifier.height(4.dp))
+                                                Text(it, fontSize = 13.sp)
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+        }
     }
 }
 
@@ -336,7 +507,8 @@ private fun CalendarCardContent(
     selectedDate: LocalDate?,
     onDateSelected: (LocalDate) -> Unit,
     today: LocalDate,
-    schedules: List<UserSchedule>
+    schedules: List<UserSchedule>,
+    agendas: List<UserAgenda>
 ) {
     val firstOfMonth = currentMonth.atDay(1)
     val firstDayIndex = (firstOfMonth.dayOfWeek.value + 6) % 7
@@ -409,7 +581,8 @@ private fun CalendarCardContent(
                         today = today,
                         selected = date == selectedDate,
                         onClick = { onDateSelected(it) },
-                        schedules = schedules
+                        schedules = schedules,
+                        agendas = agendas
                     )
                 }
             }
@@ -431,7 +604,8 @@ private fun DayCell(
     today: LocalDate,
     selected: Boolean,
     onClick: (LocalDate) -> Unit,
-    schedules: List<UserSchedule>
+    schedules: List<UserSchedule>,
+    agendas: List<UserAgenda>
 ) {
     Box(
         modifier = Modifier
@@ -444,6 +618,13 @@ private fun DayCell(
         } else {
             val isToday = date == today
             val scheduleForDate = schedules.find { it.dwork == date.toString() }
+
+            val agendaForDate = agendas.filter { agenda ->
+                val start = LocalDate.parse(agenda.startAt.substring(0, 10))
+                val end = LocalDate.parse(agenda.endAt?.substring(0, 10) ?: agenda.startAt.substring(0, 10))
+
+                !date.isBefore(start) && !date.isAfter(end)
+            }
 
             val bg = when {
                 selected -> Color(0xFF2196F3)
@@ -473,13 +654,44 @@ private fun DayCell(
                         fontWeight = if (isSunday) FontWeight.Bold else FontWeight.Normal
                     )
                 )
-                scheduleForDate?.let {
-                    val colorDot = generateColorFromShift(it.cschedname)
-                    Box(
-                        modifier = Modifier
-                            .size(6.dp)
-                            .background(colorDot, shape = CircleShape)
-                    )
+                /* 🔴 DOT CONTAINER */
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(2.dp),
+                    modifier = Modifier.padding(top = 2.dp)
+                ) {
+                    scheduleForDate?.let {
+                        val colorDot = generateColorFromShift(it.cschedname)
+
+                        Box(
+                            modifier = Modifier
+                                .size(5.dp)
+                                .background(colorDot, CircleShape)
+                        )
+                    }
+                    val agendaCount = agendaForDate.size
+
+                    if (agendaCount == 1) {
+                        Box(
+                            modifier = Modifier
+                                .size(5.dp)
+                                .background(Color.Red, CircleShape)
+                        )
+                    }
+
+                    if (agendaCount > 1) {
+                        Box(
+                            modifier = Modifier
+                                .background(Color.Red, RoundedCornerShape(6.dp))
+                                .padding(horizontal = 3.dp, vertical = 1.dp)
+                        ) {
+                            Text(
+                                text = agendaCount.toString(),
+                                fontSize = 8.sp,
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
                 }
             }
         }
