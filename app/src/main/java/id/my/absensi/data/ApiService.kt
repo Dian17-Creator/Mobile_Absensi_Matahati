@@ -71,4 +71,8 @@ interface ApiService {
         @Field("note") note: String?
     ): Response<Unit>
 
+    @GET("api/agenda/{month}")
+    suspend fun getAgenda(
+        @Path("month") month: String
+    ): List<UserAgenda>
 }
