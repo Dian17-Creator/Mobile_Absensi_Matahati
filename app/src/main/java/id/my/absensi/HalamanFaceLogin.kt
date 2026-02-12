@@ -548,19 +548,38 @@ fun compressBitmap(bitmap: Bitmap): ByteArray {
 suspend fun reverseGeocode(lat: Double, lng: Double): String =
     withContext(Dispatchers.IO) {
         try {
-            val url = "https://nominatim.openstreetmap.org/reverse?lat=$lat&lon=$lng&format=json&addressdetails=0"
+
+            Log.d("REVERSE_DEBUG", "Call SERVER reverse -> LAT=$lat | LON=$lng")
+
+            val url =
+                "https://absensi.matahati.my.id/reverse_geocode.php?lat=$lat&lon=$lng"
+
             val req = Request.Builder()
                 .url(url)
-                .header("User-Agent", "MatahatiAbsensiMobileApp/1.0")
                 .build()
 
             httpClient.newCall(req).execute().use { resp ->
-                val body = resp.body?.string() ?: return@withContext ""
+
+                val body = resp.body?.string() ?: ""
+
+                Log.d("REVERSE_DEBUG", "SERVER RESPONSE = $body")
+
+                if (!resp.isSuccessful) {
+                    Log.e("REVERSE_DEBUG", "Server error code=${resp.code}")
+                    return@withContext ""
+                }
+
+                if (!body.trim().startsWith("{")) {
+                    Log.e("REVERSE_DEBUG", "Response bukan JSON")
+                    return@withContext ""
+                }
+
                 val obj = JSONObject(body)
                 obj.optString("display_name", "")
             }
+
         } catch (e: Exception) {
-            Log.e(TAG, "Reverse geocode error", e)
+            Log.e("REVERSE_DEBUG", "Reverse error", e)
             ""
         }
     }

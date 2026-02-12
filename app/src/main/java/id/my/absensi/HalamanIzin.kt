@@ -13,6 +13,7 @@ import android.widget.Toast
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import kotlinx.coroutines.launch
 import java.io.FileOutputStream
 import java.text.SimpleDateFormat
@@ -56,6 +57,16 @@ import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.sp
+
+private val httpClient by lazy {
+    OkHttpClient.Builder()
+        .connectTimeout(30, TimeUnit.SECONDS)
+        .readTimeout(30, TimeUnit.SECONDS)
+        .writeTimeout(30, TimeUnit.SECONDS)
+        .retryOnConnectionFailure(true)
+        .build()
+}
+
 
 class HalamanIzin : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -204,61 +215,82 @@ fun HalamanIzinUI() {
 
     // Ambil lokasi otomatis pakai Nominatim API
     LaunchedEffect(Unit) {
-        val fusedLocationClient = LocationServices.getFusedLocationProviderClient(activity)
+
+        val fusedLocationClient =
+            LocationServices.getFusedLocationProviderClient(activity)
+
         val permissions = arrayOf(
             Manifest.permission.ACCESS_FINE_LOCATION,
             Manifest.permission.ACCESS_COARSE_LOCATION
         )
+
         val allGranted = permissions.all {
             ContextCompat.checkSelfPermission(activity, it) ==
-                    android.content.pm.PackageManager.PERMISSION_GRANTED
+                    PackageManager.PERMISSION_GRANTED
         }
 
-        if (allGranted) {
-            fusedLocationClient.lastLocation.addOnSuccessListener { loc ->
-                if (loc != null) {
-                    coordinate.value = "${loc.latitude},${loc.longitude}"
+        if (!allGranted) {
+            ActivityCompat.requestPermissions(activity, permissions, 1001)
+            locationName.value = "Menunggu izin lokasi..."
+            return@LaunchedEffect
+        }
 
-                    coroutineScope.launch(Dispatchers.IO) {
-                        try {
-                            val client = OkHttpClient()
-                            val url =
-                                "https://nominatim.openstreetmap.org/reverse?lat=${loc.latitude}&lon=${loc.longitude}&format=json&addressdetails=1"
+        fusedLocationClient.lastLocation.addOnSuccessListener { loc ->
 
-                            val request = Request.Builder()
-                                .url(url)
-                                .addHeader("User-Agent", "MatahatiApp/1.0 (mailto:admin@matahati.my.id)")
-                                .build()
+            if (loc == null) {
+                locationName.value = "Lokasi tidak tersedia"
+                return@addOnSuccessListener
+            }
 
-                            val response = client.newCall(request).execute()
-                            val json = response.body?.string()
-                            if (response.isSuccessful && json != null) {
-                                val obj = JSONObject(json)
-                                val displayName = obj.optString("display_name", "")
-                                withContext(Dispatchers.Main) {
-                                    locationName.value =
-                                        if (displayName.isNotBlank()) displayName
-                                        else coordinate.value
-                                }
-                            } else {
-                                withContext(Dispatchers.Main) {
-                                    locationName.value = coordinate.value
-                                }
+            val lat = loc.latitude
+            val lng = loc.longitude
+
+            coordinate.value = "$lat,$lng"
+
+            coroutineScope.launch(Dispatchers.IO) {
+                try {
+
+                    val url =
+                        "https://absensi.matahati.my.id/reverse_geocode.php?lat=$lat&lon=$lng"
+
+                    Log.d("IZIN_DEBUG", "CALL SERVER: $url")
+
+                    val request = Request.Builder()
+                        .url(url)
+                        .build()
+
+                    httpClient.newCall(request).execute().use { response ->
+
+                        val json = response.body?.string() ?: ""
+
+                        Log.d("IZIN_DEBUG", "SERVER RESPONSE: $json")
+
+                        if (response.isSuccessful && json.startsWith("{")) {
+
+                            val obj = JSONObject(json)
+                            val displayName = obj.optString("display_name", "")
+
+                            withContext(Dispatchers.Main) {
+                                locationName.value =
+                                    if (displayName.isNotBlank())
+                                        displayName
+                                    else coordinate.value
                             }
-                        } catch (e: Exception) {
-                            Log.e("HalamanIzin", "Nominatim error: ${e.message}")
+
+                        } else {
                             withContext(Dispatchers.Main) {
                                 locationName.value = coordinate.value
                             }
                         }
                     }
-                } else {
-                    locationName.value = "Lokasi tidak tersedia"
+
+                } catch (e: Exception) {
+                    Log.e("IZIN_DEBUG", "Reverse error", e)
+                    withContext(Dispatchers.Main) {
+                        locationName.value = coordinate.value
+                    }
                 }
             }
-        } else {
-            ActivityCompat.requestPermissions(activity, permissions, 1001)
-            locationName.value = "Menunggu izin lokasi..."
         }
     }
 
