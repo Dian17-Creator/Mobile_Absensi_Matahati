@@ -52,6 +52,17 @@ import id.my.matahati.absensi.data.OfflineManualAbsen
 import android.app.TimePickerDialog
 import android.app.DatePickerDialog
 import android.content.Intent
+import org.json.JSONObject
+
+private val httpClient by lazy {
+    OkHttpClient.Builder()
+        .connectTimeout(30, TimeUnit.SECONDS)
+        .readTimeout(30, TimeUnit.SECONDS)
+        .writeTimeout(30, TimeUnit.SECONDS)
+        .retryOnConnectionFailure(true)
+        .build()
+}
+
 
 class HalamanManual : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -171,32 +182,53 @@ fun HalamanManualUI() {
 
                     coroutineScope.launch(Dispatchers.IO) {
                         try {
-                            val client = OkHttpClient()
+
+                            val lat = loc.latitude
+                            val lng = loc.longitude
+
                             val url =
-                                "https://nominatim.openstreetmap.org/reverse?lat=${loc.latitude}&lon=${loc.longitude}&format=json&addressdetails=1"
+                                "https://absensi.matahati.my.id/reverse_geocode.php?lat=$lat&lon=$lng"
+
+                            Log.d("MANUAL_DEBUG", "CALL SERVER: $url")
 
                             val request = Request.Builder()
                                 .url(url)
-                                .addHeader("User-Agent", "MatahatiApp/1.0 (mailto:admin@matahati.my.id)")
                                 .build()
 
-                            val response = client.newCall(request).execute()
-                            val json = response.body?.string()
-                            if (response.isSuccessful && json != null) {
-                                val obj = org.json.JSONObject(json)
-                                val displayName = obj.optString("display_name", "")
-                                withContext(Dispatchers.Main) {
-                                    if (displayName.isNotBlank()) {
-                                        location.value = displayName
-                                    } else {
-                                        location.value = "${loc.latitude},${loc.longitude}"
+                            httpClient.newCall(request).execute().use { response ->
+
+                                val json = response.body?.string() ?: ""
+
+                                Log.d("MANUAL_DEBUG", "SERVER RESPONSE: $json")
+
+                                if (response.isSuccessful && json.startsWith("{")) {
+
+                                    val obj = JSONObject(json)
+                                    val displayName = obj.optString("display_name", "")
+
+                                    withContext(Dispatchers.Main) {
+                                        location.value =
+                                            if (displayName.isNotBlank())
+                                                displayName
+                                            else
+                                                "$lat,$lng"
+                                    }
+
+                                } else {
+                                    withContext(Dispatchers.Main) {
+                                        location.value = "$lat,$lng"
                                     }
                                 }
                             }
+
                         } catch (e: Exception) {
-                            Log.e("HalamanManual", "Reverse geocode error: ${e.message}")
+                            Log.e("MANUAL_DEBUG", "Reverse error", e)
+                            withContext(Dispatchers.Main) {
+                                location.value = "${loc.latitude},${loc.longitude}"
+                            }
                         }
                     }
+
                 } else {
                     location.value = "Lokasi tidak tersedia"
                 }

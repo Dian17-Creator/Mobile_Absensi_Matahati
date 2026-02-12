@@ -29,34 +29,49 @@ class SyncIzinWorker(context: Context, params: WorkerParameters) : Worker(contex
                 // ===========================
                 // 🌍 REVERSE GEOCODING JIKA placeName MASIH KOORDINAT
                 // ===========================
+                // ===========================
+// 🌍 REVERSE GEOCODING VIA SERVER
+// ===========================
                 var placeNameToSend = izin.placeName
+
                 if (placeNameToSend.matches(Regex("-?\\d+(\\.\\d+)?,-?\\d+(\\.\\d+)?"))) {
                     try {
                         val latLng = izin.coordinate.split(",")
+
                         if (latLng.size == 2) {
                             val lat = latLng[0].trim()
                             val lng = latLng[1].trim()
+
                             val url =
-                                "https://nominatim.openstreetmap.org/reverse?lat=$lat&lon=$lng&format=json&addressdetails=1"
+                                "https://absensi.matahati.my.id/reverse_geocode.php?lat=$lat&lon=$lng"
+
+                            Log.d("SyncIzinWorker", "🌍 CALL SERVER: $url")
 
                             val geocodeRequest = Request.Builder()
                                 .url(url)
-                                .addHeader("User-Agent", "MatahatiApp/1.0 (mailto:admin@matahati.my.id)")
                                 .build()
 
-                            val geocodeResponse = client.newCall(geocodeRequest).execute()
-                            val json = geocodeResponse.body?.string()
-                            if (geocodeResponse.isSuccessful && json != null) {
-                                val obj = JSONObject(json)
-                                val displayName = obj.optString("display_name", "")
-                                if (displayName.isNotBlank()) {
-                                    placeNameToSend = displayName
-                                    Log.d("SyncIzinWorker", "📍 Lokasi reverse geocode: $placeNameToSend")
+                            client.newCall(geocodeRequest).execute().use { geocodeResponse ->
+
+                                val json = geocodeResponse.body?.string() ?: ""
+
+                                Log.d("SyncIzinWorker", "🌍 SERVER RESPONSE: $json")
+
+                                if (geocodeResponse.isSuccessful && json.startsWith("{")) {
+
+                                    val obj = JSONObject(json)
+                                    val displayName = obj.optString("display_name", "")
+
+                                    if (displayName.isNotBlank()) {
+                                        placeNameToSend = displayName
+                                        Log.d("SyncIzinWorker", "📍 Reverse OK: $placeNameToSend")
+                                    }
                                 }
                             }
                         }
+
                     } catch (e: Exception) {
-                        Log.w("SyncIzinWorker", "Reverse geocoding gagal: ${e.message}")
+                        Log.w("SyncIzinWorker", "Reverse gagal: ${e.message}")
                     }
                 }
 
