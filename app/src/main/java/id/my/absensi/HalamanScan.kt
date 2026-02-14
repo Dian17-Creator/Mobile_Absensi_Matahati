@@ -543,7 +543,12 @@ fun HalamanScanUI(
                                 icon = Icons.Default.Edit,
                                 label = "Manual"
                             ) {
-                                context.startActivity(Intent(context, HalamanManual::class.java))
+                                val intent = Intent(context, HalamanManual::class.java).apply {
+                                    putExtra("USER_ID", userId)
+                                    putExtra("USER_NAME", userName)
+                                    putExtra("USER_EMAIL", userEmail)
+                                }
+                                context.startActivity(intent)
                             }
                         }
 

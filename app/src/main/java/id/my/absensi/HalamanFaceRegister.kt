@@ -522,23 +522,23 @@ fun FaceRegisterScreen() {
                     Text(if (isUploading) "Mengunggah..." else "Simpan Semua Foto")
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+//                Spacer(modifier = Modifier.height(16.dp))
 
-                Button(
-                    onClick = {
-                        val intent = Intent(context, HalamanFaceLogin::class.java)
-                        context.startActivity(intent)
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(50.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF4C4C59),
-                        contentColor = Color.White
-                    )
-                ) {
-                    Text("Face Login")
-                }
+//                Button(
+//                    onClick = {
+//                        val intent = Intent(context, HalamanFaceLogin::class.java)
+//                        context.startActivity(intent)
+//                    },
+//                    modifier = Modifier
+//                        .fillMaxWidth()
+//                        .height(50.dp),
+//                    colors = ButtonDefaults.buttonColors(
+//                        containerColor = Color(0xFF4C4C59),
+//                        contentColor = Color.White
+//                    )
+//                ) {
+//                    Text("Face Login")
+//                }
             }
 
             uploadStatus?.let {

@@ -52,6 +52,7 @@ import id.my.matahati.absensi.data.OfflineManualAbsen
 import android.app.TimePickerDialog
 import android.app.DatePickerDialog
 import android.content.Intent
+import id.my.matahati.absensi.RuntimeSession.userId
 import org.json.JSONObject
 
 private val httpClient by lazy {
@@ -516,8 +517,22 @@ suspend fun uploadAbsenManual(
 ): UploadResult = withContext(Dispatchers.IO) {
     try {
         val session = SessionManager(context.applicationContext)
-        val userId = session.getUserId()
-        if (userId == -1) return@withContext UploadResult(false, "User ID tidak ditemukan")
+        val activity = context as? ComponentActivity
+        val userIdFromSession = session.getUserId()
+
+        val userId = if (userIdFromSession != -1) {
+            userIdFromSession
+        } else {
+            activity?.intent?.getIntExtra("USER_ID", -1) ?: -1
+        }
+
+        if (userId == -1) {
+            return@withContext UploadResult (
+                false,
+                "Session Telah Habis. Silahkan Login Ulang!"
+            )
+        }
+
 
         val file = getFileFromUri(photoUri, context)
         if (file == null || !file.exists()) {
