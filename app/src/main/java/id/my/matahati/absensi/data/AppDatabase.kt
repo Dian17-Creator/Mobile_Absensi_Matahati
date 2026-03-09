@@ -6,8 +6,6 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.sqlite.db.SupportSQLiteDatabase
 import androidx.room.migration.Migration
-import id.my.absensi.data.OfflineManualAbsenDao
-import id.my.matahati.absensi.data.OfflineIzinDao
 
 @Database(
     entities = [

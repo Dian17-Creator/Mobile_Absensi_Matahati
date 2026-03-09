@@ -1,4 +1,4 @@
-package id.my.absensi.data
+package id.my.matahati.absensi.data
 
 import androidx.room.Dao
 import androidx.room.Insert

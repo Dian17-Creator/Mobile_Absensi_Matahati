@@ -52,7 +52,6 @@ import id.my.matahati.absensi.data.OfflineManualAbsen
 import android.app.TimePickerDialog
 import android.app.DatePickerDialog
 import android.content.Intent
-import id.my.matahati.absensi.RuntimeSession.userId
 import org.json.JSONObject
 
 private val httpClient by lazy {

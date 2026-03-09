@@ -3,6 +3,7 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     id("org.jetbrains.kotlin.kapt")
+    id("com.google.gms.google-services")
 }
 
 android {
@@ -42,15 +43,18 @@ android {
         jvmTarget = "11"
     }
     buildFeatures {
+        buildConfig = true
         compose = true
         viewBinding = false
     }
 }
 
-
 dependencies {
     val camerax_version = "1.3.1"
     implementation(libs.androidx.compose.runtime.saveable)
+
+    //Firebase Toast Message
+    implementation("com.google.firebase:firebase-messaging:23.4.1")
 
     // Room
     kapt("androidx.room:room-compiler:2.6.1")

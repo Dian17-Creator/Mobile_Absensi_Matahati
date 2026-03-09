@@ -2,12 +2,9 @@ package id.my.matahati.absensi
 
 import androidx.compose.ui.draw.clip
 import android.content.Intent
-import android.content.Context
 import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Bundle
-import android.util.Log
-import android.view.ViewGroup
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
@@ -16,10 +13,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import android.annotation.SuppressLint
@@ -34,10 +29,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Edit
@@ -53,23 +44,14 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.style.TextAlign
 import com.google.android.gms.location.LocationServices
-import com.google.mlkit.vision.common.InputImage
-import com.google.mlkit.vision.face.Face
 import com.google.mlkit.vision.face.FaceDetection
 import com.google.mlkit.vision.face.FaceDetector
 import com.google.mlkit.vision.face.FaceDetectorOptions
 import java.util.Locale
 import id.my.matahati.absensi.data.ScheduleViewModel
-import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.MultipartBody
 import okhttp3.OkHttpClient
-import okhttp3.Request
-import okhttp3.RequestBody.Companion.toRequestBody
-import org.json.JSONObject
-import java.io.ByteArrayOutputStream
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
-import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import kotlin.jvm.java
 import androidx.compose.ui.geometry.Size
@@ -79,13 +61,8 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.MonetizationOn
-import androidx.compose.material.icons.filled.Payment
 import androidx.compose.material.icons.filled.Payments
-import id.my.matahati.absensi.RuntimeSession.userId
 import id.my.matahati.absensi.data.RetrofitClient
 
 private const val TAG = "FACE_LOGIN"

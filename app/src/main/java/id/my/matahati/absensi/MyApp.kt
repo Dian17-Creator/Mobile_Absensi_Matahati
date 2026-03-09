@@ -5,7 +5,7 @@ import android.util.Log
 import androidx.room.Room
 import androidx.work.Configuration
 import androidx.work.WorkManager
-import com.google.android.datatransport.BuildConfig
+import id.my.matahati.absensi.BuildConfig
 import id.my.matahati.absensi.data.AppDatabase
 import java.io.File
 

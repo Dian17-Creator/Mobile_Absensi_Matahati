@@ -22,7 +22,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import id.my.matahati.absensi.data.RetrofitClient
 import id.my.matahati.absensi.data.AktivitasResponse
 import kotlinx.coroutines.launch
