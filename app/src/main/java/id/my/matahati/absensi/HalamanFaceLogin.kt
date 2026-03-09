@@ -55,9 +55,6 @@ import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.face.Face
-import com.google.mlkit.vision.face.FaceDetection
-import com.google.mlkit.vision.face.FaceDetector
-import com.google.mlkit.vision.face.FaceDetectorOptions
 import android.os.Handler
 import android.os.Looper
 import android.net.wifi.WifiManager

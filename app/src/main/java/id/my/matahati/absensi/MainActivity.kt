@@ -20,6 +20,7 @@ import com.google.android.material.navigation.NavigationBarView
 import id.my.matahati.absensi.fragment.HomeFragment
 import id.my.matahati.absensi.fragment.JadwalFragment
 import id.my.matahati.absensi.fragment.PasswordFragment
+import com.google.firebase.messaging.FirebaseMessaging
 import java.io.File
 
 class MainActivity : AppCompatActivity() {
@@ -55,6 +56,17 @@ class MainActivity : AppCompatActivity() {
         }
 
         setContentView(R.layout.activity_main)
+
+        FirebaseMessaging.getInstance().token
+            .addOnCompleteListener { task ->
+                if (!task.isSuccessful) {
+                    Log.w("FCM", "Fetching FCM token failed", task.exception)
+                    return@addOnCompleteListener
+                }
+
+                val token = task.result
+                Log.d("FCM_TOKEN", token)
+            }
 
         // 🔹 Minta izin kamera & lokasi saat app dibuka
         checkAndRequestPermissions()

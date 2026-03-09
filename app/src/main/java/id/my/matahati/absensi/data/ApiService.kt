@@ -1,7 +1,5 @@
 package id.my.matahati.absensi.data
 
-import id.my.absensi.data.ScheduleApiResponse
-import id.my.matahati.absensi.data.UserContractResponse
 import retrofit2.http.GET
 import retrofit2.http.Query
 import retrofit2.http.Path
@@ -75,4 +73,11 @@ interface ApiService {
     suspend fun getAgenda(
         @Path("month") month: String
     ): List<UserAgenda>
+
+    @FormUrlEncoded
+    @POST("api/save-token")
+    suspend fun saveDeviceToken(
+        @Field("user_id") userId: Int,
+        @Field("fcm_token") token: String
+    ): Response<ApiResponse>
 }

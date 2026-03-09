@@ -3,7 +3,6 @@ package id.my.matahati.absensi.data
 import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
-import id.my.absensi.data.ShiftDay
 
 @Entity(tableName = "tuserschedule")
 data class UserSchedule(

@@ -23,26 +23,18 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import id.my.matahati.absensi.data.RetrofitClient
 import id.my.matahati.absensi.data.RetrofitClientLaravel
 import id.my.matahati.absensi.data.SalaryItem
 import id.my.matahati.absensi.utils.toRupiah
 import androidx.compose.ui.window.Dialog
 import kotlinx.coroutines.launch
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.Density
-import androidx.compose.ui.unit.LayoutDirection
 
 class HalamanGaji : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {

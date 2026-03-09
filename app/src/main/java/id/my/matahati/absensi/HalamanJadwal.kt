@@ -3,7 +3,6 @@ package id.my.matahati.absensi
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -32,7 +31,6 @@ import kotlin.math.abs
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import id.my.matahati.absensi.data.AbsensiViewModel
@@ -40,13 +38,10 @@ import java.time.LocalDate
 import java.time.YearMonth
 import androidx.compose.foundation.lazy.items
 import androidx.compose.ui.unit.sp
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import id.my.matahati.absensi.data.UserAgendaViewModel
-import id.my.matahati.absensi.RuntimeSession.userId
 import id.my.matahati.absensi.data.UserAgenda
 import id.my.matahati.absensi.data.UserContract
 import id.my.matahati.absensi.data.UserContractViewModel

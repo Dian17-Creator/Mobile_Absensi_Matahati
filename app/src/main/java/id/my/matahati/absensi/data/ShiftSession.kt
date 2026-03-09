@@ -1,4 +1,4 @@
-package id.my.absensi.data
+package id.my.matahati.absensi.data
 
 data class ShiftSession(
     val start: String,

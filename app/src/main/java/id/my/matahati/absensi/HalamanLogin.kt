@@ -38,6 +38,13 @@ import androidx.compose.foundation.background
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
+import com.google.firebase.messaging.FirebaseMessaging
+import id.my.matahati.absensi.data.RetrofitClient
+import id.my.matahati.absensi.data.RetrofitClientLaravel
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+
 
 class HalamanLogin : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -275,7 +282,32 @@ fun handleLogin(
                         "captain=${session.isCaptain()} hrd=${session.isHRD()}"
             )
 
+            // 🔔 ambil FCM token lalu kirim ke Laravel
+            FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
+                if (!task.isSuccessful) {
+                    android.util.Log.e("FCM", "Failed get token")
+                    return@addOnCompleteListener
+                }
+
+                val token = task.result
+                android.util.Log.d("FCM_TOKEN", token)
+
+                CoroutineScope(Dispatchers.IO).launch {
+                    try {
+                        val api = RetrofitClientLaravel.instance
+                        val response = api.saveDeviceToken(userId, token)
+
+                        android.util.Log.d("FCM_API_URL", response.raw().request.url.toString())
+                        android.util.Log.d("FCM_API_CODE", response.code().toString())
+
+                    } catch (e: Exception) {
+                        android.util.Log.e("FCM_API_ERROR", e.message ?: "Unknown error")
+                    }
+                }
+            }
+
             val intent = Intent(context, MainActivity::class.java)
+
             intent.putExtra("USER_ID", userId)
             intent.putExtra("USER_NAME", userName)
             intent.putExtra("USER_EMAIL", userEmail)
