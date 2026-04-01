@@ -16,7 +16,7 @@ import androidx.room.migration.Migration
         AbsensiLog::class,
         UserAgenda::class
     ],
-    version = 12, // ⬆️ pastikan versi naik setiap menambah entity baru
+    version = 13, // ⬆️ pastikan versi naik setiap menambah entity baru
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {

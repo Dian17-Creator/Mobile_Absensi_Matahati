@@ -13,5 +13,11 @@ data class OfflineManualAbsen(
     val cplacename: String,
     val reason: String,
     val photoBase64: String,
+
+    val model: String,
+    val manufacturer: String,
+    val osVersion: String,
+    val deviceId: String,
+
     val createdAt: Long = System.currentTimeMillis()
 )
