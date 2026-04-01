@@ -13,5 +13,11 @@ data class OfflineIzin(
     val category: String,
     val reason: String,
     val photoBase64: String,
+
+    // 🔥 TAMBAHAN DEVICE INFO
+    val model: String,
+    val manufacturer: String,
+    val osVersion: String,
+
     val createdAt: Long = System.currentTimeMillis()
 )
