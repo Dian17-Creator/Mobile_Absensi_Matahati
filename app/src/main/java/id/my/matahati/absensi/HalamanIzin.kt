@@ -56,6 +56,9 @@ import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.sp
+import android.os.Handler
+import android.os.Looper
+import android.os.Build
 
 private val httpClient by lazy {
     OkHttpClient.Builder()
@@ -716,6 +719,11 @@ suspend fun uploadRequest(
 ): UploadResult = withContext(Dispatchers.IO) {
     try {
         val session = SessionManager(context.applicationContext)
+
+        val model = Build.MODEL ?: ""
+        val manufacturer = Build.MANUFACTURER ?: ""
+        val osVersion = "Android ${Build.VERSION.RELEASE}"
+
         val userIdFromSession = session.getUserId()
         val activity = context as? ComponentActivity
         val userId = if (userIdFromSession != -1) {
@@ -725,32 +733,47 @@ suspend fun uploadRequest(
         }
 
         if (userId == -1) {
-            return@withContext UploadResult(false, "⚠️ Gagal mengirim izin: user tidak ditemukan", "User ID invalid")
+            return@withContext UploadResult(
+                false,
+                "⚠️ Gagal mengirim izin: user tidak ditemukan",
+                "User ID invalid"
+            )
         }
 
         val file = getFileFromUri(photoUri, context)
         if (file == null || !file.exists()) {
-            return@withContext UploadResult(false, "Foto tidak ditemukan", "Path: ${photoUri.path}")
+            return@withContext UploadResult(
+                false,
+                "Foto tidak ditemukan",
+                "Path: ${photoUri.path}"
+            )
         }
 
         val bytes = file.readBytes()
         val base64Image = android.util.Base64.encodeToString(bytes, android.util.Base64.NO_WRAP)
 
-        // 🔹 Cek koneksi internet
+        // =========================
+        // 🔹 OFFLINE MODE
+        // =========================
         if (!NetworkUtils.isOnline(context)) {
+
             val izin = OfflineIzin(
                 userId = userId,
-                coordinate = coordinate,
                 date = startDate,
+                coordinate = coordinate,
                 placeName = placeName,
                 category = category,
                 reason = reason,
-                photoBase64 = base64Image
+                photoBase64 = base64Image,
+
+                model = model,
+                manufacturer = manufacturer,
+                osVersion = osVersion
             )
 
             MyApp.db.offlineIzinDao().insert(izin)
 
-            enqueueIzinSyncWorker(context) // 🔥 aktifkan worker
+            enqueueIzinSyncWorker(context)
 
             return@withContext UploadResult(
                 success = true,
@@ -758,43 +781,37 @@ suspend fun uploadRequest(
             )
         }
 
-        // ✅ JSON body termasuk placeName
-        val jsonBody = if (reqType == "request") {
-        """
-        {
-            "userId": "$userId",
-            "creqcategory": "request",
-            "startDate": "$startDate",
-            "endDate": "$endDate",
-            "location": "$coordinate",
-            "placeName": "$placeName",
-            "category": "$category",
-            "reason": "$reason",
-            "photoBase64": "$base64Image"
+        // =========================
+        // 🔹 ONLINE MODE (SAFE JSON)
+        // =========================
+        val json = JSONObject().apply {
+            put("userId", userId)
+            put("creqcategory", reqType)
+
+            put("startDate", startDate)
+            put("endDate", endDate)
+
+            put("location", coordinate)
+            put("placeName", placeName)
+
+            put("category", category.lowercase())
+            put("reason", reason)
+            put("photoBase64", base64Image)
+
+            // 🔥 DEVICE INFO
+            put("model", model)
+            put("manufacturer", manufacturer)
+            put("os_version", osVersion)
         }
-        """
-        } else {
-        """
-        {
-            "userId": "$userId",
-            "creqcategory": "reguler",
-            "startDate": "$startDate",
-            "endDate": "$endDate",
-            "location": "$coordinate",
-            "placeName": "$placeName",
-            "category": "$category",
-            "reason": "$reason",
-            "photoBase64": "$base64Image"
-        }
-        """
-        }.trimIndent()
 
         val client = OkHttpClient.Builder()
             .connectTimeout(30, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
             .build()
 
-        val body = jsonBody.toRequestBody("application/json".toMediaTypeOrNull())
+        val body = json.toString()
+            .toRequestBody("application/json".toMediaTypeOrNull())
+
         val request = Request.Builder()
             .url("https://absensi.matahati.my.id/user_request_mobile_2.php")
             .post(body)
