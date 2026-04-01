@@ -53,6 +53,9 @@ import android.app.TimePickerDialog
 import android.app.DatePickerDialog
 import android.content.Intent
 import org.json.JSONObject
+import android.os.Handler
+import android.os.Looper
+import android.os.Build
 
 private val httpClient by lazy {
     OkHttpClient.Builder()
@@ -518,6 +521,14 @@ suspend fun uploadAbsenManual(
         val session = SessionManager(context.applicationContext)
         val activity = context as? ComponentActivity
         val userIdFromSession = session.getUserId()
+        val model = Build.MODEL ?: ""
+        val manufacturer = Build.MANUFACTURER ?: ""
+        val osVersion = "Android ${Build.VERSION.RELEASE}"
+
+        val deviceId = android.provider.Settings.Secure.getString(
+            context.contentResolver,
+            android.provider.Settings.Secure.ANDROID_ID
+        ) ?: ""
 
         val userId = if (userIdFromSession != -1) {
             userIdFromSession
@@ -555,6 +566,12 @@ suspend fun uploadAbsenManual(
                 cplacename = cplacename,
                 reason = reason,
                 photoBase64 = base64Image,
+
+                model = model,
+                manufacturer = manufacturer,
+                osVersion = osVersion,
+                deviceId = deviceId,
+
                 createdAt = System.currentTimeMillis()
             )
 
@@ -566,25 +583,31 @@ suspend fun uploadAbsenManual(
             return@withContext UploadResult(true, "📡 Data disimpan offline dan akan dikirim otomatis")
         }
 
-        // 🔹 Online Mode
-        val jsonBody = """
-        {
-            "nuserId": "$userId",
-            "dscanned": "$date $time",
-            "nlat": "$lat",
-            "nlng": "$lng",
-            "cplacename": "${cplacename.replace("\"", "'")}",
-            "creason": "$reason",
-            "photoBase64": "$base64Image"
+        // 🔹 Online Mode (FINAL FIX)
+        val json = JSONObject().apply {
+            put("nuserId", userId)
+            put("dscanned", "$date $time")
+            put("nlat", lat)
+            put("nlng", lng)
+            put("cplacename", cplacename)
+            put("creason", reason)
+            put("photoBase64", base64Image)
+
+            // 🔥 DEVICE INFO (FIX TOTAL)
+            put("model", model)
+            put("manufacturer", manufacturer)
+            put("os_version", osVersion)
+            put("device_id", deviceId)
         }
-        """.trimIndent()
 
         val client = OkHttpClient.Builder()
             .connectTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
             .readTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
             .build()
 
-        val body = jsonBody.toRequestBody("application/json".toMediaTypeOrNull())
+        val body = json.toString()
+            .toRequestBody("application/json".toMediaTypeOrNull())
+
         val request = Request.Builder()
             .url("https://absensi.matahati.my.id/mscan_manual_mobile.php")
             .post(body)
