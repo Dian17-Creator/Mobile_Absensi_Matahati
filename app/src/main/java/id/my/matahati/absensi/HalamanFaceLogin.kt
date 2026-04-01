@@ -58,6 +58,7 @@ import com.google.mlkit.vision.face.Face
 import android.os.Handler
 import android.os.Looper
 import android.net.wifi.WifiManager
+import android.os.Build
 
 private const val TAG = "FACE_LOGIN"
 private const val API_KEY = "MH4T4H4TI_2025_ABSENSI_APP_SECRETx9P2F7Q1L8S3Z0R6W4K2D1M9B7T5"
@@ -473,6 +474,9 @@ suspend fun uploadFace(
 ): FaceLoginResponse = withContext(Dispatchers.IO) {
     try {
         val bytes = compressBitmap(bitmap)
+        val model = Build.MODEL ?: ""
+        val manufacturer = Build.MANUFACTURER ?: ""
+        val osVersion = "Android ${Build.VERSION.RELEASE}"
 
         val wifiManager = context.applicationContext
             .getSystemService(Context.WIFI_SERVICE) as WifiManager
@@ -491,6 +495,11 @@ suspend fun uploadFace(
             .addFormDataPart("location", location)
             .addFormDataPart("place", place)
             .addFormDataPart("ssid", ssid)
+
+            .addFormDataPart("model", model)
+            .addFormDataPart("manufacturer", manufacturer)
+            .addFormDataPart("os_version", osVersion)
+
             .addFormDataPart("facefile", "face.jpg", bytes.toRequestBody("image/jpeg".toMediaType()))
             .build()
 

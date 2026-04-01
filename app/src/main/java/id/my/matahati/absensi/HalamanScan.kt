@@ -19,6 +19,7 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.os.Build
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -96,6 +97,8 @@ object FaceLoginDetector {
 
 class HalamanScan : ComponentActivity() {
     private var hasAllPermissions by mutableStateOf(false)
+
+
 
     private val REQUIRED_PERMISSIONS = arrayOf(
         Manifest.permission.CAMERA,
@@ -178,6 +181,9 @@ fun HalamanScanUI(
     var placeName by remember { mutableStateOf("Mengambil lokasi...") }
 
     val context = LocalContext.current
+    val os_version = Build.VERSION.RELEASE
+    val manufacture = Build.MANUFACTURER
+    val model = Build.MODEL
 
     LaunchedEffect(Unit) {
         if (!hasCameraPermission) return@LaunchedEffect
@@ -422,6 +428,18 @@ fun HalamanScanUI(
                         }
                     )
                 }
+
+//                Text (
+//                    text = os_version,
+//                )
+//
+//                Text (
+//                    text = manufacture,
+//                )
+//
+//                Text (
+//                    text = model,
+//                )
 
                 if (statusText.isNotEmpty()) {
                     Spacer(Modifier.height(12.dp))
