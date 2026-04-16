@@ -5,7 +5,9 @@ data class ApprovalItem(
     val user_name: String,
     val department: String,
     val tanggal: String,
-    val creason: String?
+    val creason: String?,
+    val cphoto_url: String?
+
 )
 
 
