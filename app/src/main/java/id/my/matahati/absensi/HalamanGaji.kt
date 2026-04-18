@@ -311,23 +311,18 @@ fun DetailGajiDialog(
                     /* ================= PENGHASILAN ================= */
                     Text("PENGHASILAN", fontWeight = FontWeight.Bold)
 
-                    RowItem("Gaji Pokok", gaji.gaji_pokok.toRupiah())
-                    RowItem("Tunjangan Makan", gaji.tunjangan_makan.toRupiah())
-                    RowItem("Tunjangan Jabatan", gaji.tunjangan_jabatan.toRupiah())
-                    RowItem("Tunjangan Transport", gaji.tunjangan_transport.toRupiah())
-                    RowItem("Tunjangan Luar Kota", gaji.tunjangan_luar_kota.toRupiah())
-                    RowItem("Tunjangan Masa Kerja", gaji.tunjangan_masa_kerja.toRupiah())
-                    RowItem("Gaji Lembur", gaji.gaji_lembur.toRupiah())
-                    RowItem("Tabungan Diambil", gaji.tabungan_diambil.toRupiah())
+                    gaji.penghasilan.forEach {
+                        RowItem(it.label, it.value.toRupiah())
+                    }
 
                     Divider(Modifier.padding(vertical = 8.dp))
 
                     /* ================= POTONGAN ================= */
                     Text("POTONGAN", fontWeight = FontWeight.Bold)
 
-                    RowItem("Keterlambatan", gaji.potongan_keterlambatan.toRupiah())
-                    RowItem("Lain-Lain", gaji.potongan_lain.toRupiah())
-                    RowItem("Tabungan", gaji.potongan_tabungan.toRupiah())
+                    gaji.potongan.forEach {
+                        RowItem(it.label, it.value.toRupiah())
+                    }
 
                     Divider(Modifier.padding(vertical = 8.dp))
 
