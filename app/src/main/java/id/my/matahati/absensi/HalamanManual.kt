@@ -56,6 +56,19 @@ import org.json.JSONObject
 import android.os.Handler
 import android.os.Looper
 import android.os.Build
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.GenericShape
+import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.coerceAtLeast
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 
 private val httpClient by lazy {
     OkHttpClient.Builder()
@@ -81,6 +94,28 @@ class HalamanManual : ComponentActivity() {
             }
         }
     }
+}
+
+fun Modifier.semiCircleTop(): Modifier {
+    return this.clip(
+        GenericShape { size, _ ->
+            moveTo(0f, 0f)
+            quadraticBezierTo(
+                size.width / 2, 200f,
+                size.width, 0f
+            )
+            lineTo(size.width, size.height)
+            lineTo(0f, size.height)
+            close()
+        }
+    )
+}
+
+@Composable
+fun rememberAdaptiveScale(baseWidthDp: Float = 411f): Float {
+    val configuration = LocalConfiguration.current
+    val screenWidthDp = configuration.screenWidthDp.toFloat()
+    return (screenWidthDp / baseWidthDp).coerceIn(0.8f, 1.2f)
 }
 
 @Composable
@@ -255,229 +290,369 @@ fun HalamanManualUI() {
         }
     }
 
-    Column(
+    val scaleFactor = rememberAdaptiveScale()
+    var showPreview by remember { mutableStateOf(false) }
+    val secondaryColor = Color(0xFF7F0B27)
+
+    //Tampilan UI
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp)
             .verticalScroll(rememberScrollState())
     ) {
-        // Header
-        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-            IconButton(onClick = { activity.finish() }, modifier = Modifier.align(Alignment.CenterStart)) {
-                Icon(Icons.Default.ArrowBack, contentDescription = "Kembali", tint = Color.Black)
-            }
-            Text(
-                text = "Absen Manual",
-                style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
-                color = Color(0xFF333333)
-            )
-        }
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height((445.dp * scaleFactor).coerceAtLeast(250.dp))
+                .align(Alignment.BottomCenter)
+                .semiCircleTop()
+                .background(primaryColor)
+        )
 
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Preview foto
-        photoUri.value?.let {
-            Image(
-                painter = rememberAsyncImagePainter(it),
-                contentDescription = "Foto absen manual",
-                modifier = Modifier
-                    .size(250.dp)
-                    .align(Alignment.CenterHorizontally)
-                    .padding(8.dp)
-            )
-        }
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        // Tombol ambil foto
-        Button(
-            onClick = { launcher.launch(null) },
-            enabled = !isLoading.value,
-            modifier = Modifier.fillMaxWidth().height(55.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = primaryColor,
-                contentColor = Color.White
-            ),
-            shape = RoundedCornerShape(8.dp)
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = (24.dp * scaleFactor))
+                .padding(top = (40.dp * scaleFactor), bottom = (24.dp * scaleFactor)),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(if (photoUri.value == null) "Ambil Foto" else "Ambil Ulang Foto")
-        }
+            Text(
+                "Absen Manual",
+                style = MaterialTheme.typography.headlineSmall,
+                modifier = Modifier.fillMaxWidth(),
+                fontWeight = FontWeight.Bold,
+                fontSize = (22.sp * scaleFactor),
+                color = Color.Black,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+            )
 
-        Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
-        OutlinedTextField(
-            value = date.value,
-            onValueChange = {},
-            readOnly = true,
-            label = { Text("Tanggal Absen") },
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = primaryColor,
-                focusedLabelColor = primaryColor,
-                cursorColor = primaryColor
-            ),
-            modifier = Modifier.fillMaxWidth(),
-            trailingIcon = {
-                IconButton(onClick = {
-                    val cal = Calendar.getInstance()
-                    DatePickerDialog(
-                        context,
-                        { _, y, m, d ->
-                            date.value = String.format("%04d-%02d-%02d", y, m + 1, d)
-                        },
-                        cal.get(Calendar.YEAR),
-                        cal.get(Calendar.MONTH),
-                        cal.get(Calendar.DAY_OF_MONTH)
-                    ).show()
-                }) {
-                    Icon(Icons.Default.DateRange, null)
-                }
-            }
-        )
+            Image(
+                painter = painterResource(id = R.drawable.attendance),
+                contentDescription = "Password illustration",
+                modifier = Modifier
+                    .size(225.dp)
+                    .padding(top = 4.dp)
+            )
 
-        Spacer(Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
-        OutlinedTextField(
-            value = time.value,
-            onValueChange = {},
-            readOnly = true,
-            label = { Text("Jam Absen") },
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = primaryColor,
-                focusedLabelColor = primaryColor,
-                cursorColor = primaryColor
-            ),
-            modifier = Modifier.fillMaxWidth(),
-            trailingIcon = {
-                IconButton(onClick = {
-                    val cal = Calendar.getInstance()
-                    TimePickerDialog(
-                        context,
-                        { _, h, m ->
-                            time.value = String.format("%02d:%02d:00", h, m)
-                        },
-                        cal.get(Calendar.HOUR_OF_DAY),
-                        cal.get(Calendar.MINUTE),
-                        true
-                    ).show()
-                }) {
-                    Icon(Icons.Default.Schedule, null)
-                }
-            }
-        )
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = (25.dp * scaleFactor)),
+                shape = RoundedCornerShape((20.dp * scaleFactor)),
+                elevation = CardDefaults.cardElevation(8.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFFDF9FC))
+            ) {
+                Column(
+                    modifier = Modifier
+                        .padding((20.dp * scaleFactor))
+                        .fillMaxWidth()
+                ) {
 
-        Spacer(Modifier.height(16.dp))
+                    // 🔽 ROW ATAS (Tanggal + Foto)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
 
-        // Alasan
-        OutlinedTextField(
-            value = reason.value,
-            onValueChange = { reason.value = it },
-            label = { Text("Alasan Absen Manual") },
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = primaryColor,
-                focusedLabelColor = primaryColor,
-                cursorColor = primaryColor
-            ),
-            modifier = Modifier.fillMaxWidth().height(120.dp)
-        )
+                        // 🔽 KIRI (Tanggal + Jam)
+                        Column(modifier = Modifier.weight(0.65f)) {
 
-        Spacer(modifier = Modifier.height(16.dp))
+                            OutlinedTextField(
+                                value = date.value,
+                                onValueChange = {},
+                                readOnly = true,
+                                label = { Text("Tanggal Absen") },
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = primaryColor,
+                                    focusedLabelColor = primaryColor
+                                ),
+                                trailingIcon = {
+                                    IconButton(onClick = {
+                                        val cal = Calendar.getInstance()
+                                        DatePickerDialog(
+                                            context,
+                                            { _, y, m, d ->
+                                                date.value = String.format("%04d-%02d-%02d", y, m + 1, d)
+                                            },
+                                            cal.get(Calendar.YEAR),
+                                            cal.get(Calendar.MONTH),
+                                            cal.get(Calendar.DAY_OF_MONTH)
+                                        ).show()
+                                    }) {
+                                        Icon(Icons.Default.DateRange, null)
+                                    }
+                                }
+                            )
 
-        // Submit
-        Button(
-            onClick = {
-                coroutineScope.launch {
-                    if (reason.value.isBlank()) {
-                        message.value = "Mohon isi alasan absen"
-                        return@launch
-                    }
-                    if (photoUri.value == null) {
-                        message.value = "Mohon ambil foto terlebih dahulu"
-                        return@launch
-                    }
+                            Spacer(modifier = Modifier.height(12.dp))
 
-                    isLoading.value = true
-                    message.value = "Mengirim data absen..."
-                    errorDetail.value = null
+                            OutlinedTextField(
+                                value = time.value,
+                                onValueChange = {},
+                                readOnly = true,
+                                label = { Text("Jam Absen") },
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = primaryColor,
+                                    focusedLabelColor = primaryColor
+                                ),
+                                trailingIcon = {
+                                    IconButton(onClick = {
+                                        val cal = Calendar.getInstance()
+                                        TimePickerDialog(
+                                            context,
+                                            { _, h, m ->
+                                                time.value = String.format("%02d:%02d:00", h, m)
+                                            },
+                                            cal.get(Calendar.HOUR_OF_DAY),
+                                            cal.get(Calendar.MINUTE),
+                                            true
+                                        ).show()
+                                    }) {
+                                        Icon(Icons.Default.Schedule, null)
+                                    }
+                                }
+                            )
+                        }
 
-                    val result = uploadAbsenManual(
-                        date.value,
-                        time.value,
-                        coords.value.first,
-                        coords.value.second,
-                        location.value,
-                        reason.value.trim(),
-                        photoUri.value!!,
-                        activity
-                    )
+                        // 🔽 KANAN (FOTO - COPY DARI ASSET NON QR STYLE)
+                        Column(modifier = Modifier.weight(0.35f)) {
 
-                    isLoading.value = false
-                    message.value =
-                        if (result.success) "✅ ${result.message}" else "❌ ${result.message}"
-                    errorDetail.value = result.errorDetail
+                            Spacer(modifier = Modifier.height(6.dp))
 
-                    // ✅ Tambahan: jika hasil berhasil, arahkan ke MainActivity
-                    if (result.success || result.message.contains("offline", true)) {
-                        withContext(Dispatchers.Main) {
-                            val msg = if (result.message.contains("offline", true))
-                                "📡 Data disimpan offline. Akan dikirim otomatis saat online!"
-                            else
-                                "✅ Data berhasil dikirim ke server!"
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(138.dp)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                                    .clickable {
+                                        if (photoUri.value == null) {
+                                            launcher.launch(null)
+                                        } else {
+                                            showPreview = true
+                                        }
+                                    },
+                                contentAlignment = Alignment.Center
+                            ) {
 
-                            Toast.makeText(activity, msg, Toast.LENGTH_LONG).show()
-
-                            // 🕒 Delay sedikit agar user bisa lihat toast
-                            kotlinx.coroutines.delay(1200)
-
-                            // 🔁 Kembali ke halaman scan
-                            val intent = Intent(activity, MainActivity::class.java)
-                            activity.startActivity(intent)
-                            activity.finish()
+                                if (photoUri.value == null) {
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                        Icon(Icons.Default.CameraAlt, contentDescription = null)
+                                        Spacer(modifier = Modifier.height(6.dp))
+                                        Text("Ambil Foto", style = MaterialTheme.typography.labelSmall)
+                                    }
+                                } else {
+                                    Image(
+                                        painter = rememberAsyncImagePainter(photoUri.value),
+                                        contentDescription = null,
+                                        modifier = Modifier.fillMaxSize()
+                                    )
+                                }
+                            }
                         }
                     }
 
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // 🔽 ALASAN (FULL WIDTH)
+                    OutlinedTextField(
+                        value = reason.value,
+                        onValueChange = { reason.value = it },
+                        label = { Text("Alasan Absen Manual") },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(120.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = primaryColor,
+                            focusedLabelColor = primaryColor
+                        )
+                    )
+
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                    // 🔽 SUBMIT (LOGIC JANGAN DIUBAH)
+                    Button(
+                        onClick = {
+                            coroutineScope.launch {
+
+                                if (reason.value.isBlank()) {
+                                    message.value = "Mohon isi alasan absen"
+                                    return@launch
+                                }
+                                if (photoUri.value == null) {
+                                    message.value = "Mohon ambil foto terlebih dahulu"
+                                    return@launch
+                                }
+
+                                isLoading.value = true
+                                message.value = "Mengirim data absen..."
+                                errorDetail.value = null
+
+                                val result = uploadAbsenManual(
+                                    date.value,
+                                    time.value,
+                                    coords.value.first,
+                                    coords.value.second,
+                                    location.value,
+                                    reason.value.trim(),
+                                    photoUri.value!!,
+                                    activity
+                                )
+
+                                isLoading.value = false
+                                message.value =
+                                    if (result.success) "✅ ${result.message}" else "❌ ${result.message}"
+                                errorDetail.value = result.errorDetail
+
+                                if (result.success || result.message.contains("offline", true)) {
+                                    withContext(Dispatchers.Main) {
+                                        val msg = if (result.message.contains("offline", true))
+                                            "📡 Data disimpan offline. Akan dikirim otomatis saat online!"
+                                        else
+                                            "✅ Data berhasil dikirim ke server!"
+
+                                        Toast.makeText(activity, msg, Toast.LENGTH_LONG).show()
+
+                                        kotlinx.coroutines.delay(1200)
+
+                                        val intent = Intent(activity, MainActivity::class.java)
+                                        activity.startActivity(intent)
+                                        activity.finish()
+                                    }
+                                }
+                            }
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(50.dp),
+                        enabled = !isLoading.value,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFF4C4C59),
+                            contentColor = Color.White
+                        ),
+                    ) {
+                        if (isLoading.value) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                strokeWidth = 2.dp,
+                                color = Color.White
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Mengirim...")
+                        } else {
+                            Text("Submit")
+                        }
+                    }
                 }
-            },
-            modifier = Modifier.fillMaxWidth().height(55.dp),
-            enabled = !isLoading.value,
-            colors = ButtonDefaults.buttonColors(
-                containerColor = Color(0xFF4C4C59),
-                contentColor = Color.White
-            ),
-            shape = RoundedCornerShape(8.dp)
-        ) {
-            if (isLoading.value) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(20.dp),
-                    strokeWidth = 2.dp,
-                    color = Color.White
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Mengirim...")
-            } else {
-                Text("Submit")
             }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Status
+//            if (message.value.isNotEmpty()) {
+//                Column(
+//                    modifier = Modifier.fillMaxWidth(),
+//                    horizontalAlignment = Alignment.CenterHorizontally
+//                ) {
+//                    Text(
+//                        text = message.value,
+//                        color = when {
+//                            message.value.startsWith("✅") -> Color(0xFF2ECC71)
+//                            message.value.startsWith("❌") -> Color.Red
+//                            else -> Color(0xFFF39C12)
+//                        },
+//                        fontWeight = FontWeight.Medium
+//                    )
+//                    errorDetail.value?.let {
+//                        Spacer(modifier = Modifier.height(4.dp))
+//                        Text(text = it, color = Color.Gray, style = MaterialTheme.typography.bodySmall)
+//                    }
+//                }
+//            }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        if (showPreview && photoUri != null) {
+            Dialog(onDismissRequest = { showPreview = false }) {
 
-        // Status
-        if (message.value.isNotEmpty()) {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(
-                    text = message.value,
-                    color = when {
-                        message.value.startsWith("✅") -> Color(0xFF2ECC71)
-                        message.value.startsWith("❌") -> Color.Red
-                        else -> Color(0xFFF39C12)
-                    },
-                    fontWeight = FontWeight.Medium
-                )
-                errorDetail.value?.let {
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(text = it, color = Color.Gray, style = MaterialTheme.typography.bodySmall)
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+
+                    Card(
+                        shape = RoundedCornerShape(20.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        elevation = CardDefaults.cardElevation(8.dp),
+                        modifier = Modifier
+                            .padding(20.dp)
+                            .fillMaxWidth()
+                    ) {
+
+                        Box {
+                            // 🔽 CONTENT DALAM CARD
+                            Column(
+                                modifier = Modifier.padding(16.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+
+                                // 📷 IMAGE (ADA PADDING, TIDAK FULL)
+                                Image(
+                                    painter = rememberAsyncImagePainter(photoUri.value),
+                                    contentDescription = null,
+                                    contentScale = ContentScale.FillWidth,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .wrapContentHeight() // 🔥 penting
+                                        .clip(RoundedCornerShape(8.dp))
+                                )
+
+                                Spacer(modifier = Modifier.height(12.dp))
+
+                                // 🔁 BUTTON DI BAWAH IMAGE
+                                Button(
+                                    onClick = {
+                                        showPreview = false
+                                        launcher.launch(null)
+                                    },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(50.dp),
+                                    shape = RoundedCornerShape(10.dp),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = secondaryColor,
+                                        contentColor = Color.White
+                                    ),
+                                ) {
+                                    Text("Ambil Ulang")
+                                }
+                            }
+
+                            // ❌ CLOSE (FLOATING DI CARD, BUKAN DI IMAGE)
+                            IconButton(
+                                onClick = { showPreview = false },
+                                modifier = Modifier
+                                    .align(Alignment.TopEnd)
+                                    .padding(12.dp)
+                                    .size(36.dp)
+                                    .background(
+                                        Color.Black.copy(alpha = 0.4f),
+                                        shape = CircleShape
+                                    )
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Close,
+                                    contentDescription = null,
+                                    tint = Color.White
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }
