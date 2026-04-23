@@ -59,6 +59,16 @@ import androidx.compose.ui.unit.sp
 import android.os.Handler
 import android.os.Looper
 import android.os.Build
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.coerceAtLeast
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.platform.LocalContext
 
 private val httpClient by lazy {
     OkHttpClient.Builder()
@@ -129,6 +139,7 @@ fun HalamanIzinUI() {
     val showEndPicker = remember { mutableStateOf(false) }
     val startDatePickerState = rememberDatePickerState()
     val endDatePickerState = rememberDatePickerState()
+    val context = LocalContext.current
 
     if (showStartPicker.value) {
         DatePickerDialog(
@@ -308,403 +319,430 @@ fun HalamanIzinUI() {
         }
     }
 
-    Column(
+    val scaleFactor = rememberAdaptiveScale()
+    var showPreview by remember { mutableStateOf(false) }
+    val secondaryColor = Color(0xFF7F0B27)
+
+    //Tampilan Ui
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp)
             .verticalScroll(rememberScrollState())
     ) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 10.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            IconButton(
-                onClick = { activity.finish() },
-                modifier = Modifier.align(Alignment.CenterStart)
-            ) {
-                Icon(Icons.Default.ArrowBack, contentDescription = "Kembali", tint = Color.Black)
-            }
-            Text(
-                text = "Izin Tidak Masuk",
-                style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
-                color = Color(0xFF333333)
-            )
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        photoUri.value?.let {
-                Image(
-                    painter = rememberAsyncImagePainter(it),
-                    contentDescription = "Foto izin",
-                    modifier = Modifier
-                        .size(200.dp)
-                        .align(Alignment.CenterHorizontally)
-                        .padding(8.dp)
-                )
-        }
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        Button(
-            onClick = { launcher.launch(null) },
-            enabled = !isLoading.value,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(50.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = Color(0xFFB63352),
-                contentColor = Color.White
-            ),
-            shape = RoundedCornerShape(8.dp)
-        ) {
-            Text("Ambil Foto")
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Field Lokasi (alamat readable dari Nominatim)
-        OutlinedTextField(
-            value = "📍 ${locationName.value}",
-            onValueChange = {},
-            label = { Text("Lokasi") },
-            enabled = false,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 4.dp),
-            maxLines = 2
+                .height((445.dp * scaleFactor).coerceAtLeast(250.dp))
+                .align(Alignment.BottomCenter)
+                .semiCircleTop()
+                .background(primaryColor)
         )
 
-        Spacer(modifier = Modifier.height(6.dp))
-
-        // 🔽 Dropdown Kategori
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = (24.dp * scaleFactor))
+                .padding(top = (20.dp * scaleFactor), bottom = (24.dp * scaleFactor)),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-
-            // =========================
-            // KATEGORI (KIRI)
-            // =========================
-            var expandedKategori by remember { mutableStateOf(false) }
-            val kategoriList = listOf("Izin", "Sakit")
-
-            ExposedDropdownMenuBox(
-                expanded = expandedKategori,
-                onExpandedChange = { expandedKategori = !expandedKategori },
-                modifier = Modifier.weight(1f)
-            ) {
-                OutlinedTextField(
-                    value = category.value,
-                    onValueChange = {},
-                    readOnly = true,
-                    label = { Text("Kategori") },
-                    textStyle = TextStyle(fontSize = 14.sp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = primaryColor,
-                        focusedLabelColor = primaryColor,
-                        cursorColor = primaryColor
-                    ),
-                    trailingIcon = {
-                        Icon(
-                            imageVector = if (expandedKategori)
-                                Icons.Filled.KeyboardArrowUp
-                            else
-                                Icons.Filled.KeyboardArrowDown,
-                            contentDescription = null
-                        )
-                    },
-                    modifier = Modifier
-                        .menuAnchor()
-                        .fillMaxWidth()
-                )
-
-                ExposedDropdownMenu(
-                    expanded = expandedKategori,
-                    onDismissRequest = { expandedKategori = false }
+            Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                IconButton(
+                    onClick = { (context as Activity).finish() },
+                    modifier = Modifier.align(Alignment.CenterStart)
                 ) {
-                    kategoriList.forEach { item ->
-                        DropdownMenuItem(
-                            text = { Text(item) },
-                            onClick = {
-                                category.value = item
-                                expandedKategori = false
-                            }
-                        )
-                    }
+                    Icon(Icons.Default.ArrowBack, null, tint = Color(0xFF000000))
                 }
-            }
 
-            // =========================
-            // TIPE ABSEN (KANAN)
-            // =========================
-            var expandedType by remember { mutableStateOf(false) }
-            val typeList = listOf("Reguler", "Multi Tanggal")
-
-            ExposedDropdownMenuBox(
-                expanded = expandedType,
-                onExpandedChange = { expandedType = !expandedType },
-                modifier = Modifier.weight(1f)
-            ) {
-                OutlinedTextField(
-                    value = if (reqType.value == "reguler") "Reguler" else "Multi Tanggal",
-                    onValueChange = {},
-                    readOnly = true,
-                    label = { Text("Tipe Absen") },
-                    textStyle = TextStyle(fontSize = 14.sp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = primaryColor,
-                        focusedLabelColor = primaryColor,
-                        cursorColor = primaryColor
-                    ),
-                    trailingIcon = {
-                        Icon(
-                            imageVector = if (expandedType)
-                                Icons.Filled.KeyboardArrowUp
-                            else
-                                Icons.Filled.KeyboardArrowDown,
-                            contentDescription = null
-                        )
-                    },
-                    modifier = Modifier
-                        .menuAnchor()
-                        .fillMaxWidth()
-                )
-
-                ExposedDropdownMenu(
-                    expanded = expandedType,
-                    onDismissRequest = { expandedType = false }
-                ) {
-                    typeList.forEach { item ->
-                        DropdownMenuItem(
-                            text = { Text(item) },
-                            onClick = {
-                                reqType.value =
-                                    if (item == "Reguler") "reguler" else "request"
-                                expandedType = false
-                            }
-                        )
-                    }
-                }
-            }
-        }
-
-        //Untuk reguler tanggal
-        // 📅 TANGGAL REGULER (1 hari)
-        if (reqType.value == "reguler") {
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            OutlinedTextField(
-                value = startDateDisplay.value,
-                onValueChange = {},
-                readOnly = true,
-                label = { Text("Tanggal Izin") },
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = primaryColor,
-                    focusedLabelColor = primaryColor,
-                    cursorColor = primaryColor
-                ),
-                trailingIcon = {
-                    Icon(
-                        imageVector = Icons.Default.DateRange,
-                        contentDescription = "Pilih tanggal",
-                        modifier = Modifier.clickable {
-                            showStartPicker.value = true
-                        }
-                    )
-                },
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
-
-        //Untuk multi tanggal
-        if (reqType.value == "request") {
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-
-                // 📅 Dari Tanggal
-                OutlinedTextField(
-                    value = startDateDisplay.value,
-                    onValueChange = {},
-                    readOnly = true,
-                    label = { Text("Mulai") },
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = primaryColor,
-                        focusedLabelColor = primaryColor,
-                        cursorColor = primaryColor
-                    ),
-                    textStyle = TextStyle(fontSize = 12.sp),
-                    trailingIcon = {
-                        Icon(
-                            imageVector = Icons.Default.DateRange,
-                            contentDescription = "Pilih tanggal mulai",
-                            modifier = Modifier.clickable {
-                                showStartPicker.value = true
-                            }
-                        )
-                    },
-                    modifier = Modifier.weight(1f)
-                )
-
-                // teks "Sampai"
+                /* ================= TITLE ================= */
                 Text(
-                    text = "Sampai",
-                    modifier = Modifier.padding(horizontal = 8.dp),
-                    style = MaterialTheme.typography.bodyMedium
-                )
-
-                // 📅 Sampai Tanggal
-                OutlinedTextField(
-                    value = endDateDisplay.value,
-                    onValueChange = {},
-                    readOnly = true,
-                    label = { Text("Berakhir") },
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = primaryColor,
-                        focusedLabelColor = primaryColor,
-                        cursorColor = primaryColor
-                    ),
-                    textStyle = TextStyle(fontSize = 12.sp),
-                    trailingIcon = {
-                        Icon(
-                            imageVector = Icons.Default.DateRange,
-                            contentDescription = "Pilih tanggal akhir",
-                            modifier = Modifier.clickable {
-                                showEndPicker.value = true
-                            }
-                        )
-                    },
-                    modifier = Modifier.weight(1f),
+                    text = "Izin Tidak Masuk",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Black,
+                    modifier = Modifier
+                        .fillMaxWidth(),
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
                 )
             }
-        }
 
-        Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
-        OutlinedTextField(
-            value = reason.value,
-            onValueChange = { reason.value = it },
-            label = { Text("Alasan Izin") },
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = primaryColor,
-                focusedLabelColor = primaryColor,
-                cursorColor = primaryColor
-            ),
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(120.dp)
-        )
+            Image(
+                painter = painterResource(id = R.drawable.izin),
+                contentDescription = "Password illustration",
+                modifier = Modifier
+                    .size(225.dp)
+                    .padding(top = 4.dp)
+            )
 
-        Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
-        Button(
-            onClick = {
-                coroutineScope.launch {
-                    if (reason.value.isBlank()) {
-                        message.value = "Mohon isi alasan izin"
-                        return@launch
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = (25.dp * scaleFactor)),
+                shape = RoundedCornerShape((20.dp * scaleFactor)),
+                elevation = CardDefaults.cardElevation(8.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFFDF9FC))
+            ) {
+                Column(
+                    modifier = Modifier
+                        .padding((20.dp * scaleFactor))
+                        .fillMaxWidth()
+                ) {
+
+                    // 🔽 LOKASI (FULL)
+                    OutlinedTextField(
+                        value = "📍 ${locationName.value}",
+                        onValueChange = {},
+                        label = { Text("Lokasi") },
+                        enabled = false,
+                        modifier = Modifier.fillMaxWidth(),
+                        maxLines = 2
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // 🔽 ROW: KATEGORI + FOTO
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+
+                        // 🔽 KATEGORI
+                        Column(modifier = Modifier.weight(0.65f)) {
+
+                            var expandedKategori by remember { mutableStateOf(false) }
+                            val kategoriList = listOf("Izin", "Sakit")
+
+                            ExposedDropdownMenuBox(
+                                expanded = expandedKategori,
+                                onExpandedChange = { expandedKategori = !expandedKategori }
+                            ) {
+                                OutlinedTextField(
+                                    value = category.value,
+                                    onValueChange = {},
+                                    readOnly = true,
+                                    label = { Text("Kategori") },
+                                    modifier = Modifier
+                                        .menuAnchor()
+                                        .fillMaxWidth(),
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedBorderColor = primaryColor,
+                                        focusedLabelColor = primaryColor
+                                    )
+                                )
+
+                                ExposedDropdownMenu(
+                                    expanded = expandedKategori,
+                                    onDismissRequest = { expandedKategori = false }
+                                ) {
+                                    kategoriList.forEach {
+                                        DropdownMenuItem(
+                                            text = { Text(it) },
+                                            onClick = {
+                                                category.value = it
+                                                expandedKategori = false
+                                            }
+                                        )
+                                    }
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            // 🔽 TIPE ABSEN (FULL)
+                            var expandedType by remember { mutableStateOf(false) }
+                            val typeList = listOf("Reguler", "Multi Tanggal")
+
+                            ExposedDropdownMenuBox(
+                                expanded = expandedType,
+                                onExpandedChange = { expandedType = !expandedType }
+                            ) {
+                                OutlinedTextField(
+                                    value = if (reqType.value == "reguler") "Reguler" else "Multi Tanggal",
+                                    onValueChange = {},
+                                    readOnly = true,
+                                    label = { Text("Tipe Absen") },
+                                    modifier = Modifier
+                                        .menuAnchor()
+                                        .fillMaxWidth(),
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedBorderColor = primaryColor,
+                                        focusedLabelColor = primaryColor
+                                    )
+                                )
+
+                                ExposedDropdownMenu(
+                                    expanded = expandedType,
+                                    onDismissRequest = { expandedType = false }
+                                ) {
+                                    typeList.forEach {
+                                        DropdownMenuItem(
+                                            text = { Text(it) },
+                                            onClick = {
+                                                reqType.value =
+                                                    if (it == "Reguler") "reguler" else "request"
+                                                expandedType = false
+                                            }
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        // 🔽 FOTO
+                        Column(modifier = Modifier.weight(0.35f)) {
+
+                            Spacer(modifier = Modifier.height(6.dp))
+
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(135.dp)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                                    .clickable {
+                                        if (photoUri.value == null) {
+                                            launcher.launch(null)
+                                        } else {
+                                            showPreview = true
+                                        }
+                                    },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                if (photoUri.value == null) {
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                        Icon(Icons.Default.CameraAlt, null)
+                                        Spacer(modifier = Modifier.height(6.dp))
+                                        Text("Ambil Foto", style = MaterialTheme.typography.labelSmall)
+                                    }
+                                } else {
+                                    Image(
+                                        painter = rememberAsyncImagePainter(photoUri.value),
+                                        contentDescription = null,
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentScale = ContentScale.Crop
+                                    )
+                                }
+                            }
+                        }
                     }
-                    if (photoUri.value == null) {
-                        message.value = "Mohon ambil foto terlebih dahulu"
-                        return@launch
-                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // 🔽 TANGGAL
                     if (reqType.value == "reguler") {
-                        endDateValue.value = startDateValue.value
-                    }
-                    isLoading.value = true
-                    message.value = "Mengirim permintaan izin..."
-                    errorDetail.value = null
+                        OutlinedTextField(
+                            value = startDateDisplay.value,
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("Tanggal Izin") },
+                            modifier = Modifier.fillMaxWidth(),
+                            trailingIcon = {
+                                Icon(Icons.Default.DateRange, null,
+                                    modifier = Modifier.clickable {
+                                        showStartPicker.value = true
+                                    })
+                            }
+                        )
+                    } else {
+                        Row(modifier = Modifier.fillMaxWidth()) {
 
-                    val result = uploadRequest(
-                        coordinate = coordinate.value,
-                        placeName = locationName.value,
-                        category = category.value,
-                        reason = reason.value.trim(),
-                        photoUri = photoUri.value!!,
-                        reqType = reqType.value,                 // ⬅️
-                        startDate = startDateValue.value,        // ⬅️
-                        endDate = endDateValue.value,            // ⬅️
-                        context = activity
-                    )
+                            OutlinedTextField(
+                                value = startDateDisplay.value,
+                                onValueChange = {},
+                                readOnly = true,
+                                label = { Text("Mulai") },
+                                modifier = Modifier.weight(1f),
+                                trailingIcon = {
+                                    Icon(Icons.Default.DateRange, null,
+                                        modifier = Modifier.clickable {
+                                            showStartPicker.value = true
+                                        })
+                                }
+                            )
 
-                    isLoading.value = false
-                    message.value =
-                        if (result.success) "✅ ${result.message}" else "❌ ${result.message}"
-                    errorDetail.value = result.errorDetail
+                            Spacer(modifier = Modifier.width(8.dp))
 
-                    // ✅ Tambahan: jika hasil berhasil, arahkan ke MainActivity
-                    if (result.success || result.message.contains("offline", true)) {
-                        withContext(Dispatchers.Main) {
-                            val msg = if (result.message.contains("offline", true))
-                                "📡 Data disimpan offline. Akan dikirim otomatis saat online!"
-                            else
-                                "✅ Izin berhasil dikirim ke server!"
-
-                            Toast.makeText(activity, msg, Toast.LENGTH_LONG).show()
-                            kotlinx.coroutines.delay(1200)
-
-                            val intent = Intent(activity, MainActivity::class.java)
-                            activity.startActivity(intent)
-                            activity.finish()
+                            OutlinedTextField(
+                                value = endDateDisplay.value,
+                                onValueChange = {},
+                                readOnly = true,
+                                label = { Text("Selesai") },
+                                modifier = Modifier.weight(1f),
+                                trailingIcon = {
+                                    Icon(Icons.Default.DateRange, null,
+                                        modifier = Modifier.clickable {
+                                            showEndPicker.value = true
+                                        })
+                                }
+                            )
                         }
                     }
 
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // 🔽 ALASAN
+                    OutlinedTextField(
+                        value = reason.value,
+                        onValueChange = { reason.value = it },
+                        label = { Text("Alasan") },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(90.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = primaryColor,
+                            focusedLabelColor = primaryColor
+                        )
+                    )
+
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                    // 🔽 SUBMIT (LOGIC TETAP)
+                    Button(
+                        onClick = {
+                            coroutineScope.launch {
+                                if (reason.value.isBlank()) {
+                                    message.value = "Mohon isi alasan izin"
+                                    return@launch
+                                }
+                                if (photoUri.value == null) {
+                                    message.value = "Mohon ambil foto terlebih dahulu"
+                                    return@launch
+                                }
+                                if (reqType.value == "reguler") {
+                                    endDateValue.value = startDateValue.value
+                                }
+
+                                isLoading.value = true
+                                message.value = "Mengirim permintaan izin..."
+                                errorDetail.value = null
+
+                                val result = uploadRequest(
+                                    coordinate = coordinate.value,
+                                    placeName = locationName.value,
+                                    category = category.value,
+                                    reason = reason.value.trim(),
+                                    photoUri = photoUri.value!!,
+                                    reqType = reqType.value,
+                                    startDate = startDateValue.value,
+                                    endDate = endDateValue.value,
+                                    context = activity
+                                )
+
+                                isLoading.value = false
+                                message.value =
+                                    if (result.success) "✅ ${result.message}" else "❌ ${result.message}"
+                                errorDetail.value = result.errorDetail
+
+                                if (result.success || result.message.contains("offline", true)) {
+                                    withContext(Dispatchers.Main) {
+                                        Toast.makeText(activity, "Data Berhasil Dikirim Ke Server", Toast.LENGTH_LONG).show()
+                                        kotlinx.coroutines.delay(1200)
+                                        activity.startActivity(Intent(activity, MainActivity::class.java))
+                                        activity.finish()
+                                    }
+                                }
+                            }
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(50.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFF4C4C59),
+                            contentColor = Color.White
+                        ),
+                        enabled = !isLoading.value
+                    ) {
+                        Text(if (isLoading.value) "Loading..." else "Submit")
+                    }
                 }
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(50.dp),
-            enabled = !isLoading.value,
-            colors = ButtonDefaults.buttonColors(
-                containerColor = Color(0xFF4C4C59),
-                contentColor = Color.White
-            ),
-            shape = RoundedCornerShape(8.dp)
-        ) {
-            if (isLoading.value) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(20.dp),
-                    strokeWidth = 2.dp,
-                    color = Color.White
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Mengirim...")
-            } else {
-                Text("Submit")
             }
-        }
 
-        Spacer(modifier = Modifier.height(16.dp))
+            if (showPreview && photoUri != null) {
+                Dialog(onDismissRequest = { showPreview = false }) {
 
-        if (message.value.isNotEmpty()) {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(
-                    text = message.value,
-                    color = when {
-                        message.value.startsWith("✅") -> Color(0xFF2ECC71)
-                        message.value.startsWith("❌") -> Color.Red
-                        else -> Color(0xFFF39C12)
-                    },
-                    fontWeight = FontWeight.Medium
-                )
-                errorDetail.value?.let {
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(text = it, color = Color.Gray, style = MaterialTheme.typography.bodySmall)
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+
+                        Card(
+                            shape = RoundedCornerShape(20.dp),
+                            colors = CardDefaults.cardColors(containerColor = Color.White),
+                            elevation = CardDefaults.cardElevation(8.dp),
+                            modifier = Modifier
+                                .padding(20.dp)
+                                .fillMaxWidth()
+                        ) {
+
+                            Box {
+                                // 🔽 CONTENT DALAM CARD
+                                Column(
+                                    modifier = Modifier.padding(16.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+
+                                    // 📷 IMAGE (ADA PADDING, TIDAK FULL)
+                                    Image(
+                                        painter = rememberAsyncImagePainter(photoUri.value),
+                                        contentDescription = null,
+                                        contentScale = ContentScale.FillWidth,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .wrapContentHeight() // 🔥 penting
+                                            .clip(RoundedCornerShape(8.dp))
+                                    )
+
+                                    Spacer(modifier = Modifier.height(12.dp))
+
+                                    // 🔁 BUTTON DI BAWAH IMAGE
+                                    Button(
+                                        onClick = {
+                                            showPreview = false
+                                            launcher.launch(null)
+                                        },
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(50.dp),
+                                        shape = RoundedCornerShape(10.dp),
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = secondaryColor,
+                                            contentColor = Color.White
+                                        ),
+                                    ) {
+                                        Text("Ambil Ulang")
+                                    }
+                                }
+
+                                // ❌ CLOSE (FLOATING DI CARD, BUKAN DI IMAGE)
+                                IconButton(
+                                    onClick = { showPreview = false },
+                                    modifier = Modifier
+                                        .align(Alignment.TopEnd)
+                                        .padding(12.dp)
+                                        .size(36.dp)
+                                        .background(
+                                            Color.Black.copy(alpha = 0.4f),
+                                            shape = CircleShape
+                                        )
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Close,
+                                        contentDescription = null,
+                                        tint = Color.White
+                                    )
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
     }
+
+
 }
 suspend fun uploadRequest(
     photoUri: Uri,
