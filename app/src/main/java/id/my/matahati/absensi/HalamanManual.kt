@@ -329,7 +329,7 @@ fun HalamanManualUI() {
             Spacer(modifier = Modifier.height(8.dp))
 
             Image(
-                painter = painterResource(id = R.drawable.attendance),
+                painter = painterResource(id = R.drawable.izin),
                 contentDescription = "Password illustration",
                 modifier = Modifier
                     .size(225.dp)
