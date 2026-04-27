@@ -86,8 +86,8 @@ fun sendToVerify(context: Context, token: String, onResult: (ScanResult) -> Unit
 
 fun sendOnline(context: Context, scan: OfflineScan, onResult: (ScanResult) -> Unit) {
     val client = OkHttpClient()
-    val url = "https://absensi.matahati.my.id/verify.php"
-    //val url = "https://absensi.karyatra.cloud/verify.php"
+    // val url = "https://absensi.matahati.my.id/verify.php"
+    val url = "https://absensi.karyatra.cloud/verify.php"
 
     val json = JSONObject().apply {
         put("token", scan.token)
