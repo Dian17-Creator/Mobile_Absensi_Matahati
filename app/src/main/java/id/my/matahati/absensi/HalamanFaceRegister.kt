@@ -63,9 +63,13 @@ import com.google.mlkit.vision.face.FaceDetectorOptions
 
 private const val TAG_FACE = "FACE_REGISTER"
 private val httpClient by lazy { OkHttpClient() }
-private const val FACE_UPLOAD_URL = "https://absensi.matahati.my.id/user_face_mobile.php"
-private const val FACE_STATUS_URL = "https://absensi.matahati.my.id/user_face_status_mobile.php"
-private const val FACE_RESET_URL = "https://absensi.matahati.my.id/user_face_reset_mobile.php"
+//private const val FACE_UPLOAD_URL = "https://absensi.matahati.my.id/user_face_mobile.php"
+//private const val FACE_STATUS_URL = "https://absensi.matahati.my.id/user_face_status_mobile.php"
+//private const val FACE_RESET_URL = "https://absensi.matahati.my.id/user_face_reset_mobile.php"
+
+private const val FACE_UPLOAD_URL = "https://absensi.karyatra.cloud/user_face_mobile.php"
+private const val FACE_STATUS_URL = "https://absensi.karyatra.cloud/user_face_status_mobile.php"
+private const val FACE_RESET_URL = "https://absensi.karyatra.cloud/user_face_reset_mobile.php"
 
 enum class FaceApprovalStatus {
     NONE,

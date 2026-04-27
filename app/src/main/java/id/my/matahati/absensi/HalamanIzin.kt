@@ -263,8 +263,8 @@ fun HalamanIzinUI() {
             coroutineScope.launch(Dispatchers.IO) {
                 try {
 
-                    val url =
-                        "https://absensi.matahati.my.id/reverse_geocode.php?lat=$lat&lon=$lng"
+                    // val url = "https://absensi.matahati.my.id/reverse_geocode.php?lat=$lat&lon=$lng"
+                    val url = "https://absensi.karyatra.cloud/reverse_geocode.php?lat=$lat&lon=$lng"
 
                     Log.d("IZIN_DEBUG", "CALL SERVER: $url")
 
@@ -539,6 +539,10 @@ fun HalamanIzinUI() {
                             readOnly = true,
                             label = { Text("Tanggal Izin") },
                             modifier = Modifier.fillMaxWidth(),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = primaryColor,
+                                focusedLabelColor = primaryColor
+                            ),
                             trailingIcon = {
                                 Icon(Icons.Default.DateRange, null,
                                     modifier = Modifier.clickable {
@@ -555,6 +559,11 @@ fun HalamanIzinUI() {
                                 readOnly = true,
                                 label = { Text("Mulai") },
                                 modifier = Modifier.weight(1f),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = primaryColor,
+                                    focusedLabelColor = primaryColor
+                                ),
+                                textStyle = TextStyle(fontSize = 14.sp),
                                 trailingIcon = {
                                     Icon(Icons.Default.DateRange, null,
                                         modifier = Modifier.clickable {
@@ -571,6 +580,11 @@ fun HalamanIzinUI() {
                                 readOnly = true,
                                 label = { Text("Selesai") },
                                 modifier = Modifier.weight(1f),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = primaryColor,
+                                    focusedLabelColor = primaryColor
+                                ),
+                                textStyle = TextStyle(fontSize = 14.sp),
                                 trailingIcon = {
                                     Icon(Icons.Default.DateRange, null,
                                         modifier = Modifier.clickable {
@@ -851,7 +865,10 @@ suspend fun uploadRequest(
             .toRequestBody("application/json".toMediaTypeOrNull())
 
         val request = Request.Builder()
-            .url("https://absensi.matahati.my.id/user_request_mobile_2.php")
+
+            // .url("https://absensi.matahati.my.id/user_request_mobile_2.php")
+            .url("https://absensi.karyatra.cloud/user_request_mobile_2.php")
+
             .post(body)
             .addHeader("Accept", "application/json")
             .build()

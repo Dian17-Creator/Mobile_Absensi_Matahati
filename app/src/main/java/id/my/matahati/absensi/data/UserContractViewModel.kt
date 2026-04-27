@@ -26,8 +26,8 @@ class UserContractViewModel : ViewModel() {
             _error.value = null
 
             try {
-                val url =
-                    "https://absensi.matahati.my.id/user_contract_mobile.php?userid=$userId"
+                // val url = "https://absensi.matahati.my.id/user_contract_mobile.php?userid=$userId"
+                val url = "https://absensi.karyatra.cloud/user_contract_mobile.php?userid=$userId"
 
                 val response = ApiClient.apiService.getUserContract(url)
 
