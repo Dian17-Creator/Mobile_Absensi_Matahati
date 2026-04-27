@@ -224,8 +224,8 @@ fun HalamanManualUI() {
                             val lat = loc.latitude
                             val lng = loc.longitude
 
-                            val url =
-                                "https://absensi.matahati.my.id/reverse_geocode.php?lat=$lat&lon=$lng"
+                            val url = "https://absensi.matahati.my.id/reverse_geocode.php?lat=$lat&lon=$lng"
+                            // val url = "https://absensi.karyatra.cloud/reverse_geocode.php?lat=$lat&lon=$lng"
 
                             Log.d("MANUAL_DEBUG", "CALL SERVER: $url")
 
@@ -329,7 +329,7 @@ fun HalamanManualUI() {
             Spacer(modifier = Modifier.height(8.dp))
 
             Image(
-                painter = painterResource(id = R.drawable.izin),
+                painter = painterResource(id = R.drawable.attendance),
                 contentDescription = "Password illustration",
                 modifier = Modifier
                     .size(225.dp)
@@ -784,7 +784,10 @@ suspend fun uploadAbsenManual(
             .toRequestBody("application/json".toMediaTypeOrNull())
 
         val request = Request.Builder()
+
             .url("https://absensi.matahati.my.id/mscan_manual_mobile.php")
+            // .url("https://absensi.karyatra.cloud/mscan_manual_mobile.php")
+
             .post(body)
             .addHeader("Accept", "application/json")
             .build()
