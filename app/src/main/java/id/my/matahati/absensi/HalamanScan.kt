@@ -65,6 +65,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.filled.Payments
 import id.my.matahati.absensi.data.RetrofitClient
+import id.my.matahati.absensi.data.RetrofitClientLaravel
 
 private const val TAG = "FACE_LOGIN"
 private const val API_KEY = "MH4T4H4TI_2025_ABSENSI_APP_SECRETx9P2F7Q1L8S3Z0R6W4K2D1M9B7T5"
@@ -94,8 +95,6 @@ object FaceLoginDetector {
         FaceDetection.getClient(options)
     }
 }
-
-
 
 class HalamanScan : ComponentActivity() {
     private var hasAllPermissions by mutableStateOf(false)
@@ -169,7 +168,10 @@ fun HalamanScanUI(
     hasCameraPermission: Boolean,
     onRequestPermission: () -> Unit,
 ) {
+    //    Pending Approval & Gaji
     var hasPendingApproval by remember { mutableStateOf(false) }
+    var hasPendingGaji by remember { mutableStateOf(false) }
+
     var isSessionStarted by remember { mutableStateOf(false) }
     var showSuccessDialog by remember { mutableStateOf(false) }
     var isCameraReady by remember { mutableStateOf(false) }
@@ -279,6 +281,10 @@ fun HalamanScanUI(
         }
     }
 
+    LaunchedEffect(Unit) {
+        hasPendingGaji = checkPendingGaji(userId)
+    }
+
     val lifecycleOwner = LocalLifecycleOwner.current
 
     DisposableEffect(lifecycleOwner) {
@@ -286,8 +292,8 @@ fun HalamanScanUI(
             if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
                 // 🔥 RELOAD SAAT BALIK KE HOME
                 CoroutineScope(Dispatchers.Main).launch {
-                    hasPendingApproval =
-                        checkPendingApproval(userId, isCaptainOrAbove)
+                    hasPendingApproval = checkPendingApproval(userId, isCaptainOrAbove)
+                    hasPendingGaji = checkPendingGaji(userId)
                 }
             }
         }
@@ -584,7 +590,8 @@ fun HalamanScanUI(
                         item {
                             UserActionItem(
                                 icon = Icons.Default.Payments,
-                                label = "Gaji"
+                                label = "Gaji",
+                                showBadge = hasPendingGaji
                             ) {
                                 context.startActivity(Intent(context, HalamanGaji::class.java))
                             }
@@ -872,6 +879,19 @@ class BottomCurveShape(
             close()
         }
     )
+}
+
+suspend fun checkPendingGaji(userId: Int): Boolean {
+    return try {
+        val response = RetrofitClientLaravel.instance.getUserSalary(userId)
+
+        val data = response.body()?.data ?: emptyList()
+
+        data.any { it.status.equals("PENDING", true) }
+
+    } catch (e: Exception) {
+        false
+    }
 }
 
 suspend fun checkPendingApproval(
