@@ -856,7 +856,7 @@ fun UserActionItem(
 
 
 class BottomCurveShape(
-    private val curveHeight: Float = 120f // tinggi lengkungan
+    private val curveHeight: Float = 120f
 ) : Shape {
     override fun createOutline(
         size: Size,
