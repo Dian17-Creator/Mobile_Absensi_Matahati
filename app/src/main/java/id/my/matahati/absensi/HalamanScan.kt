@@ -99,12 +99,12 @@ object FaceLoginDetector {
 class HalamanScan : ComponentActivity() {
     private var hasAllPermissions by mutableStateOf(false)
 
-
-
     private val REQUIRED_PERMISSIONS = arrayOf(
         Manifest.permission.CAMERA,
         Manifest.permission.ACCESS_FINE_LOCATION,
-        Manifest.permission.ACCESS_COARSE_LOCATION
+        Manifest.permission.ACCESS_COARSE_LOCATION,
+        Manifest.permission.ACCESS_NOTIFICATION_POLICY
+
     )
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -856,7 +856,7 @@ fun UserActionItem(
 
 
 class BottomCurveShape(
-    private val curveHeight: Float = 120f // tinggi lengkungan
+    private val curveHeight: Float = 120f
 ) : Shape {
     override fun createOutline(
         size: Size,

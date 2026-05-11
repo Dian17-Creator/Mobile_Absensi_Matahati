@@ -17,7 +17,8 @@
     <!-- Permission SSID WIFI-->
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE"/>
 
-    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" tools:ignore="UnusedAttribute" />
+    <!-- Permission Notifikasi -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <!-- Nyatakan kamera opsional -->
     <uses-feature android:name="android.hardware.camera" android:required="false" />
