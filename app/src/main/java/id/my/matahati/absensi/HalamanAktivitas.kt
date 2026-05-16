@@ -191,17 +191,6 @@ fun HalamanAktivitasScreen() {
                 }
             }
         }
-
-        // NAVBAR
-//        Box(
-//            modifier = Modifier
-//                .fillMaxWidth()
-//                .height(50.dp)
-//                .background(Color(0xFFE0E0E0)),
-//            contentAlignment = Alignment.Center
-//        ) {
-//            Text("NAVBAR", fontSize = 14.sp)
-//        }
     }
 }
 // ------------------------------------------------------------

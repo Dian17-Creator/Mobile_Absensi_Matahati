@@ -91,6 +91,9 @@ class SessionManager(context: Context) {
     fun isCaptainOrAbove(): Boolean =
         isCaptain() || isAdmin() || isHRD()
 
+    fun isHRDOrAbove(): Boolean =
+        isHRD()
+
     // ================= STATUS =================
     fun isLoggedIn(): Boolean = prefs.getBoolean(KEY_IS_LOGGED_IN, false)
     fun isRememberMe(): Boolean = prefs.getBoolean(KEY_REMEMBER_ME, false)
