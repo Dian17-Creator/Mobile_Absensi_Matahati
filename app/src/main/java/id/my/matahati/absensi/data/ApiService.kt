@@ -4,9 +4,11 @@ import retrofit2.http.GET
 import retrofit2.http.Query
 import retrofit2.http.Path
 import retrofit2.Response
+import retrofit2.http.Body
 import retrofit2.http.FormUrlEncoded
 import retrofit2.http.POST
 import retrofit2.http.Field
+import retrofit2.http.Header
 import retrofit2.http.Url
 
 interface ApiService {
@@ -80,4 +82,19 @@ interface ApiService {
         @Field("user_id") userId: Int,
         @Field("fcm_token") token: String
     ): Response<ApiResponse>
+
+    @POST("api/user/store")
+    suspend fun storeUser(
+        @Header("Authorization") token: String,
+        @Body request: UserStoreRequest
+    ): Response<ApiResponse>
+
+    @GET("api/department/list")
+    suspend fun getDepartments(): Response<DepartmentResponse>
+
+    @GET("api/bank/list")
+    suspend fun getBankList(): Response<BankResponse>
+
+    @GET("api/rekening/mandiri")
+    suspend fun getMandiriRekening(): Response<RekeningResponse>
 }
