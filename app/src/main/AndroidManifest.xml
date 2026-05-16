@@ -132,6 +132,12 @@
             android:label="Absensi"
             android:theme="@style/Theme.MyApplication"/>
 
+        <activity
+            android:name=".HalamanTambahUser"
+            android:exported="true"
+            android:label="TambahUser"
+            android:theme="@style/Theme.MyApplication"/>
+
         <service
             android:name=".FirebaseService"
             android:exported="false">
