@@ -64,6 +64,7 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.filled.Payments
+import androidx.compose.material.icons.filled.PersonAdd
 import id.my.matahati.absensi.data.RetrofitClient
 import id.my.matahati.absensi.data.RetrofitClientLaravel
 
@@ -248,6 +249,10 @@ fun HalamanScanUI(
 
     val isCaptainOrAbove = remember {
         session.isCaptainOrAbove()
+    }
+
+    val isHRDOrAbove = remember {
+        session.isHRDOrAbove()
     }
 
     val activity = context as? ComponentActivity
@@ -608,6 +613,17 @@ fun HalamanScanUI(
                                 }
                             }
                         }
+
+                        if(isHRDOrAbove)
+                            item {
+                                UserActionItem(
+                                    icon = Icons.Default.PersonAdd,
+                                    label = "Tambah User",
+                                    iconColor = Color(0xFFD32F2F)
+                                ) {
+                                    context.startActivity(Intent(context, HalamanApproval::class.java))
+                                }
+                            }
 
                         item {
                             UserActionItem(
