@@ -28,6 +28,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import id.my.matahati.absensi.data.DepartmentItem
+import id.my.matahati.absensi.data.RekeningItem
+import id.my.matahati.absensi.data.RetrofitClient
+import id.my.matahati.absensi.data.RetrofitClientLaravel
 
 class HalamanTambahUser : ComponentActivity() {
 
@@ -62,9 +66,79 @@ fun HalamanTambahUserUI() {
     var namaLengkap by remember { mutableStateOf("") }
     var rekening by remember { mutableStateOf("") }
 
+    var selectedBank by remember {
+        mutableStateOf("")
+    }
+
+    var selectedDepartment by remember {
+        mutableStateOf("")
+    }
+
+    var selectedPayrollDepartment by remember {
+        mutableStateOf("")
+    }
+
+    var bankList by remember {
+        mutableStateOf<List<String>>(emptyList())
+    }
+
+    var selectedRekening by remember {
+        mutableStateOf<RekeningItem?>(null)
+    }
+
+    var departments by remember {
+        mutableStateOf<List<DepartmentItem>>(emptyList())
+    }
+
+    var rekeningList by remember {
+        mutableStateOf<List<RekeningItem>>(emptyList())
+    }
+
+    LaunchedEffect(Unit) {
+
+        try {
+
+            val response =
+                RetrofitClientLaravel.instance.getDepartments()
+
+            if (response.isSuccessful) {
+
+                departments =
+                    response.body()?.data ?: emptyList()
+
+            }
+
+            val bankResponse =
+                RetrofitClientLaravel.instance.getBankList()
+
+            if (bankResponse.isSuccessful) {
+
+                bankList =
+                    bankResponse.body()?.data ?: emptyList()
+            }
+
+            val rekeningResponse =
+                RetrofitClientLaravel.instance.getMandiriRekening()
+
+            if (rekeningResponse.isSuccessful) {
+
+                rekeningList =
+                    rekeningResponse.body()?.data ?: emptyList()
+            }
+
+        } catch (e: Exception) {
+
+            e.printStackTrace()
+
+        }
+    }
+
+    val departmentList =
+        departments.map { it.cname }
+
     // ======================
-// STATE
-// ======================
+    // STATE
+    // ======================
 
     var tanggalMasuk by remember { mutableStateOf("") }
 
@@ -190,50 +264,105 @@ fun HalamanTambahUserUI() {
                     modifier = Modifier.padding(20.dp)
                 ) {
 
-                    CustomField("Username", username) {
-                        username = it
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier.weight(1f)
+                        ){
+                            CustomField("Username", username) {
+                                username = it
+                            }
+                        }
+
+                        Column(
+                            modifier = Modifier.weight(1f)
+                        ){
+
+                            CustomField("Gmail", gmail) {
+                                gmail = it
+                            }
+
+                        }
                     }
 
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    CustomField("Gmail", gmail) {
-                        gmail = it
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier.weight(1f)
+                        ){
+                            CustomField("Password", password) {
+                                password = it
+                            }
+                        }
+
+                        Column(
+                            modifier = Modifier.weight(1f)
+                        ){
+
+                            CustomField("No. Telepon", telepon) {
+                                telepon = it
+                            }
+
+                        }
                     }
 
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    CustomField("Password", password) {
-                        password = it
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier.weight(1.3f)
+                        ){
+                            CustomField("No. KTP", ktp) {
+                                ktp = it
+                            }
+                        }
+
+                        Column(
+                            modifier = Modifier.weight(0.7f)
+                        ){
+
+                            CustomField("Finger ID", fingerId) {
+                                fingerId = it
+                            }
+
+                        }
                     }
 
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    CustomField("No. Telepon", telepon) {
-                        telepon = it
-                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
 
-                    Spacer(modifier = Modifier.height(12.dp))
+                        // NAMA (lebih kecil)
+                        Column(
+                            modifier = Modifier.weight(0.7f)
+                        ) {
 
-                    CustomField("No. KTP", ktp) {
-                        ktp = it
-                    }
+                            CustomField("Nama", nama) {
+                                nama = it
+                            }
+                        }
 
-                    Spacer(modifier = Modifier.height(12.dp))
+                        // NAMA LENGKAP (lebih panjang)
+                        Column(
+                            modifier = Modifier.weight(1.3f)
+                        ) {
 
-                    CustomField("Finger ID", fingerId) {
-                        fingerId = it
-                    }
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    CustomField("Nama", nama) {
-                        nama = it
-                    }
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    CustomField("Nama Lengkap", namaLengkap) {
-                        namaLengkap = it
+                            CustomField("Nama Lengkap", namaLengkap) {
+                                namaLengkap = it
+                            }
+                        }
                     }
 
                     Spacer(modifier = Modifier.height(12.dp))
@@ -271,15 +400,60 @@ fun HalamanTambahUserUI() {
 
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    DummyDropdown("Jenis Bank")
+                    CustomDropdown(
+                        label = "Jenis Bank",
+                        items = bankList,
+                        selectedItem = selectedBank,
+                        onItemSelected = {
+                            selectedBank = it
+                        }
+                    )
+
+                    if (selectedBank == "Mandiri") {
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        CustomDropdown(
+                            label = "Pilih Rekening Sumber",
+
+                            items = rekeningList.map {
+                                it.nomor_rekening
+                            },
+
+                            selectedItem =
+                                selectedRekening?.nomor_rekening ?: "",
+
+                            onItemSelected = { selected ->
+
+                                selectedRekening =
+                                    rekeningList.find {
+                                        it.nomor_rekening == selected
+                                    }
+                            }
+                        )
+                    }
 
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    DummyDropdown("Departemen")
+                    CustomDropdown(
+                        label = "Departemen",
+                        items = departmentList,
+                        selectedItem = selectedDepartment,
+                        onItemSelected = {
+                            selectedDepartment = it
+                        }
+                    )
 
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    DummyDropdown("Payroll Department")
+                    CustomDropdown(
+                        label = "Payroll Department",
+                        items = departmentList,
+                        selectedItem = selectedPayrollDepartment,
+                        onItemSelected = {
+                            selectedPayrollDepartment = it
+                        }
+                    )
 
                     Spacer(modifier = Modifier.height(20.dp))
 
@@ -363,28 +537,78 @@ fun CustomField(
         label = {
             Text(label)
         },
+
+        // 🔥 penting
+        singleLine = true,
+        maxLines = 1,
+
         shape = RoundedCornerShape(12.dp)
     )
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DummyDropdown(
-    label: String
+fun CustomDropdown(
+    label: String,
+    items: List<String>,
+    selectedItem: String,
+    onItemSelected: (String) -> Unit
 ) {
 
-    OutlinedTextField(
-        value = "",
-        onValueChange = {},
-        modifier = Modifier.fillMaxWidth(),
-        readOnly = true,
-        label = {
-            Text(label)
-        },
-        placeholder = {
-            Text("-- Pilih --")
-        },
-        shape = RoundedCornerShape(12.dp)
-    )
+    var expanded by remember {
+        mutableStateOf(false)
+    }
+
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = {
+            expanded = !expanded
+        }
+    ) {
+
+        OutlinedTextField(
+            value = selectedItem,
+            onValueChange = {},
+            readOnly = true,
+            modifier = Modifier
+                .fillMaxWidth()
+                .menuAnchor(),
+
+            label = {
+                Text(label)
+            },
+
+            trailingIcon = {
+                ExposedDropdownMenuDefaults.TrailingIcon(expanded)
+            },
+
+            shape = RoundedCornerShape(12.dp)
+        )
+
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = {
+                expanded = false
+            }
+        ) {
+
+            items.forEach { item ->
+
+                DropdownMenuItem(
+                    text = {
+                        Text(item)
+                    },
+
+                    onClick = {
+
+                        onItemSelected(item)
+                        expanded = false
+
+                    }
+                )
+            }
+        }
+    }
 }
 
 @Composable
