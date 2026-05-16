@@ -621,7 +621,7 @@ fun HalamanScanUI(
                                     label = "Tambah User",
                                     iconColor = Color(0xFFD32F2F)
                                 ) {
-                                    context.startActivity(Intent(context, HalamanApproval::class.java))
+                                    context.startActivity(Intent(context, HalamanTambahUser::class.java))
                                 }
                             }
 

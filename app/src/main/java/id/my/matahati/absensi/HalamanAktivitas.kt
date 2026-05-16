@@ -193,9 +193,7 @@ fun HalamanAktivitasScreen() {
         }
     }
 }
-// ------------------------------------------------------------
-//  CARD ITEM
-// ------------------------------------------------------------
+
 @Composable
 fun AktivitasCard(item: AktivitasResponse) {
     // Tentukan status gabungan (final)
@@ -241,9 +239,7 @@ fun AktivitasCard(item: AktivitasResponse) {
         }
     }
 }
-// ------------------------------------------------------------
-//  STATUS BUTTON
-// ------------------------------------------------------------
+
 @Composable
 fun StatusButton(status: String) {
     val color = when (status.lowercase()) {
