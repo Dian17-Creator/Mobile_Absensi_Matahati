@@ -2,6 +2,8 @@
 
 package id.my.matahati.absensi
 
+import android.R.attr.maxLines
+import android.R.attr.singleLine
 import android.app.Activity
 import android.os.Bundle
 import android.widget.Toast
@@ -39,6 +41,15 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import android.util.Log
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.coerceAtLeast
 
 class HalamanTambahUser : ComponentActivity() {
@@ -65,9 +76,16 @@ fun HalamanTambahUserUI() {
     val primaryColor = Color(0xFFB63352)
     val context = LocalContext.current
 
+    val focusManager = LocalFocusManager.current
+
     var username by remember { mutableStateOf("") }
     var gmail by remember { mutableStateOf("") }
+
     var password by remember { mutableStateOf("") }
+    var passwordVisible by remember {
+        mutableStateOf(false)
+    }
+
     var telepon by remember { mutableStateOf("") }
     var ktp by remember { mutableStateOf("") }
     var fingerId by remember { mutableStateOf("") }
@@ -201,6 +219,7 @@ fun HalamanTambahUserUI() {
     Box(
         modifier = Modifier
             .fillMaxSize()
+            .imePadding()
             .verticalScroll(rememberScrollState())
     ) {
 
@@ -280,6 +299,7 @@ fun HalamanTambahUserUI() {
                         CustomField(
                             label = "Username or Email",
                             value = username,
+
                         ) {
                             username = it
                         }
@@ -293,7 +313,31 @@ fun HalamanTambahUserUI() {
 
                         Spacer(modifier = Modifier.height(12.dp))
 
-                        CustomField("Password", password) {
+                        CustomField(
+                            label = "Password",
+                            value = password,
+                            visualTransformation = if (passwordVisible)
+                                VisualTransformation.None
+                            else
+                                PasswordVisualTransformation(),
+
+                            trailingIcon = {
+
+                                val image =
+                                    if (passwordVisible)
+                                        Icons.Filled.Visibility
+                                    else
+                                        Icons.Filled.VisibilityOff
+
+                                IconButton(
+                                    onClick = {
+                                        passwordVisible = !passwordVisible
+                                    }
+                                ) {
+                                    Icon(image, contentDescription = null)
+                                }
+                            }
+                        ) {
                             password = it
                         }
 
@@ -326,33 +370,6 @@ fun HalamanTambahUserUI() {
                         CustomField("Nama Lengkap", namaLengkap) {
                             namaLengkap = it
                         }
-
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        OutlinedTextField(
-                            value = tanggalMasuk,
-                            onValueChange = {},
-                            modifier = Modifier.fillMaxWidth(),
-                            readOnly = true,
-                            label = {
-                                Text("Tanggal Masuk")
-                            },
-                            trailingIcon = {
-
-                                IconButton(
-                                    onClick = {
-                                        showDatePicker = true
-                                    }
-                                ) {
-
-                                    Icon(
-                                        imageVector = Icons.Default.DateRange,
-                                        contentDescription = null
-                                    )
-                                }
-                            },
-                            shape = RoundedCornerShape(5.dp)
-                        )
 
                         Spacer(modifier = Modifier.height(12.dp))
 
@@ -431,46 +448,102 @@ fun HalamanTambahUserUI() {
                             }
                         )
 
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        OutlinedTextField(
+                            value = tanggalMasuk,
+                            onValueChange = {},
+                            modifier = Modifier.fillMaxWidth(),
+                            readOnly = true,
+                            label = {
+                                Text("Tanggal Masuk")
+                            },
+                            trailingIcon = {
+
+                                IconButton(
+                                    onClick = {
+                                        showDatePicker = true
+                                    }
+                                ) {
+
+                                    Icon(
+                                        imageVector = Icons.Default.DateRange,
+                                        contentDescription = null
+                                    )
+                                }
+                            },
+                            shape = RoundedCornerShape(5.dp)
+                        )
+
                         Spacer(modifier = Modifier.height(20.dp))
 
                         Text(
                             text = "Role User",
+                            modifier = Modifier.fillMaxWidth(),
                             fontWeight = FontWeight.Bold,
-                            fontSize = 18.sp
+                            fontSize = 18.sp,
+                            textAlign = TextAlign.Center
                         )
 
                         Spacer(modifier = Modifier.height(12.dp))
 
                         val roleList = listOf(
-                            "Captain",
-                            "Supervisor",
+                            "Crew",
                             "Senior",
-                            "Crew"
+                            "Captain",
+                            "Supervisor"
                         )
 
-                        Column {
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
 
-                            roleList.forEach { role ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
 
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(vertical = 1.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
+                                RoleButton(
+                                    text = "Crew",
+                                    selected = selectedRole == "Crew",
+                                    onClick = {
+                                        selectedRole = "Crew"
+                                    },
+                                    modifier = Modifier.weight(1f)
+                                )
 
-                                    RadioButton(
-                                        selected = selectedRole == role,
-                                        onClick = {
-                                            selectedRole = role
-                                        }
-                                    )
+                                RoleButton(
+                                    text = "Senior",
+                                    selected = selectedRole == "Senior",
+                                    onClick = {
+                                        selectedRole = "Senior"
+                                    },
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
 
-                                    Text(
-                                        text = role,
-                                        fontSize = 16.sp
-                                    )
-                                }
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+
+                                RoleButton(
+                                    text = "Captain",
+                                    selected = selectedRole == "Captain",
+                                    onClick = {
+                                        selectedRole = "Captain"
+                                    },
+                                    modifier = Modifier.weight(1f)
+                                )
+
+                                RoleButton(
+                                    text = "Supervisor",
+                                    selected = selectedRole == "Supervisor",
+                                    onClick = {
+                                        selectedRole = "Supervisor"
+                                    },
+                                    modifier = Modifier.weight(1f)
+                                )
                             }
                         }
 
@@ -619,6 +692,17 @@ fun CustomField(
     label: String,
     value: String,
     modifier: Modifier = Modifier,
+
+    visualTransformation: VisualTransformation =
+        VisualTransformation.None,
+
+    trailingIcon: @Composable (() -> Unit)? = null,
+
+    imeAction: ImeAction = ImeAction.Next,
+
+    keyboardActions: KeyboardActions =
+        KeyboardActions.Default,
+
     onChange: (String) -> Unit
 ) {
 
@@ -626,18 +710,32 @@ fun CustomField(
 
     OutlinedTextField(
         value = value,
+
         onValueChange = onChange,
+
         modifier = modifier.fillMaxWidth(),
+
+        visualTransformation = visualTransformation,
+
+        trailingIcon = trailingIcon,
+
+        keyboardOptions = KeyboardOptions(
+            imeAction = imeAction
+        ),
+
+        keyboardActions = keyboardActions,
+
         colors = OutlinedTextFieldDefaults.colors(
             focusedBorderColor = primaryColor,
             focusedLabelColor = primaryColor
         ),
+
         label = {
             Text(label)
         },
 
-        // 🔥 penting
         singleLine = true,
+
         maxLines = 1,
 
         shape = RoundedCornerShape(5.dp)
@@ -652,6 +750,8 @@ fun CustomDropdown(
     selectedItem: String,
     onItemSelected: (String) -> Unit
 ) {
+
+    val primaryColor = Color(0xFFB63352)
 
     var expanded by remember {
         mutableStateOf(false)
@@ -671,6 +771,10 @@ fun CustomDropdown(
             modifier = Modifier
                 .fillMaxWidth()
                 .menuAnchor(),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = primaryColor,
+                focusedLabelColor = primaryColor
+            ),
 
             label = {
                 Text(label)
@@ -706,5 +810,52 @@ fun CustomDropdown(
                 )
             }
         }
+    }
+}
+
+@Composable
+fun RoleButton(
+    text: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+
+    val primaryColor = Color(0xFFB63352)
+
+    Button(
+        onClick = onClick,
+
+        modifier = modifier
+            .height(52.dp),
+
+        colors = ButtonDefaults.buttonColors(
+
+            containerColor =
+                if (selected)
+                    primaryColor
+                else
+                    Color(0xFFF3F3F3),
+
+            contentColor =
+                if (selected)
+                    Color.White
+                else
+                    Color.DarkGray
+        ),
+
+        elevation = ButtonDefaults.buttonElevation(
+            defaultElevation =
+                if (selected) 4.dp else 0.dp
+        ),
+
+        shape = RoundedCornerShape(10.dp)
+    ) {
+
+        Text(
+            text = text,
+            fontWeight = FontWeight.SemiBold,
+            fontSize = 14.sp
+        )
     }
 }
