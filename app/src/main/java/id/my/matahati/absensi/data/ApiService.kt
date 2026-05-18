@@ -95,6 +95,6 @@ interface ApiService {
     @GET("api/bank/list")
     suspend fun getBankList(): Response<BankResponse>
 
-    @GET("api/rekening/mandiri")
+    @GET("api/mandiri/rekening")
     suspend fun getMandiriRekening(): Response<RekeningResponse>
 }

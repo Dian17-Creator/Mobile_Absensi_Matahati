@@ -54,7 +54,7 @@ class HalamanTambahUser : ComponentActivity() {
 @Composable
 fun HalamanTambahUserUI() {
 
-    val primaryColor = Color(0xFF198754)
+    val primaryColor = Color(0xFFB63352)
 
     var username by remember { mutableStateOf("") }
     var gmail by remember { mutableStateOf("") }
@@ -71,16 +71,18 @@ fun HalamanTambahUserUI() {
     }
 
     var selectedDepartment by remember {
-        mutableStateOf("")
+        mutableStateOf<DepartmentItem?>(null)
     }
 
     var selectedPayrollDepartment by remember {
-        mutableStateOf("")
+        mutableStateOf<DepartmentItem?>(null)
     }
 
-    var bankList by remember {
-        mutableStateOf<List<String>>(emptyList())
-    }
+    val bankList = listOf(
+        "Mandiri",
+        "BCA",
+        "BRI"
+    )
 
     var selectedRekening by remember {
         mutableStateOf<RekeningItem?>(null)
@@ -108,15 +110,6 @@ fun HalamanTambahUserUI() {
 
             }
 
-            val bankResponse =
-                RetrofitClientLaravel.instance.getBankList()
-
-            if (bankResponse.isSuccessful) {
-
-                bankList =
-                    bankResponse.body()?.data ?: emptyList()
-            }
-
             val rekeningResponse =
                 RetrofitClientLaravel.instance.getMandiriRekening()
 
@@ -136,26 +129,17 @@ fun HalamanTambahUserUI() {
     val departmentList =
         departments.map { it.cname }
 
-    // ======================
-    // STATE
-    // ======================
-
     var tanggalMasuk by remember { mutableStateOf("") }
 
     var selectedRole by remember {
         mutableStateOf("Crew")
     }
 
-// DATE PICKER
     val datePickerState = rememberDatePickerState()
+
     var showDatePicker by remember {
         mutableStateOf(false)
     }
-
-
-// ======================
-// DATE PICKER DIALOG
-// ======================
 
     if (showDatePicker) {
 
@@ -241,18 +225,23 @@ fun HalamanTambahUserUI() {
 
             // GAMBAR
             Image(
-                painter = painterResource(id = R.drawable.attendance),
+                painter = painterResource(id = R.drawable.user),
                 contentDescription = null,
                 modifier = Modifier
-                    .size(180.dp),
+                    .size(225.dp).padding(top = 4.dp),
                 contentScale = ContentScale.Fit
             )
 
             Spacer(modifier = Modifier.height(16.dp))
 
+            val scrollState = rememberScrollState()
+
             // CARD FORM
             Card(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 500.dp),
+
                 shape = RoundedCornerShape(20.dp),
                 elevation = CardDefaults.cardElevation(8.dp),
                 colors = CardDefaults.cardColors(
@@ -260,261 +249,260 @@ fun HalamanTambahUserUI() {
                 )
             ) {
 
-                Column(
-                    modifier = Modifier.padding(20.dp)
+                Box(
+                    modifier = Modifier.fillMaxSize()
                 ) {
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        Column(
-                            modifier = Modifier.weight(1f)
-                        ){
-                            CustomField("Username", username) {
-                                username = it
-                            }
-                        }
-
-                        Column(
-                            modifier = Modifier.weight(1f)
-                        ){
-
-                            CustomField("Gmail", gmail) {
-                                gmail = it
-                            }
-
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        Column(
-                            modifier = Modifier.weight(1f)
-                        ){
-                            CustomField("Password", password) {
-                                password = it
-                            }
-                        }
-
-                        Column(
-                            modifier = Modifier.weight(1f)
-                        ){
-
-                            CustomField("No. Telepon", telepon) {
-                                telepon = it
-                            }
-
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        Column(
-                            modifier = Modifier.weight(1.3f)
-                        ){
-                            CustomField("No. KTP", ktp) {
-                                ktp = it
-                            }
-                        }
-
-                        Column(
-                            modifier = Modifier.weight(0.7f)
-                        ){
-
-                            CustomField("Finger ID", fingerId) {
-                                fingerId = it
-                            }
-
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    Column(
+                        modifier = Modifier
+                            .padding(20.dp)
+                            .padding(end = 6.dp) // kasih ruang untuk scrollbar
+                            .verticalScroll(scrollState)
                     ) {
 
-                        // NAMA (lebih kecil)
-                        Column(
-                            modifier = Modifier.weight(0.7f)
+                        CustomField(
+                            label = "Username",
+                            value = username
                         ) {
-
-                            CustomField("Nama", nama) {
-                                nama = it
-                            }
+                            username = it
                         }
 
-                        // NAMA LENGKAP (lebih panjang)
-                        Column(
-                            modifier = Modifier.weight(1.3f)
-                        ) {
+                        Spacer(modifier = Modifier.height(12.dp))
 
-                            CustomField("Nama Lengkap", namaLengkap) {
-                                namaLengkap = it
-                            }
+                        CustomField("Gmail", gmail) {
+                            gmail = it
                         }
-                    }
 
-                    Spacer(modifier = Modifier.height(12.dp))
 
-                    OutlinedTextField(
-                        value = tanggalMasuk,
-                        onValueChange = {},
-                        modifier = Modifier.fillMaxWidth(),
-                        readOnly = true,
-                        label = {
-                            Text("Tanggal Masuk")
-                        },
-                        trailingIcon = {
+                        Spacer(modifier = Modifier.height(12.dp))
 
-                            IconButton(
-                                onClick = {
-                                    showDatePicker = true
+                        CustomField("Password", password) {
+                            password = it
+                        }
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        CustomField("No. Telepon", telepon) {
+                            telepon = it
+                        }
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        CustomField("No. KTP", ktp) {
+                            ktp = it
+                        }
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        CustomField("Finger ID", fingerId) {
+                            fingerId = it
+                        }
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        CustomField("Nama", nama) {
+                            nama = it
+                        }
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        CustomField("Nama Lengkap", namaLengkap) {
+                            namaLengkap = it
+                        }
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        OutlinedTextField(
+                            value = tanggalMasuk,
+                            onValueChange = {},
+                            modifier = Modifier.fillMaxWidth(),
+                            readOnly = true,
+                            label = {
+                                Text("Tanggal Masuk")
+                            },
+                            trailingIcon = {
+
+                                IconButton(
+                                    onClick = {
+                                        showDatePicker = true
+                                    }
+                                ) {
+
+                                    Icon(
+                                        imageVector = Icons.Default.DateRange,
+                                        contentDescription = null
+                                    )
                                 }
-                            ) {
+                            },
+                            shape = RoundedCornerShape(5.dp)
+                        )
 
-                                Icon(
-                                    imageVector = Icons.Default.DateRange,
-                                    contentDescription = null
-                                )
-                            }
-                        },
-                        shape = RoundedCornerShape(12.dp)
-                    )
+                        Spacer(modifier = Modifier.height(12.dp))
 
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    CustomField("Nomor Rekening", rekening) {
-                        rekening = it
-                    }
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    CustomDropdown(
-                        label = "Jenis Bank",
-                        items = bankList,
-                        selectedItem = selectedBank,
-                        onItemSelected = {
-                            selectedBank = it
+                        CustomField("Nomor Rekening", rekening) {
+                            rekening = it
                         }
-                    )
-
-                    if (selectedBank == "Mandiri") {
 
                         Spacer(modifier = Modifier.height(12.dp))
 
                         CustomDropdown(
-                            label = "Pilih Rekening Sumber",
+                            label = "Jenis Bank",
+                            items = bankList,
+                            selectedItem = selectedBank,
+                            onItemSelected = {
+                                selectedBank = it
+                            }
+                        )
 
-                            items = rekeningList.map {
-                                it.nomor_rekening
+                        if (selectedBank == "Mandiri") {
+
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            CustomDropdown(
+                                label = "Pilih Rekening Sumber",
+
+                                items = rekeningList.map {
+                                    "${it.bank} - ${it.nomor_rekening} (${it.atasNama ?: "-"})"
+                                },
+
+                                selectedItem =
+                                    if (selectedRekening != null)
+                                        "${selectedRekening!!.bank} - ${selectedRekening!!.nomor_rekening} (${selectedRekening!!.atasNama ?: "-"})"
+                                    else "",
+
+                                onItemSelected = { selected ->
+
+                                    selectedRekening =
+                                        rekeningList.find {
+                                            "${it.bank} - ${it.nomor_rekening} (${it.atasNama ?: "-"})" == selected
+                                        }
+                                }
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        CustomDropdown(
+                            label = "Departemen",
+                            items = departments.map {
+                                it.cname
                             },
-
                             selectedItem =
-                                selectedRekening?.nomor_rekening ?: "",
-
+                                selectedDepartment?.cname ?: "",
                             onItemSelected = { selected ->
-
-                                selectedRekening =
-                                    rekeningList.find {
-                                        it.nomor_rekening == selected
+                                selectedDepartment =
+                                    departments.find {
+                                        it.cname == selected
                                     }
                             }
                         )
-                    }
 
-                    Spacer(modifier = Modifier.height(12.dp))
+                        Spacer(modifier = Modifier.height(12.dp))
 
-                    CustomDropdown(
-                        label = "Departemen",
-                        items = departmentList,
-                        selectedItem = selectedDepartment,
-                        onItemSelected = {
-                            selectedDepartment = it
-                        }
-                    )
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    CustomDropdown(
-                        label = "Payroll Department",
-                        items = departmentList,
-                        selectedItem = selectedPayrollDepartment,
-                        onItemSelected = {
-                            selectedPayrollDepartment = it
-                        }
-                    )
-
-                    Spacer(modifier = Modifier.height(20.dp))
-
-                    Text(
-                        text = "Role User",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 18.sp
-                    )
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    val roleList = listOf(
-                        "Captain",
-                        "Supervisor",
-                        "Senior",
-                        "Crew"
-                    )
-
-                    Column {
-
-                        roleList.forEach { role ->
-
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 4.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-
-                                RadioButton(
-                                    selected = selectedRole == role,
-                                    onClick = {
-                                        selectedRole = role
+                        CustomDropdown(
+                            label = "Payroll Department",
+                            items = departments.map {
+                                it.cname
+                            },
+                            selectedItem =
+                                selectedPayrollDepartment?.cname ?: "",
+                            onItemSelected = { selected ->
+                                selectedPayrollDepartment =
+                                    departments.find {
+                                        it.cname == selected
                                     }
-                                )
-
-                                Text(
-                                    text = role,
-                                    fontSize = 16.sp
-                                )
                             }
-                        }
-                    }
+                        )
 
-                    Spacer(modifier = Modifier.height(24.dp))
-
-                    Button(
-                        onClick = {},
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(52.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFF4C4C59)
-                        ),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
+                        Spacer(modifier = Modifier.height(20.dp))
 
                         Text(
-                            text = "Simpan",
-                            color = Color.White,
-                            fontSize = 16.sp
+                            text = "Role User",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 18.sp
+                        )
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        val roleList = listOf(
+                            "Captain",
+                            "Supervisor",
+                            "Senior",
+                            "Crew"
+                        )
+
+                        Column {
+
+                            roleList.forEach { role ->
+
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 2.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+
+                                    RadioButton(
+                                        selected = selectedRole == role,
+                                        onClick = {
+                                            selectedRole = role
+                                        }
+                                    )
+
+                                    Text(
+                                        text = role,
+                                        fontSize = 16.sp
+                                    )
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(24.dp))
+
+                        Button(
+                            onClick = {},
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(52.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color(0xFF4C4C59)
+                            ),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+
+                            Text(
+                                text = "Simpan",
+                                color = Color.White,
+                                fontSize = 16.sp
+                            )
+                        }
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.CenterEnd)
+                            .padding(end = 10.dp)
+                            .width(4.dp)
+                            .height(350.dp) // tinggi scrollbar area
+                            .background(
+                                Color.LightGray.copy(alpha = 0.4f),
+                                RoundedCornerShape(10.dp)
+                            )
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.TopCenter)
+                                .offset(
+                                    y = (
+                                            (scrollState.value.toFloat() /
+                                                    (scrollState.maxValue + 1)) * 225
+                                            ).dp
+                                )
+                                .width(4.dp)
+                                .height(125.dp)
+                                .background(
+                                    Color(0xFFB63352),
+                                    RoundedCornerShape(10.dp)
+                                )
                         )
                     }
                 }
@@ -527,13 +515,14 @@ fun HalamanTambahUserUI() {
 fun CustomField(
     label: String,
     value: String,
+    modifier: Modifier = Modifier,
     onChange: (String) -> Unit
 ) {
 
     OutlinedTextField(
         value = value,
         onValueChange = onChange,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         label = {
             Text(label)
         },
@@ -542,7 +531,7 @@ fun CustomField(
         singleLine = true,
         maxLines = 1,
 
-        shape = RoundedCornerShape(12.dp)
+        shape = RoundedCornerShape(5.dp)
     )
 }
 
@@ -582,7 +571,7 @@ fun CustomDropdown(
                 ExposedDropdownMenuDefaults.TrailingIcon(expanded)
             },
 
-            shape = RoundedCornerShape(12.dp)
+            shape = RoundedCornerShape(5.dp)
         )
 
         ExposedDropdownMenu(
