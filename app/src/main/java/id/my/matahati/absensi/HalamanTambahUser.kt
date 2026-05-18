@@ -4,6 +4,7 @@ package id.my.matahati.absensi
 
 import android.app.Activity
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.Image
@@ -32,6 +33,13 @@ import id.my.matahati.absensi.data.DepartmentItem
 import id.my.matahati.absensi.data.RekeningItem
 import id.my.matahati.absensi.data.RetrofitClient
 import id.my.matahati.absensi.data.RetrofitClientLaravel
+import id.my.matahati.absensi.data.UserStoreRequest
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import android.util.Log
+import androidx.compose.ui.unit.coerceAtLeast
 
 class HalamanTambahUser : ComponentActivity() {
 
@@ -55,6 +63,7 @@ class HalamanTambahUser : ComponentActivity() {
 fun HalamanTambahUserUI() {
 
     val primaryColor = Color(0xFFB63352)
+    val context = LocalContext.current
 
     var username by remember { mutableStateOf("") }
     var gmail by remember { mutableStateOf("") }
@@ -126,9 +135,6 @@ fun HalamanTambahUserUI() {
         }
     }
 
-    val departmentList =
-        departments.map { it.cname }
-
     var tanggalMasuk by remember { mutableStateOf("") }
 
     var selectedRole by remember {
@@ -140,6 +146,8 @@ fun HalamanTambahUserUI() {
     var showDatePicker by remember {
         mutableStateOf(false)
     }
+
+    val scaleFactor = rememberAdaptiveScale()
 
     if (showDatePicker) {
 
@@ -158,7 +166,7 @@ fun HalamanTambahUserUI() {
                         if (millis != null) {
 
                             val sdf = java.text.SimpleDateFormat(
-                                "dd-MM-yyyy",
+                                "yyyy-MM-dd",
                                 java.util.Locale("id", "ID")
                             )
 
@@ -200,8 +208,9 @@ fun HalamanTambahUserUI() {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(420.dp)
+                .height((445.dp * scaleFactor).coerceAtLeast(250.dp))
                 .align(Alignment.BottomCenter)
+                .semiCircleTop()
                 .background(primaryColor)
         )
 
@@ -258,10 +267,19 @@ fun HalamanTambahUserUI() {
                             .padding(end = 6.dp) // kasih ruang untuk scrollbar
                             .verticalScroll(scrollState)
                     ) {
+                        Text(
+                            text = "Data User",
+                            modifier = Modifier.fillMaxWidth(),
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 18.sp,
+                            textAlign = TextAlign.Center
+                        )
+
+                        Spacer(modifier = Modifier.height(12.dp))
 
                         CustomField(
-                            label = "Username",
-                            value = username
+                            label = "Username or Email",
+                            value = username,
                         ) {
                             username = it
                         }
@@ -437,7 +455,7 @@ fun HalamanTambahUserUI() {
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .padding(vertical = 2.dp),
+                                        .padding(vertical = 1.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
 
@@ -459,14 +477,99 @@ fun HalamanTambahUserUI() {
                         Spacer(modifier = Modifier.height(24.dp))
 
                         Button(
-                            onClick = {},
+                            onClick = {
+
+                                val roleValue = when(selectedRole) {
+                                    "Captain" -> "fadmin"
+                                    "Supervisor" -> "fsuper"
+                                    "Senior" -> "fsenior"
+                                    else -> "crew"
+                                }
+
+                                val request = UserStoreRequest(
+
+                                    email = username,
+                                    name = nama,
+                                    cfullname = namaLengkap.ifBlank { null },
+                                    password = password,
+                                    cmailaddress = gmail.ifBlank { null },
+                                    niddept = selectedDepartment?.nid ?: 0,
+                                    niddeptpayroll = selectedPayrollDepartment?.nid,
+                                    cphone = telepon.ifBlank { null },
+                                    cktp = ktp.ifBlank { null },
+                                    caccnumber = rekening.ifBlank { null },
+
+                                    finger_id =
+                                        if (fingerId.isBlank())
+                                            null
+                                        else
+                                            fingerId.toInt(),
+
+                                    dtanggalmasuk = tanggalMasuk.ifBlank { null },
+                                    rekening_id = selectedRekening?.id,
+                                    bank = selectedBank.ifBlank { null },
+                                    role = roleValue
+                                )
+
+                                Log.d("STORE_USER", "REQUEST = $request")
+
+                                CoroutineScope(Dispatchers.IO).launch {
+
+                                    try {
+
+                                        val response =
+                                            RetrofitClientLaravel
+                                                .instance
+                                                .storeUser(request)
+
+                                        Log.d("STORE_USER", "CODE = ${response.code()}")
+                                        Log.d("STORE_USER", "BODY = ${response.body()}")
+                                        Log.d("STORE_USER", "ERROR = ${response.errorBody()?.string()}")
+
+                                        withContext(Dispatchers.Main) {
+
+                                            if (
+                                                response.isSuccessful &&
+                                                response.body()?.success == true
+                                            ) {
+
+                                                Toast.makeText(
+                                                    context,
+                                                    "User berhasil ditambahkan",
+                                                    Toast.LENGTH_SHORT
+                                                ).show()
+
+                                            } else {
+
+                                                Toast.makeText(
+                                                    context,
+                                                    response.body()?.message
+                                                        ?: "Gagal tambah user",
+                                                    Toast.LENGTH_LONG
+                                                ).show()
+                                            }
+                                        }
+
+                                    } catch (e: Exception) {
+
+                                        withContext(Dispatchers.Main) {
+
+                                            Toast.makeText(
+                                                context,
+                                                e.message ?: "Terjadi kesalahan",
+                                                Toast.LENGTH_LONG
+                                            ).show()
+                                        }
+                                    }
+                                }
+                            },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(52.dp),
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = Color(0xFF4C4C59)
                             ),
-                            shape = RoundedCornerShape(12.dp)
+                            shape = RoundedCornerShape(6.dp)
                         ) {
 
                             Text(
@@ -519,10 +622,16 @@ fun CustomField(
     onChange: (String) -> Unit
 ) {
 
+    val primaryColor = Color(0xFFB63352)
+
     OutlinedTextField(
         value = value,
         onValueChange = onChange,
         modifier = modifier.fillMaxWidth(),
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedBorderColor = primaryColor,
+            focusedLabelColor = primaryColor
+        ),
         label = {
             Text(label)
         },
@@ -596,36 +705,6 @@ fun CustomDropdown(
                     }
                 )
             }
-        }
-    }
-}
-
-@Composable
-fun RoleCircle(
-    text: String,
-    selected: Boolean = false
-) {
-
-    Surface(
-        modifier = Modifier.size(72.dp),
-        shape = CircleShape,
-        color =
-            if (selected) Color.DarkGray
-            else Color.LightGray
-    ) {
-
-        Box(
-            contentAlignment = Alignment.Center
-        ) {
-
-            Text(
-                text = text,
-                textAlign = TextAlign.Center,
-                fontSize = 12.sp,
-                color =
-                    if (selected) Color.White
-                    else Color.Black
-            )
         }
     }
 }
