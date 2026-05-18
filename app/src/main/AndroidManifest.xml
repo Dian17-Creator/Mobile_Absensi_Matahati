@@ -134,6 +134,7 @@
 
         <activity
             android:name=".HalamanTambahUser"
+            android:windowSoftInputMode="adjustResize"
             android:exported="true"
             android:label="TambahUser"
             android:theme="@style/Theme.MyApplication"/>
