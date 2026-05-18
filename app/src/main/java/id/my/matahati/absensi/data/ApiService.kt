@@ -85,9 +85,8 @@ interface ApiService {
 
     @POST("api/user/store")
     suspend fun storeUser(
-        @Header("Authorization") token: String,
         @Body request: UserStoreRequest
-    ): Response<ApiResponse>
+    ): Response<StoreUserResponse>
 
     @GET("api/department/list")
     suspend fun getDepartments(): Response<DepartmentResponse>
