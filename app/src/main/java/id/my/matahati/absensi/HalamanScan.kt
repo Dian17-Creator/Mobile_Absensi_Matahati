@@ -63,6 +63,7 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.filled.Approval
 import androidx.compose.material.icons.filled.Payments
 import androidx.compose.material.icons.filled.PersonAdd
 import id.my.matahati.absensi.data.RetrofitClient
@@ -516,7 +517,7 @@ fun HalamanScanUI(
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(250.dp),
+                        .height(350.dp),
                     shape = RoundedCornerShape(12.dp),
                     colors = CardDefaults.cardColors(containerColor = Color.White),
                     elevation = CardDefaults.cardElevation(4.dp)
@@ -583,15 +584,6 @@ fun HalamanScanUI(
                             }
                         }
 
-//                        item {
-//                            UserActionItem(
-//                                icon = Icons.Default.Close,
-//                                label = "Lupa Absen"
-//                            ) {
-//                                context.startActivity(Intent(context, HalamanForgot::class.java))
-//                            }
-//                        }
-
                         item {
                             UserActionItem(
                                 icon = Icons.Default.Payments,
@@ -622,6 +614,17 @@ fun HalamanScanUI(
                                     iconColor = Color(0xFFD32F2F)
                                 ) {
                                     context.startActivity(Intent(context, HalamanTambahUser::class.java))
+                                }
+                            }
+
+                        if(isHRDOrAbove)
+                            item {
+                                UserActionItem(
+                                    icon = Icons.Default.Approval,
+                                    label = "Face Approval",
+                                    iconColor = Color(0xFFD32F2F)
+                                ) {
+                                    context.startActivity(Intent(context, HalamanFaceApproval::class.java))
                                 }
                             }
 

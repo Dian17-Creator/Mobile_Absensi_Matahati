@@ -139,6 +139,13 @@
             android:label="TambahUser"
             android:theme="@style/Theme.MyApplication"/>
 
+        <activity
+            android:name=".HalamanFaceApproval"
+            android:windowSoftInputMode="adjustResize"
+            android:exported="true"
+            android:label="FaceApproval"
+            android:theme="@style/Theme.MyApplication" />
+
         <service
             android:name=".FirebaseService"
             android:exported="false">
