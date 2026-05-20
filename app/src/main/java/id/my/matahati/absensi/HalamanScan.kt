@@ -66,6 +66,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.filled.Approval
 import androidx.compose.material.icons.filled.Payments
 import androidx.compose.material.icons.filled.PersonAdd
+import androidx.compose.material.icons.filled.VerifiedUser
+import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.res.painterResource
 import id.my.matahati.absensi.data.RetrofitClient
 import id.my.matahati.absensi.data.RetrofitClientLaravel
 
@@ -620,7 +623,7 @@ fun HalamanScanUI(
                         if(isCaptainOrAbove)
                             item {
                                 UserActionItem(
-                                    icon = Icons.Default.Approval,
+                                    iconPainter = painterResource(id = R.drawable.faces),
                                     label = "Face Approval",
                                     iconColor = Color(0xFFD32F2F)
                                 ) {
@@ -812,7 +815,8 @@ fun CardShift(
 
 @Composable
 fun UserActionItem(
-    icon: ImageVector,
+    icon: ImageVector? = null,
+    iconPainter: Painter? = null,
     label: String,
     iconColor: Color = Color(0xFFB63352),
     showBadge: Boolean = false,
@@ -840,12 +844,24 @@ fun UserActionItem(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = label,
-                        tint = iconColor,
-                        modifier = Modifier.size(26.dp)
-                    )
+                    if (iconPainter != null) {
+
+                        Icon(
+                            painter = iconPainter,
+                            contentDescription = label,
+                            tint = iconColor,
+                            modifier = Modifier.size(26.dp)
+                        )
+
+                    } else if (icon != null) {
+
+                        Icon(
+                            imageVector = icon,
+                            contentDescription = label,
+                            tint = iconColor,
+                            modifier = Modifier.size(26.dp)
+                        )
+                    }
                 }
             }
 
