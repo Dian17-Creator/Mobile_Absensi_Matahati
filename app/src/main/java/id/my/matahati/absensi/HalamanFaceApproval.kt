@@ -178,15 +178,15 @@ fun HalamanFaceApprovalScreen(
                                     Text(
                                         text = "${user.cname} | ${user.department ?: "-"}",
 
-                                        fontSize = 18.sp,
+                                        fontSize = 16.sp,
 
-                                        fontWeight = FontWeight.SemiBold,
+                                        fontWeight = FontWeight.Normal,
 
                                         color = Color.Black
                                     )
 
                                     Spacer(
-                                        modifier = Modifier.height(18.dp)
+                                        modifier = Modifier.height(12.dp)
                                     )
 
                                     /* ================= FACE LIST ================= */
@@ -222,7 +222,7 @@ fun HalamanFaceApprovalScreen(
                                     }
 
                                     Spacer(
-                                        modifier = Modifier.height(22.dp)
+                                        modifier = Modifier.height(16.dp)
                                     )
 
                                     /* ================= BUTTON ================= */

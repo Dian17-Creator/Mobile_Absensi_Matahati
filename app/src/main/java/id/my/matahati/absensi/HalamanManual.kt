@@ -316,15 +316,25 @@ fun HalamanManualUI() {
                 .padding(top = (40.dp * scaleFactor), bottom = (24.dp * scaleFactor)),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(
-                "Absen Manual",
-                style = MaterialTheme.typography.headlineSmall,
-                modifier = Modifier.fillMaxWidth(),
-                fontWeight = FontWeight.Bold,
-                fontSize = (22.sp * scaleFactor),
-                color = Color.Black,
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center
-            )
+
+            Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                IconButton(
+                    onClick = { (context as Activity).finish() },
+                    modifier = Modifier.align(Alignment.CenterStart)
+                ) {
+                    Icon(Icons.Default.ArrowBack, null, tint = Color(0xFF000000))
+                }
+
+                Text(
+                    "Absen Manual",
+                    style = MaterialTheme.typography.headlineSmall,
+                    modifier = Modifier.fillMaxWidth(),
+                    fontWeight = FontWeight.Bold,
+                    fontSize = (22.sp * scaleFactor),
+                    color = Color.Black,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                )
+            }
 
             Spacer(modifier = Modifier.height(8.dp))
 

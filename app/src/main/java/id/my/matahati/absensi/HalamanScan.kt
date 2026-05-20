@@ -71,6 +71,8 @@ import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.res.painterResource
 import id.my.matahati.absensi.data.RetrofitClient
 import id.my.matahati.absensi.data.RetrofitClientLaravel
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 
 private const val TAG = "FACE_LOGIN"
 private const val API_KEY = "MH4T4H4TI_2025_ABSENSI_APP_SECRETx9P2F7Q1L8S3Z0R6W4K2D1M9B7T5"
@@ -337,7 +339,11 @@ fun HalamanScanUI(
 //                .background(backColor)
                 .padding(horizontal = 16.dp, vertical = 20.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+            horizontalAlignment = Alignment.CenterHorizontally,
+
+            contentPadding = PaddingValues(
+                    bottom = 10.dp
+                    )
         ) {
             //Card Waktu
             item {
@@ -520,7 +526,7 @@ fun HalamanScanUI(
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(350.dp),
+                        .heightIn(min = 250.dp, max = 350.dp),
                     shape = RoundedCornerShape(12.dp),
                     colors = CardDefaults.cardColors(containerColor = Color.White),
                     elevation = CardDefaults.cardElevation(4.dp)
@@ -529,7 +535,7 @@ fun HalamanScanUI(
                     LazyVerticalGrid(
                         columns = GridCells.Fixed(4), // ✅ 1 BARIS = 4 MENU
                         modifier = Modifier
-                            .fillMaxSize()
+                            .fillMaxWidth()
                             .padding(top = 12.dp), // 🔥 nempel atas
                         verticalArrangement = Arrangement.spacedBy(12.dp),
                         horizontalArrangement = Arrangement.SpaceEvenly,
@@ -640,9 +646,11 @@ fun HalamanScanUI(
                                 LogoutHelper.logout(context)
                             }
                         }
-                    }
+
+                                           }
                 }
             }
+
         }
     }
 }
