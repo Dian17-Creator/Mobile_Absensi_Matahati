@@ -96,4 +96,23 @@ interface ApiService {
 
     @GET("api/mandiri/rekening")
     suspend fun getMandiriRekening(): Response<RekeningResponse>
+
+    @GET("api/face-approval/pending")
+    suspend fun getPendingFaces(
+        @Query("approver_id") approverId: Int
+    ): FaceApprovalResponse
+
+    @FormUrlEncoded
+    @POST("api/face-approval/{id}/approve")
+    suspend fun approveFace(
+        @Path("id") userId: Int,
+        @Field("approver_id") approverId: Int
+    ): ApiMessageResponse
+
+    @FormUrlEncoded
+    @POST("api/face-approval/{id}/reject")
+    suspend fun rejectFace(
+        @Path("id") userId: Int,
+        @Field("approver_id") approverId: Int
+    ): ApiMessageResponse
 }
