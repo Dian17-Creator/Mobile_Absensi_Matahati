@@ -1,5 +1,6 @@
 package id.my.matahati.absensi
 
+import android.app.Activity
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -9,12 +10,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -25,6 +23,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -48,10 +47,13 @@ class HalamanFaceApproval : ComponentActivity() {
 fun HalamanFaceApprovalScreen(
     viewModel: FaceApprovalViewModel = viewModel()
 ) {
+
     val context = LocalContext.current
     val session = SessionManager(context)
 
     val approverId = session.getUserId()
+
+    val primaryColor = Color(0xFFB63352)
 
     LaunchedEffect(Unit) {
         viewModel.loadPending(approverId)
@@ -64,97 +66,249 @@ fun HalamanFaceApprovalScreen(
         modifier = Modifier.fillMaxSize()
     ) {
 
-        if (loading) {
+        /* ================= HEADER BACKGROUND ================= */
 
-            CircularProgressIndicator(
-                modifier = Modifier.align(Alignment.Center)
-            )
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(400.dp)
+                .clip(
+                    BottomCurveShape(
+                        curveHeight = 50f
+                    )
+                )
+                .background(primaryColor)
+                .align(Alignment.TopCenter)
+        )
 
-        } else {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 20.dp)
+                .padding(top = 28.dp)
+        ) {
 
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color(0xFFF5F5F5))
-            ) {
+            /* ================= TITLE ================= */
+            Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
 
-                items(users) { user ->
+                IconButton(
+                    onClick = { (context as Activity).finish() },
+                    modifier = Modifier.align(Alignment.CenterStart)
+                ) {
+                    Icon(Icons.Default.ArrowBack, null, tint = Color(0xFFFFFFFF))
+                }
 
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(12.dp),
-                        shape = RoundedCornerShape(16.dp)
+                Text(
+                    text = "Face Approval",
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = TextAlign.Center,
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
+                )
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            when {
+
+                loading -> {
+
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
                     ) {
 
-                        Column(
-                            modifier = Modifier.padding(16.dp)
-                        ) {
+                        CircularProgressIndicator(
+                            color = primaryColor
+                        )
+                    }
+                }
 
-                            Text(
-                                text = user.cname,
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.Bold
-                            )
+                users.isEmpty() -> {
 
-                            Spacer(modifier = Modifier.height(4.dp))
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
 
-                            Text(
-                                text = user.department ?: "-",
-                                color = Color.Gray
-                            )
+                        Text(
+                            text = "Belum ada face approval pending",
+                            modifier = Modifier.padding(
+                                horizontal = 24.dp,
+                                vertical = 18.dp
+                            ),
+                            color = Color.Black
+                        )
+                    }
+                }
 
-                            Spacer(modifier = Modifier.height(16.dp))
+                else -> {
 
-                            LazyRow {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                        contentPadding = PaddingValues(
+                            bottom = 24.dp
+                        )
+                    ) {
 
-                                items(user.faces) { face ->
+                        items(users) { user ->
 
-                                    AsyncImage(
-                                        model = face.url,
-                                        contentDescription = null,
-                                        modifier = Modifier
-                                            .padding(end = 8.dp)
-                                            .size(120.dp)
-                                            .clip(RoundedCornerShape(12.dp)),
-                                        contentScale = ContentScale.Crop
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+
+                                shape = RoundedCornerShape(22.dp),
+
+                                elevation = CardDefaults.cardElevation(
+                                    defaultElevation = 10.dp
+                                ),
+
+                                colors = CardDefaults.cardColors(
+                                    containerColor = Color.White
+                                )
+                            ) {
+
+                                Column(
+                                    modifier = Modifier.padding(20.dp)
+                                ) {
+
+                                    /* ================= USER INFO ================= */
+
+                                    Text(
+                                        text = user.cname,
+                                        fontSize = 20.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color.Black
                                     )
-                                }
-                            }
 
-                            Spacer(modifier = Modifier.height(16.dp))
+                                    Spacer(
+                                        modifier = Modifier.height(4.dp)
+                                    )
 
-                            Row {
+                                    Text(
+                                        text = user.department ?: "-",
+                                        color = Color.Gray,
+                                        fontSize = 14.sp
+                                    )
 
-                                Button(
-                                    onClick = {
-                                        viewModel.approve(
-                                            user.nid,
-                                            approverId
-                                        ) {
-                                            viewModel.loadPending(approverId)
+                                    Spacer(
+                                        modifier = Modifier.height(18.dp)
+                                    )
+
+                                    /* ================= FACE LIST ================= */
+
+                                    LazyRow(
+                                        horizontalArrangement =
+                                            Arrangement.spacedBy(10.dp)
+                                    ) {
+
+                                        items(user.faces) { face ->
+
+                                            Card(
+                                                shape = RoundedCornerShape(16.dp),
+                                                elevation =
+                                                    CardDefaults.cardElevation(
+                                                        defaultElevation = 6.dp
+                                                    )
+                                            ) {
+
+                                                AsyncImage(
+                                                    model = face.url,
+
+                                                    contentDescription = null,
+
+                                                    modifier = Modifier
+                                                        .size(120.dp),
+
+                                                    contentScale =
+                                                        ContentScale.Crop
+                                                )
+                                            }
                                         }
                                     }
-                                ) {
-                                    Text("Approve")
-                                }
 
-                                Spacer(modifier = Modifier.width(12.dp))
+                                    Spacer(
+                                        modifier = Modifier.height(22.dp)
+                                    )
 
-                                Button(
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = Color.Red
-                                    ),
-                                    onClick = {
-                                        viewModel.reject(
-                                            user.nid,
-                                            approverId
+                                    /* ================= BUTTON ================= */
+
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement =
+                                            Arrangement.spacedBy(12.dp)
+                                    ) {
+
+                                        /* ===== REJECT ===== */
+
+                                        OutlinedButton(
+                                            modifier = Modifier.weight(1f),
+
+                                            onClick = {
+
+                                                viewModel.reject(
+                                                    user.nid,
+                                                    approverId
+                                                ) {
+
+                                                    viewModel.loadPending(
+                                                        approverId
+                                                    )
+                                                }
+                                            },
+
+                                            shape = RoundedCornerShape(25),
+
+                                            colors =
+                                                ButtonDefaults.outlinedButtonColors(
+                                                    contentColor = primaryColor
+                                                )
                                         ) {
-                                            viewModel.loadPending(approverId)
+
+                                            Text(
+                                                text = "Reject",
+                                                fontWeight =
+                                                    FontWeight.SemiBold
+                                            )
+                                        }
+
+                                        /* ===== APPROVE ===== */
+
+                                        Button(
+                                            modifier = Modifier.weight(1f),
+
+                                            onClick = {
+
+                                                viewModel.approve(
+                                                    user.nid,
+                                                    approverId
+                                                ) {
+
+                                                    viewModel.loadPending(
+                                                        approverId
+                                                    )
+                                                }
+                                            },
+
+                                            shape = RoundedCornerShape(25),
+
+                                            colors =
+                                                ButtonDefaults.buttonColors(
+                                                    containerColor =
+                                                        primaryColor,
+                                                    contentColor =
+                                                        Color.White
+                                                )
+                                        ) {
+
+                                            Text(
+                                                text = "Approve",
+                                                fontWeight =
+                                                    FontWeight.SemiBold
+                                            )
                                         }
                                     }
-                                ) {
-                                    Text("Reject")
                                 }
                             }
                         }
