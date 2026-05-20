@@ -27,17 +27,17 @@ class MyApp : Application(), Configuration.Provider {
             .fallbackToDestructiveMigration()
             .build()
 
-        try {
-            WorkManager.initialize(
-                this,
-                Configuration.Builder()
-                    .setMinimumLoggingLevel(Log.DEBUG)
-                    .build()
-            )
-            Log.d("WorkManager", "✅ WorkManager initialized successfully")
-        } catch (e: Exception) {
-            Log.e("WorkManager", "❌ Gagal inisialisasi WorkManager: ${e.message}", e)
-        }
+//        try {
+//            WorkManager.initialize(
+//                this,
+//                Configuration.Builder()
+//                    .setMinimumLoggingLevel(Log.DEBUG)
+//                    .build()
+//            )
+//            Log.d("WorkManager", "✅ WorkManager initialized successfully")
+//        } catch (e: Exception) {
+//            Log.e("WorkManager", "❌ Gagal inisialisasi WorkManager: ${e.message}", e)
+//        }
 
         clearOldCache()
         clearSessionIfAppUpdated()
