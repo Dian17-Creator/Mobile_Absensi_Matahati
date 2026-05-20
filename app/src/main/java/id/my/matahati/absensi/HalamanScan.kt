@@ -617,7 +617,7 @@ fun HalamanScanUI(
                                 }
                             }
 
-                        if(isHRDOrAbove)
+                        if(isCaptainOrAbove)
                             item {
                                 UserActionItem(
                                     icon = Icons.Default.Approval,

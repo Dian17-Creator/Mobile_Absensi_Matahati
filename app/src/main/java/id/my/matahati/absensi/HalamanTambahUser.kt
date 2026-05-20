@@ -5,6 +5,7 @@ package id.my.matahati.absensi
 import android.R.attr.maxLines
 import android.R.attr.singleLine
 import android.app.Activity
+import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -75,6 +76,7 @@ fun HalamanTambahUserUI() {
 
     val primaryColor = Color(0xFFB63352)
     val context = LocalContext.current
+    val activity = context as Activity
 
     val focusManager = LocalFocusManager.current
 
@@ -611,6 +613,12 @@ fun HalamanTambahUserUI() {
                                                     "User berhasil ditambahkan",
                                                     Toast.LENGTH_SHORT
                                                 ).show()
+
+                                                kotlinx.coroutines.delay(1200)
+
+                                                val intent = Intent(activity, MainActivity::class.java)
+                                                activity.startActivity(intent)
+                                                activity.finish()
 
                                             } else {
 
