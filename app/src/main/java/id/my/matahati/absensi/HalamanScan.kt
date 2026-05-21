@@ -531,7 +531,7 @@ fun HalamanScanUI(
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .heightIn(min = 250.dp, max = 350.dp),
+                        .height(350.dp),
                     shape = RoundedCornerShape(12.dp),
                     colors = CardDefaults.cardColors(containerColor = Color.White),
                     elevation = CardDefaults.cardElevation(4.dp)
