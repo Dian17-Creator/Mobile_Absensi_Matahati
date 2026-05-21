@@ -97,14 +97,6 @@ fun ApprovalCard(
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Button(
-                        onClick = onApprove,
-                        modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF009536)),
-                        shape = RoundedCornerShape(8.dp)
-                    ) {
-                        Text("Approve")
-                    }
 
                     Button(
                         onClick = onReject,
@@ -114,6 +106,16 @@ fun ApprovalCard(
                     ) {
                         Text("Reject")
                     }
+
+                    Button(
+                        onClick = onApprove,
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF009536)),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text("Approve")
+                    }
+
                 }
             }
 

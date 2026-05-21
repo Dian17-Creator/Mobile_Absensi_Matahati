@@ -153,20 +153,20 @@ fun HalamanApprovalScreen() {
                     items(listData) { item ->
                         ApprovalCard(
                             item = item,
-                            onApprove = {
-                                handleAction(
-                                    userId = userId,
-                                    id = item.nid, // ✅ PAKAI nid
-                                    type = if (selectedTab == 0) "mscan_manual" else "mrequest",
-                                    action = "approve"
-                                ) { loadData() }
-                            },
                             onReject = {
                                 handleAction(
                                     userId = userId,
                                     id = item.nid, // ✅ PAKAI nid
                                     type = if (selectedTab == 0) "mscan_manual" else "mrequest",
                                     action = "reject"
+                                ) { loadData() }
+                            },
+                            onApprove = {
+                                handleAction(
+                                    userId = userId,
+                                    id = item.nid, // ✅ PAKAI nid
+                                    type = if (selectedTab == 0) "mscan_manual" else "mrequest",
+                                    action = "approve"
                                 ) { loadData() }
                             }
                         )
