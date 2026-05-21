@@ -73,6 +73,7 @@ import id.my.matahati.absensi.data.RetrofitClient
 import id.my.matahati.absensi.data.RetrofitClientLaravel
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.material.icons.filled.MonetizationOn
 
 private const val TAG = "FACE_LOGIN"
 private const val API_KEY = "MH4T4H4TI_2025_ABSENSI_APP_SECRETx9P2F7Q1L8S3Z0R6W4K2D1M9B7T5"
@@ -639,6 +640,17 @@ fun HalamanScanUI(
                                     showBadge = hasPendingFace
                                 ) {
                                     context.startActivity(Intent(context, HalamanFaceApproval::class.java))
+                                }
+                            }
+
+                        if(isHRDOrAbove)
+                            item {
+                                UserActionItem(
+                                    icon = Icons.Default.MonetizationOn,
+                                    label = "Payroll User",
+                                    iconColor = Color(0xFFD32F2F)
+                                ) {
+                                    context.startActivity(Intent(context, HalamanPayroll::class.java))
                                 }
                             }
 
