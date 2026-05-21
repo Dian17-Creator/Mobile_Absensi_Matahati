@@ -98,9 +98,9 @@ interface ApiService {
     suspend fun getMandiriRekening(): Response<RekeningResponse>
 
     @GET("api/face-approval/pending")
-    suspend fun getPendingFaces(
+    suspend fun getPendingFaceList(
         @Query("approver_id") approverId: Int
-    ): FaceApprovalResponse
+    ): Response<FacePendingResponse>
 
     @FormUrlEncoded
     @POST("api/face-approval/{id}/approve")

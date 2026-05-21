@@ -178,6 +178,7 @@ fun HalamanScanUI(
     //    Pending Approval & Gaji
     var hasPendingApproval by remember { mutableStateOf(false) }
     var hasPendingGaji by remember { mutableStateOf(false) }
+    var hasPendingFace by remember {mutableStateOf(false)}
 
     var isSessionStarted by remember { mutableStateOf(false) }
     var showSuccessDialog by remember { mutableStateOf(false) }
@@ -294,7 +295,9 @@ fun HalamanScanUI(
 
     LaunchedEffect(Unit) {
         hasPendingGaji = checkPendingGaji(userId)
+        hasPendingFace = checkPendingFace(userId)
     }
+
 
     val lifecycleOwner = LocalLifecycleOwner.current
 
@@ -305,6 +308,7 @@ fun HalamanScanUI(
                 CoroutineScope(Dispatchers.Main).launch {
                     hasPendingApproval = checkPendingApproval(userId, isCaptainOrAbove)
                     hasPendingGaji = checkPendingGaji(userId)
+                    hasPendingFace = checkPendingFace(userId)
                 }
             }
         }
@@ -631,7 +635,8 @@ fun HalamanScanUI(
                                 UserActionItem(
                                     iconPainter = painterResource(id = R.drawable.faces),
                                     label = "Face Approval",
-                                    iconColor = Color(0xFFD32F2F)
+                                    iconColor = Color(0xFFD32F2F),
+                                    showBadge = hasPendingFace
                                 ) {
                                     context.startActivity(Intent(context, HalamanFaceApproval::class.java))
                                 }
@@ -951,6 +956,19 @@ suspend fun checkPendingApproval(
 
         (manual.body()?.data?.isNotEmpty() == true) ||
                 (izin.body()?.data?.isNotEmpty() == true)
+
+    } catch (e: Exception) {
+        false
+    }
+}
+
+suspend fun checkPendingFace(userId: Int): Boolean {
+    return try {
+
+        val response =
+            RetrofitClientLaravel.instance.getPendingFaceList(userId)
+
+        response.body()?.data?.isNotEmpty() == true
 
     } catch (e: Exception) {
         false
