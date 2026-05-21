@@ -9,6 +9,7 @@ import retrofit2.http.FormUrlEncoded
 import retrofit2.http.POST
 import retrofit2.http.Field
 import retrofit2.http.Header
+import retrofit2.http.PUT
 import retrofit2.http.Url
 
 interface ApiService {
@@ -115,4 +116,29 @@ interface ApiService {
         @Path("id") userId: Int,
         @Field("approver_id") approverId: Int
     ): ApiMessageResponse
+
+    @GET("api/user/gaji/list")
+    suspend fun getPayrollList(
+
+        @Query("department_id")
+        departmentId: String?,
+
+        @Query("year")
+        year: Int,
+
+        @Query("month")
+        month: Int
+
+    ): Response<PayrollListResponse>
+
+    @GET("api/user/gaji/{id}/detail")
+    suspend fun getPayrollDetail(
+        @Path("id") id: Int
+    ): Response<PayrollDetailResponse>
+
+    @PUT("api/user/gaji/{id}/update")
+    suspend fun updatePayroll(
+        @Path("id") id: Int,
+        @Body request: PayrollUpdateRequest
+    ): Response<ApiMessageResponse>
 }
