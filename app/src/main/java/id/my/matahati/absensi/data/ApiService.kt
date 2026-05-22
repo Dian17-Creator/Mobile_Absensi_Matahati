@@ -136,7 +136,7 @@ interface ApiService {
         @Path("id") id: Int
     ): Response<PayrollDetailResponse>
 
-    @PUT("api/user/gaji/{id}/update")
+    @POST("api/user/gaji/{id}/update")
     suspend fun updatePayroll(
         @Path("id") id: Int,
         @Body request: PayrollUpdateRequest

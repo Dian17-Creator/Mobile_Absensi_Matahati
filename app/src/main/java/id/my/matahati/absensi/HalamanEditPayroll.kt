@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import id.my.matahati.absensi.data.PayrollUpdateRequest
 import id.my.matahati.absensi.data.PayrollViewModel
+import android.util.Log
 
 class HalamanEditPayroll : ComponentActivity() {
 
@@ -556,6 +557,96 @@ fun HalamanEditPayrollScreen(
 
                                     onClick = {
 
+                                        Log.d(
+                                            "PAYROLL",
+                                            "================ UPDATE PAYROLL ================"
+                                        )
+
+                                        Log.d(
+                                            "PAYROLL",
+                                            "payrollId = $payrollId"
+                                        )
+
+                                        Log.d(
+                                            "PAYROLL",
+                                            "jumlahMasuk = $jumlahMasuk"
+                                        )
+
+                                        Log.d(
+                                            "PAYROLL",
+                                            "gajiPokok = $gajiPokok"
+                                        )
+
+                                        Log.d(
+                                            "PAYROLL",
+                                            "tunjanganMakan = $tunjanganMakan"
+                                        )
+
+                                        Log.d(
+                                            "PAYROLL",
+                                            "tunjanganJabatan = $tunjanganJabatan"
+                                        )
+
+                                        Log.d(
+                                            "PAYROLL",
+                                            "tunjanganTransport = $tunjanganTransport"
+                                        )
+
+                                        Log.d(
+                                            "PAYROLL",
+                                            "tunjanganLuarKota = $tunjanganLuarKota"
+                                        )
+
+                                        Log.d(
+                                            "PAYROLL",
+                                            "tunjanganMasaKerja = $tunjanganMasaKerja"
+                                        )
+
+                                        Log.d(
+                                            "PAYROLL",
+                                            "tunjanganBackup = $tunjanganBackup"
+                                        )
+
+                                        Log.d(
+                                            "PAYROLL",
+                                            "gajiLembur = $gajiLembur"
+                                        )
+
+                                        Log.d(
+                                            "PAYROLL",
+                                            "bonusKehadiran = $bonusKehadiran"
+                                        )
+
+                                        Log.d(
+                                            "PAYROLL",
+                                            "tabunganDiambil = $tabunganDiambil"
+                                        )
+
+                                        Log.d(
+                                            "PAYROLL",
+                                            "potonganLain = $potonganLain"
+                                        )
+
+                                        Log.d(
+                                            "PAYROLL",
+                                            "potonganTabungan = $potonganTabungan"
+                                        )
+
+                                        Log.d(
+                                            "PAYROLL",
+                                            "potonganKeterlambatan = $potonganKeterlambatan"
+                                        )
+
+                                        Log.d(
+                                            "PAYROLL",
+                                            "note = $note"
+                                        )
+
+                                        Log.d(
+                                            "PAYROLL",
+                                            "reasonEdit = $reasonEdit"
+                                        )
+
                                         val request =
                                             PayrollUpdateRequest(
 
@@ -565,7 +656,7 @@ fun HalamanEditPayrollScreen(
                                                 gaji_pokok =
                                                     gajiPokok,
 
-                                                gaji_harian = "",
+                                                gaji_harian = "0",
 
                                                 tunjangan_makan =
                                                     tunjanganMakan,
@@ -576,13 +667,17 @@ fun HalamanEditPayrollScreen(
                                                 tunjangan_transport =
                                                     tunjanganTransport,
 
-                                                tunjangan_backup = "",
+                                                tunjangan_backup =
+                                                    tunjanganBackup,
 
-                                                tunjangan_luar_kota = "",
+                                                tunjangan_luar_kota =
+                                                    tunjanganLuarKota,
 
-                                                tunjangan_masa_kerja = "",
+                                                tunjangan_masa_kerja =
+                                                    tunjanganMasaKerja,
 
-                                                gaji_lembur = "",
+                                                gaji_lembur =
+                                                    gajiLembur,
 
                                                 bonus_kehadiran =
                                                     bonusKehadiran,
@@ -596,13 +691,19 @@ fun HalamanEditPayrollScreen(
                                                 potongan_keterlambatan =
                                                     potonganKeterlambatan,
 
-                                                tabungan_diambil = "",
+                                                tabungan_diambil =
+                                                    tabunganDiambil,
 
                                                 note = note,
 
                                                 reasonedit =
                                                     reasonEdit
                                             )
+
+                                        Log.d(
+                                            "PAYROLL",
+                                            "request = $request"
+                                        )
 
                                         viewModel.updatePayroll(
 
@@ -611,6 +712,11 @@ fun HalamanEditPayrollScreen(
                                             request = request,
 
                                             onSuccess = {
+
+                                                Log.d(
+                                                    "PAYROLL",
+                                                    "UPDATE SUCCESS"
+                                                )
 
                                                 Toast.makeText(
 
