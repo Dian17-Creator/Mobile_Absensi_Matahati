@@ -1,6 +1,7 @@
 package id.my.matahati.absensi
 
 import android.app.Activity
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -109,9 +110,6 @@ fun HalamanPayrollScreen(
                     )
                 }
 
-
-
-
             Spacer(modifier = Modifier.height(24.dp))
 
             /* ================= FILTER ================= */
@@ -137,10 +135,10 @@ fun HalamanPayrollScreen(
             }
 
             Card(
-                shape = RoundedCornerShape(22.dp),
+                shape = RoundedCornerShape(16.dp),
 
                 elevation = CardDefaults.cardElevation(
-                    defaultElevation = 10.dp
+                    defaultElevation = 0.dp
                 ),
 
                 colors = CardDefaults.cardColors(
@@ -152,17 +150,48 @@ fun HalamanPayrollScreen(
                     modifier = Modifier.padding(18.dp)
                 ) {
 
-                    Text(
-                        text = "Pilih Periode Payroll",
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 16.sp
-                    )
+//                    Text(
+//                        text = "Pilih Periode Payroll",
+//                        fontSize = 16.sp,
+//                        fontWeight = FontWeight.SemiBold,
+//                        modifier = Modifier
+//                            .fillMaxWidth(),
+//                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+//                    )
 
-                    Spacer(modifier = Modifier.height(16.dp))
+//                    Spacer(modifier = Modifier.height(6.dp))
 
                     Column(
                         modifier = Modifier.fillMaxWidth()
                     ) {
+
+                        //Searching
+                        OutlinedTextField(
+
+                            value = viewModel.searchQuery,
+
+                            onValueChange = {
+
+                                viewModel.searchQuery = it
+                            },
+
+                            modifier = Modifier.fillMaxWidth(),
+
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = primaryColor,
+                                focusedLabelColor = primaryColor
+                            ),
+
+                            singleLine = true,
+
+                            shape = RoundedCornerShape(6.dp),
+
+                            label = {
+                                Text("Cari Nama User")
+                            }
+                        )
+
+                        Spacer(modifier = Modifier.height(12.dp))
 
                         /* ================= DEPARTMENT ================= */
 
@@ -450,11 +479,11 @@ fun HalamanPayrollScreen(
                             PaddingValues(bottom = 24.dp)
                     ) {
 
-                        items(payrolls) { payroll ->
+                        items(viewModel.filteredPayrolls) { payroll ->
 
                             Card(
                                 modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(22.dp),
+                                shape = RoundedCornerShape(16.dp),
                                 elevation =
                                     CardDefaults.cardElevation(
                                         defaultElevation = 8.dp
@@ -525,9 +554,19 @@ fun HalamanPayrollScreen(
                                     Button(
                                         onClick = {
 
-                                            payroll.id?.let {
+                                            payroll.id?.let { payrollId ->
 
-                                                viewModel.loadPayrollDetail(it)
+                                                val intent = Intent(
+                                                    context,
+                                                    HalamanEditPayroll::class.java
+                                                )
+
+                                                intent.putExtra(
+                                                    "payroll_id",
+                                                    payrollId
+                                                )
+
+                                                context.startActivity(intent)
                                             }
                                         },
 

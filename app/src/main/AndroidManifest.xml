@@ -147,6 +147,13 @@
             android:theme="@style/Theme.MyApplication"/>
 
         <activity
+            android:name=".HalamanEditPayroll"
+            android:windowSoftInputMode="adjustResize"
+            android:exported="true"
+            android:label="HalamanEditPayroll"
+            android:theme="@style/Theme.MyApplication"/>
+
+        <activity
             android:name=".HalamanFaceApproval"
             android:windowSoftInputMode="adjustResize"
             android:exported="true"
