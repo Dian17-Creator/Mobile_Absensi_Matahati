@@ -570,9 +570,11 @@ fun HalamanPayrollScreen(
                                             }
                                         },
 
-                                        modifier = Modifier.fillMaxWidth(),
+                                        modifier = Modifier
+                                            .height(50.dp)
+                                            .fillMaxWidth(),
 
-                                        shape = RoundedCornerShape(18.dp),
+                                        shape = RoundedCornerShape(50.dp),
 
                                         colors =
                                             ButtonDefaults.buttonColors(
@@ -580,12 +582,6 @@ fun HalamanPayrollScreen(
                                                     primaryColor
                                             )
                                     ) {
-
-                                        Icon(
-                                            imageVector =
-                                                Icons.Default.Edit,
-                                            contentDescription = null
-                                        )
 
                                         Spacer(
                                             modifier = Modifier.width(8.dp)
