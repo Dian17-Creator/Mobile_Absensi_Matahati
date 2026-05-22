@@ -1,6 +1,7 @@
 package id.my.matahati.absensi
 
 import android.app.Activity
+import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -285,6 +286,11 @@ fun HalamanEditPayrollScreen(
             } else {
 
                 LazyColumn(
+
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .imePadding(),
+
                     verticalArrangement =
                         Arrangement.spacedBy(18.dp),
 
@@ -297,7 +303,7 @@ fun HalamanEditPayrollScreen(
                     item {
 
                         Card(
-                            shape = RoundedCornerShape(16.dp),
+                            shape = RoundedCornerShape(10.dp),
 
                             elevation =
                                 CardDefaults.cardElevation(
@@ -489,15 +495,13 @@ fun HalamanEditPayrollScreen(
                                     }
                                 )
 
-                                Spacer(modifier = Modifier.height(18.dp))
+                                Spacer(modifier = Modifier.height(6.dp))
 
                                 /* ================= POTONGAN ================= */
 
                                 SectionTitle(
                                     title = "Potongan"
                                 )
-
-                                Spacer(modifier = Modifier.height(16.dp))
 
                                 PayrollTextField(
                                     label = "Potongan Lain",
@@ -523,7 +527,7 @@ fun HalamanEditPayrollScreen(
                                     }
                                 )
 
-                                Spacer(modifier = Modifier.height(18.dp))
+                                Spacer(modifier = Modifier.height(6.dp))
 
                                 /* ================= KETERANGAN ================= */
 
@@ -531,14 +535,14 @@ fun HalamanEditPayrollScreen(
                                     title = "Keterangan"
                                 )
 
-                                Spacer(modifier = Modifier.height(16.dp))
-
                                 PayrollTextField(
                                     label = "Alasan Edit",
                                     value = reasonEdit,
                                     onValueChange = {
                                         reasonEdit = it
-                                    }
+                                    },
+                                    keyboardType = KeyboardType.Text,
+                                    singleLine = false
                                 )
 
                                 PayrollTextField(
@@ -546,7 +550,9 @@ fun HalamanEditPayrollScreen(
                                     value = note,
                                     onValueChange = {
                                         note = it
-                                    }
+                                    },
+                                    keyboardType = KeyboardType.Text,
+                                    singleLine = false
                                 )
 
                                 Spacer(modifier = Modifier.height(24.dp))
@@ -728,6 +734,7 @@ fun HalamanEditPayrollScreen(
 
                                                 ).show()
 
+                                                activity.startActivity(Intent(activity, MainActivity::class.java))
                                                 activity.finish()
                                             }
                                         )
@@ -735,9 +742,9 @@ fun HalamanEditPayrollScreen(
 
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .height(56.dp),
+                                        .height(50.dp),
 
-                                    shape = RoundedCornerShape(18.dp),
+                                    shape = RoundedCornerShape(50.dp),
 
                                     colors =
                                         ButtonDefaults.buttonColors(
@@ -765,8 +772,12 @@ fun HalamanEditPayrollScreen(
 fun PayrollTextField(
     label: String,
     value: String,
-    onValueChange: (String) -> Unit
+    onValueChange: (String) -> Unit,
+    keyboardType: KeyboardType = KeyboardType.Number,
+    singleLine: Boolean = true
 ) {
+
+    val primaryColor = Color(0xFFB63352)
 
     OutlinedTextField(
 
@@ -776,14 +787,18 @@ fun PayrollTextField(
 
         modifier = Modifier.fillMaxWidth(),
 
-        singleLine = true,
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedBorderColor = primaryColor,
+            focusedLabelColor = primaryColor
+        ),
 
-        shape = RoundedCornerShape(16.dp),
+        singleLine = singleLine,
+
+        shape = RoundedCornerShape(10.dp),
 
         keyboardOptions =
             KeyboardOptions(
-                keyboardType =
-                    KeyboardType.Number
+                keyboardType = keyboardType
             ),
 
         label = {
