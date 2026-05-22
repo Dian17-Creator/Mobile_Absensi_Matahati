@@ -9,58 +9,33 @@ import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.launch
 
 class PayrollViewModel : ViewModel() {
-
-    /* =======================================================
-     * LIST PAYROLL
-     * ======================================================= */
-
     var payrolls by mutableStateOf<List<PayrollItem>>(
         emptyList()
     )
 
     var loading by mutableStateOf(false)
-
-    /* =======================================================
-     * DEPARTMENT
-     * ======================================================= */
-
     var departments by mutableStateOf<List<DepartmentItem>>(
         emptyList()
     )
-
-    /* =======================================================
-     * FILTER
-     * ======================================================= */
 
     var selectedDepartment by mutableStateOf<String?>(null)
 
     var selectedYear by mutableStateOf(2026)
 
     var selectedMonth by mutableStateOf(5)
-
-    /* =======================================================
-     * DETAIL PAYROLL
-     * ======================================================= */
-
     var selectedPayroll by mutableStateOf<PayrollDetail?>(
         null
     )
 
-    var loadingDetail by mutableStateOf(false)
+    var searchQuery by mutableStateOf("")
 
-    /* =======================================================
-     * UPDATE STATE
-     * ======================================================= */
+    var loadingDetail by mutableStateOf(false)
 
     var updating by mutableStateOf(false)
 
     var updateSuccess by mutableStateOf(false)
 
     var errorMessage by mutableStateOf<String?>(null)
-
-    /* =======================================================
-     * LOAD DEPARTMENTS
-     * ======================================================= */
 
     fun loadDepartments() {
 
@@ -365,6 +340,23 @@ class PayrollViewModel : ViewModel() {
             updating = false
         }
     }
+
+    val filteredPayrolls: List<PayrollItem>
+        get() {
+
+            if (searchQuery.isBlank()) {
+                return payrolls
+            }
+
+            return payrolls.filter {
+
+                (it.user_name ?: "")
+                    .contains(
+                        searchQuery,
+                        ignoreCase = true
+                    )
+            }
+        }
 
     /* =======================================================
      * CHANGE FILTER

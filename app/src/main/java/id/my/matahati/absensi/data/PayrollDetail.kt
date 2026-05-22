@@ -3,6 +3,9 @@ package id.my.matahati.absensi.data
 data class PayrollDetail(
     val id: Int,
 
+    val user_name: String?,
+    val jabatan: String?,
+
     val jumlah_masuk: Int,
 
     val gaji_harian: Double,
