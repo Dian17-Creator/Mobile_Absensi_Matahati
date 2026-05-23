@@ -246,6 +246,7 @@ fun StatusButton(status: String) {
         "pending" -> Color(0xFFFFC107)
         "approved" -> Color(0xFF4CAF50)
         "rejected" -> Color(0xFFF44336)
+        "by_system" -> Color(0xFF2196F3)
         else -> Color.LightGray
     }
 

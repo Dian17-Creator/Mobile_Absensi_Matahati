@@ -627,7 +627,7 @@ fun HalamanScanUI(
                         if(isHRDOrAbove)
                             item {
                                 UserActionItem(
-                                    icon = Icons.Default.PersonAdd,
+                                    iconPainter = painterResource(id = R.drawable.adduser),
                                     label = "Tambah User",
                                     iconColor = Color(0xFFD32F2F)
                                 ) {
@@ -650,7 +650,7 @@ fun HalamanScanUI(
                         if(isHRDOrAbove)
                             item {
                                 UserActionItem(
-                                    icon = Icons.Default.MonetizationOn,
+                                    iconPainter = painterResource(id = R.drawable.payroll),
                                     label = "Payroll User",
                                     iconColor = Color(0xFFD32F2F)
                                 ) {
