@@ -573,11 +573,24 @@ fun HalamanPayrollScreen(
                                         value = payroll.total_gaji ?: "-"
                                     )
 
-                                    PayrollInfoItem(
-                                        label = "Status",
-                                        value =
-                                            payroll.status ?: "-"
-                                    )
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+
+                                        horizontalArrangement =
+                                            Arrangement.SpaceBetween,
+
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+
+                                        Text(
+                                            text = "Status",
+                                            color = Color.Gray
+                                        )
+
+                                        StatusButton(
+                                            status = payroll.status ?: "pending"
+                                        )
+                                    }
 
                                     Spacer(
                                         modifier = Modifier.height(18.dp)
@@ -661,3 +674,4 @@ fun PayrollInfoItem(
         )
     }
 }
+
