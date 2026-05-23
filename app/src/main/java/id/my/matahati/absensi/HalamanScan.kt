@@ -531,7 +531,7 @@ fun HalamanScanUI(
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(350.dp),
+                        .heightIn(min = 250.dp, max = 450.dp),
                     shape = RoundedCornerShape(12.dp),
                     colors = CardDefaults.cardColors(containerColor = Color.White),
                     elevation = CardDefaults.cardElevation(4.dp)
@@ -544,7 +544,11 @@ fun HalamanScanUI(
                             .padding(top = 12.dp), // 🔥 nempel atas
                         verticalArrangement = Arrangement.spacedBy(12.dp),
                         horizontalArrangement = Arrangement.SpaceEvenly,
-                        userScrollEnabled = false // ❌ grid diam, tidak scroll
+                        userScrollEnabled = false,
+
+                        contentPadding = PaddingValues(
+                            bottom = 45.dp
+                        )
                     ) {
 
                         item {
