@@ -29,6 +29,8 @@ data class PayrollDetail(
 
     val total_gaji: Double,
 
+    val status: String?,
+
     val note: String?,
     val reasonedit: String?
 )

@@ -559,205 +559,211 @@ fun HalamanEditPayrollScreen(
 
                                 /* ================= SAVE BUTTON ================= */
 
-                                Button(
+                                if (
+                                    payroll.status
+                                        ?.trim()
+                                        ?.uppercase() != "APPROVED"
+                                ) {
+                                    Button(
 
-                                    onClick = {
+                                        onClick = {
 
-                                        Log.d(
-                                            "PAYROLL",
-                                            "================ UPDATE PAYROLL ================"
-                                        )
-
-                                        Log.d(
-                                            "PAYROLL",
-                                            "payrollId = $payrollId"
-                                        )
-
-                                        Log.d(
-                                            "PAYROLL",
-                                            "jumlahMasuk = $jumlahMasuk"
-                                        )
-
-                                        Log.d(
-                                            "PAYROLL",
-                                            "gajiPokok = $gajiPokok"
-                                        )
-
-                                        Log.d(
-                                            "PAYROLL",
-                                            "tunjanganMakan = $tunjanganMakan"
-                                        )
-
-                                        Log.d(
-                                            "PAYROLL",
-                                            "tunjanganJabatan = $tunjanganJabatan"
-                                        )
-
-                                        Log.d(
-                                            "PAYROLL",
-                                            "tunjanganTransport = $tunjanganTransport"
-                                        )
-
-                                        Log.d(
-                                            "PAYROLL",
-                                            "tunjanganLuarKota = $tunjanganLuarKota"
-                                        )
-
-                                        Log.d(
-                                            "PAYROLL",
-                                            "tunjanganMasaKerja = $tunjanganMasaKerja"
-                                        )
-
-                                        Log.d(
-                                            "PAYROLL",
-                                            "tunjanganBackup = $tunjanganBackup"
-                                        )
-
-                                        Log.d(
-                                            "PAYROLL",
-                                            "gajiLembur = $gajiLembur"
-                                        )
-
-                                        Log.d(
-                                            "PAYROLL",
-                                            "bonusKehadiran = $bonusKehadiran"
-                                        )
-
-                                        Log.d(
-                                            "PAYROLL",
-                                            "tabunganDiambil = $tabunganDiambil"
-                                        )
-
-                                        Log.d(
-                                            "PAYROLL",
-                                            "potonganLain = $potonganLain"
-                                        )
-
-                                        Log.d(
-                                            "PAYROLL",
-                                            "potonganTabungan = $potonganTabungan"
-                                        )
-
-                                        Log.d(
-                                            "PAYROLL",
-                                            "potonganKeterlambatan = $potonganKeterlambatan"
-                                        )
-
-                                        Log.d(
-                                            "PAYROLL",
-                                            "note = $note"
-                                        )
-
-                                        Log.d(
-                                            "PAYROLL",
-                                            "reasonEdit = $reasonEdit"
-                                        )
-
-                                        val request =
-                                            PayrollUpdateRequest(
-
-                                                jumlah_masuk =
-                                                    jumlahMasuk.toIntOrNull() ?: 0,
-
-                                                gaji_pokok =
-                                                    gajiPokok,
-
-                                                gaji_harian = "0",
-
-                                                tunjangan_makan =
-                                                    tunjanganMakan,
-
-                                                tunjangan_jabatan =
-                                                    tunjanganJabatan,
-
-                                                tunjangan_transport =
-                                                    tunjanganTransport,
-
-                                                tunjangan_backup =
-                                                    tunjanganBackup,
-
-                                                tunjangan_luar_kota =
-                                                    tunjanganLuarKota,
-
-                                                tunjangan_masa_kerja =
-                                                    tunjanganMasaKerja,
-
-                                                gaji_lembur =
-                                                    gajiLembur,
-
-                                                bonus_kehadiran =
-                                                    bonusKehadiran,
-
-                                                potongan_lain =
-                                                    potonganLain,
-
-                                                potongan_tabungan =
-                                                    potonganTabungan,
-
-                                                potongan_keterlambatan =
-                                                    potonganKeterlambatan,
-
-                                                tabungan_diambil =
-                                                    tabunganDiambil,
-
-                                                note = note,
-
-                                                reasonedit =
-                                                    reasonEdit
+                                            Log.d(
+                                                "PAYROLL",
+                                                "================ UPDATE PAYROLL ================"
                                             )
 
-                                        Log.d(
-                                            "PAYROLL",
-                                            "request = $request"
-                                        )
+                                            Log.d(
+                                                "PAYROLL",
+                                                "payrollId = $payrollId"
+                                            )
 
-                                        viewModel.updatePayroll(
+                                            Log.d(
+                                                "PAYROLL",
+                                                "jumlahMasuk = $jumlahMasuk"
+                                            )
 
-                                            id = payrollId,
+                                            Log.d(
+                                                "PAYROLL",
+                                                "gajiPokok = $gajiPokok"
+                                            )
 
-                                            request = request,
+                                            Log.d(
+                                                "PAYROLL",
+                                                "tunjanganMakan = $tunjanganMakan"
+                                            )
 
-                                            onSuccess = {
+                                            Log.d(
+                                                "PAYROLL",
+                                                "tunjanganJabatan = $tunjanganJabatan"
+                                            )
 
-                                                Log.d(
-                                                    "PAYROLL",
-                                                    "UPDATE SUCCESS"
+                                            Log.d(
+                                                "PAYROLL",
+                                                "tunjanganTransport = $tunjanganTransport"
+                                            )
+
+                                            Log.d(
+                                                "PAYROLL",
+                                                "tunjanganLuarKota = $tunjanganLuarKota"
+                                            )
+
+                                            Log.d(
+                                                "PAYROLL",
+                                                "tunjanganMasaKerja = $tunjanganMasaKerja"
+                                            )
+
+                                            Log.d(
+                                                "PAYROLL",
+                                                "tunjanganBackup = $tunjanganBackup"
+                                            )
+
+                                            Log.d(
+                                                "PAYROLL",
+                                                "gajiLembur = $gajiLembur"
+                                            )
+
+                                            Log.d(
+                                                "PAYROLL",
+                                                "bonusKehadiran = $bonusKehadiran"
+                                            )
+
+                                            Log.d(
+                                                "PAYROLL",
+                                                "tabunganDiambil = $tabunganDiambil"
+                                            )
+
+                                            Log.d(
+                                                "PAYROLL",
+                                                "potonganLain = $potonganLain"
+                                            )
+
+                                            Log.d(
+                                                "PAYROLL",
+                                                "potonganTabungan = $potonganTabungan"
+                                            )
+
+                                            Log.d(
+                                                "PAYROLL",
+                                                "potonganKeterlambatan = $potonganKeterlambatan"
+                                            )
+
+                                            Log.d(
+                                                "PAYROLL",
+                                                "note = $note"
+                                            )
+
+                                            Log.d(
+                                                "PAYROLL",
+                                                "reasonEdit = $reasonEdit"
+                                            )
+
+                                            val request =
+                                                PayrollUpdateRequest(
+
+                                                    jumlah_masuk =
+                                                        jumlahMasuk.toIntOrNull() ?: 0,
+
+                                                    gaji_pokok =
+                                                        gajiPokok,
+
+                                                    gaji_harian = "0",
+
+                                                    tunjangan_makan =
+                                                        tunjanganMakan,
+
+                                                    tunjangan_jabatan =
+                                                        tunjanganJabatan,
+
+                                                    tunjangan_transport =
+                                                        tunjanganTransport,
+
+                                                    tunjangan_backup =
+                                                        tunjanganBackup,
+
+                                                    tunjangan_luar_kota =
+                                                        tunjanganLuarKota,
+
+                                                    tunjangan_masa_kerja =
+                                                        tunjanganMasaKerja,
+
+                                                    gaji_lembur =
+                                                        gajiLembur,
+
+                                                    bonus_kehadiran =
+                                                        bonusKehadiran,
+
+                                                    potongan_lain =
+                                                        potonganLain,
+
+                                                    potongan_tabungan =
+                                                        potonganTabungan,
+
+                                                    potongan_keterlambatan =
+                                                        potonganKeterlambatan,
+
+                                                    tabungan_diambil =
+                                                        tabunganDiambil,
+
+                                                    note = note,
+
+                                                    reasonedit =
+                                                        reasonEdit
                                                 )
 
-                                                Toast.makeText(
+                                            Log.d(
+                                                "PAYROLL",
+                                                "request = $request"
+                                            )
 
-                                                    context,
+                                            viewModel.updatePayroll(
 
-                                                    "Payroll berhasil diupdate",
+                                                id = payrollId,
 
-                                                    Toast.LENGTH_SHORT
+                                                request = request,
 
-                                                ).show()
+                                                onSuccess = {
 
-                                                activity.startActivity(Intent(activity, MainActivity::class.java))
-                                                activity.finish()
-                                            }
+                                                    Log.d(
+                                                        "PAYROLL",
+                                                        "UPDATE SUCCESS"
+                                                    )
+
+                                                    Toast.makeText(
+
+                                                        context,
+
+                                                        "Payroll berhasil diupdate",
+
+                                                        Toast.LENGTH_SHORT
+
+                                                    ).show()
+
+                                                    activity.startActivity(Intent(activity, MainActivity::class.java))
+                                                    activity.finish()
+                                                }
+                                            )
+                                        },
+
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(50.dp),
+
+                                        shape = RoundedCornerShape(50.dp),
+
+                                        colors =
+                                            ButtonDefaults.buttonColors(
+                                                containerColor =
+                                                    primaryColor
+                                            )
+                                    ) {
+
+                                        Text(
+                                            text = "Simpan Perubahan",
+                                            fontSize = 16.sp,
+                                            fontWeight = FontWeight.Bold
                                         )
-                                    },
-
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(50.dp),
-
-                                    shape = RoundedCornerShape(50.dp),
-
-                                    colors =
-                                        ButtonDefaults.buttonColors(
-                                            containerColor =
-                                                primaryColor
-                                        )
-                                ) {
-
-                                    Text(
-                                        text = "Simpan Perubahan",
-                                        fontSize = 16.sp,
-                                        fontWeight = FontWeight.Bold
-                                    )
+                                    }
                                 }
                             }
                         }

@@ -588,7 +588,7 @@ fun HalamanPayrollScreen(
                                         )
 
                                         Text(
-                                            text = "Edit Payroll"
+                                            text = "Detail Payroll"
                                         )
                                     }
                                 }
