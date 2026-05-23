@@ -13,6 +13,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -177,21 +178,38 @@ fun HalamanPayrollScreen(
 
                             modifier = Modifier.fillMaxWidth(),
 
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = primaryColor,
-                                focusedLabelColor = primaryColor
-                            ),
-
                             singleLine = true,
 
-                            shape = RoundedCornerShape(6.dp),
+                            shape = RoundedCornerShape(50.dp),
 
-                            label = {
-                                Text("Cari Nama User")
-                            }
+                            placeholder = {
+
+                                Text(
+                                    text = "Cari Nama User",
+                                    color = Color.Gray
+                                )
+                            },
+
+                            trailingIcon = {
+
+                                Icon(
+                                    imageVector = Icons.Default.Search,
+                                    contentDescription = null,
+                                    tint = Color.Gray
+                                )
+                            },
+
+                            colors = OutlinedTextFieldDefaults.colors(
+
+                                focusedBorderColor = primaryColor,
+
+                                unfocusedBorderColor = Color.LightGray,
+
+                                cursorColor = primaryColor
+                            )
                         )
 
-                        Spacer(modifier = Modifier.height(12.dp))
+                        Spacer(modifier = Modifier.height(6.dp))
 
                         /* ================= DEPARTMENT ================= */
 
@@ -212,7 +230,9 @@ fun HalamanPayrollScreen(
                                             it.nid.toString() ==
                                                     viewModel.selectedDepartment
                                         }
-                                        ?.code ?: "",
+                                        ?.let {
+                                            it.code ?: it.cname
+                                        } ?: "",
 
                                 onValueChange = {},
 
@@ -221,7 +241,7 @@ fun HalamanPayrollScreen(
                                 singleLine = true,
 
                                 label = {
-                                    Text("Filter Dept")
+                                    Text("Pilih Department")
                                 },
 
                                 trailingIcon = {
@@ -249,6 +269,20 @@ fun HalamanPayrollScreen(
                                     expandedDept = false
                                 }
                             ) {
+
+                                DropdownMenuItem(
+
+                                    text = {
+                                        Text("Tampilkan Semua")
+                                    },
+
+                                    onClick = {
+
+                                        viewModel.setDepartment(null)
+
+                                        expandedDept = false
+                                    }
+                                )
 
                                 departments.forEach { dept ->
 
@@ -312,7 +346,7 @@ fun HalamanPayrollScreen(
                                     singleLine = true,
 
                                     label = {
-                                        Text("Filter Year")
+                                        Text("Pilih Tahun")
                                     },
 
                                     trailingIcon = {
@@ -385,7 +419,7 @@ fun HalamanPayrollScreen(
                                     singleLine = true,
 
                                     label = {
-                                        Text("Filter Month")
+                                        Text("Pilih Bulan")
                                     },
 
                                     trailingIcon = {
