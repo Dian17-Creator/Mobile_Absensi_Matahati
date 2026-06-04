@@ -13,7 +13,7 @@ data class SalaryItem(
     val jumlah_masuk: Int,
     val status: String,
     val note: String?,
-    val total_gaji: Int,
+    val total_gaji: Double,
 
     val penghasilan: List<SalaryComponent>,
     val potongan: List<SalaryComponent>
