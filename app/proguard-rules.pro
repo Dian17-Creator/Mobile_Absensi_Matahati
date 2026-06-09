@@ -21,3 +21,16 @@
 #-renamesourcefileattribute SourceFile
 -keep class com.google.mlkit.** { *; }
 -keep class com.google.firebase.** { *; }
+
+# Gson
+-keepattributes Signature
+-keepattributes *Annotation*
+
+-keep class com.google.gson.** { *; }
+
+-keep class * extends com.google.gson.reflect.TypeToken {
+    *;
+}
+
+# Model API
+-keep class id.my.matahati.absensi.data.** { *; }
