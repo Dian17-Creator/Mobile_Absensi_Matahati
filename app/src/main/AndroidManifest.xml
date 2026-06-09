@@ -37,6 +37,17 @@
         android:theme="@style/Theme.MyApplication"
         android:usesCleartextTraffic="false">
 
+        <provider
+            android:name="androidx.startup.InitializationProvider"
+            android:authorities="${applicationId}.androidx-startup"
+            android:exported="false"
+            tools:node="merge">
+
+            <meta-data
+                android:name="androidx.work.WorkManagerInitializer"
+                tools:node="remove" />
+        </provider>
+
         <!-- Launcher utama -->
         <activity
             android:name=".MainActivity"
