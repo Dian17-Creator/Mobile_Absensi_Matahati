@@ -14,8 +14,8 @@ android {
         applicationId = "id.my.matahati.absensi"
         minSdk = 24
         targetSdk = 36
-        versionCode = 5
-        versionName = "1.0.3"
+        versionCode = 8
+        versionName = "1.0.8"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -50,7 +50,7 @@ android {
 }
 
 dependencies {
-    val camerax_version = "1.3.1"
+    val camerax_version = "1.5.0"
     implementation(libs.androidx.compose.runtime.saveable)
 
     implementation("androidx.compose.foundation:foundation")
