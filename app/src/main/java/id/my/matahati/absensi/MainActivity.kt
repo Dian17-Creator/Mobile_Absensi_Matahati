@@ -10,6 +10,7 @@ import android.widget.Toast
 import android.animation.ObjectAnimator
 import android.animation.PropertyValuesHolder
 import android.util.Log
+import android.widget.ImageView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -80,7 +81,7 @@ class MainActivity : AppCompatActivity() {
         for (i in 0 until bottomNav.menu.size()) {
             val menuItem = bottomNav.menu.getItem(i)
             val itemView = bottomNav.findViewById<View>(menuItem.itemId)
-            val icon = itemView?.findViewById<View>(com.google.android.material.R.id.icon)
+            val icon = itemView?.findViewById<ImageView>(androidx.appcompat.R.id.icon)
 
             if (menuItem.itemId == bottomNav.selectedItemId) {
                 icon?.scaleX = 1.25f
@@ -95,7 +96,7 @@ class MainActivity : AppCompatActivity() {
         // 🔹 Listener BottomNavigation
         bottomNav.setOnItemSelectedListener { item ->
             val selectedView = bottomNav.findViewById<View>(item.itemId)
-            val selectedIcon = selectedView?.findViewById<View>(com.google.android.material.R.id.icon)
+            val selectedIcon = selectedView?.findViewById<ImageView>(androidx.appcompat.R.id.icon)
 
             selectedIcon?.let {
                 ObjectAnimator.ofPropertyValuesHolder(
@@ -111,7 +112,7 @@ class MainActivity : AppCompatActivity() {
 
             if (lastSelectedItemId != item.itemId) {
                 val prevView = bottomNav.findViewById<View>(lastSelectedItemId)
-                val prevIcon = prevView?.findViewById<View>(com.google.android.material.R.id.icon)
+                val prevIcon = prevView?.findViewById<ImageView>(androidx.appcompat.R.id.icon)
                 prevIcon?.let {
                     ObjectAnimator.ofPropertyValuesHolder(
                         it,
