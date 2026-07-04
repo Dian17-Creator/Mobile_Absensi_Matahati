@@ -11,9 +11,12 @@ import android.animation.ObjectAnimator
 import android.animation.PropertyValuesHolder
 import android.util.Log
 import android.widget.ImageView
+import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Lifecycle
 import com.google.android.material.bottomnavigation.BottomNavigationView
@@ -35,6 +38,9 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        enableEdgeToEdge()
+
         session = SessionManager(applicationContext)
 
         val isLoggedIn = session.isLoggedIn()
@@ -58,6 +64,21 @@ class MainActivity : AppCompatActivity() {
 
         setContentView(R.layout.activity_main)
 
+        val bottomNav = findViewById<BottomNavigationView>(R.id.bottom_navigation)
+
+        ViewCompat.setOnApplyWindowInsetsListener(bottomNav) { view, insets ->
+            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+
+            view.setPadding(
+                view.paddingLeft,
+                view.paddingTop,
+                view.paddingRight,
+                bars.bottom
+            )
+
+            insets
+        }
+
         FirebaseMessaging.getInstance().token
             .addOnCompleteListener { task ->
                 if (!task.isSuccessful) {
@@ -72,7 +93,6 @@ class MainActivity : AppCompatActivity() {
         // 🔹 Minta izin kamera & lokasi saat app dibuka
         checkAndRequestPermissions()
 
-        val bottomNav = findViewById<BottomNavigationView>(R.id.bottom_navigation)
         replaceFragment(HomeFragment()) // default fragment
 
         bottomNav.labelVisibilityMode = NavigationBarView.LABEL_VISIBILITY_SELECTED
