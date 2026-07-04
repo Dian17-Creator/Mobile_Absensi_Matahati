@@ -14,8 +14,8 @@ android {
         applicationId = "id.my.matahati.absensi"
         minSdk = 24
         targetSdk = 36
-        versionCode = 9
-        versionName = "1.0.9"
+        versionCode = 10
+        versionName = "1.0.10"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -121,7 +121,7 @@ dependencies {
     implementation("androidx.core:core-ktx:1.10.1")
 
     // Material components (BottomNavigationView)
-    implementation("com.google.android.material:material:1.9.0")
+    implementation("com.google.android.material:material:1.13.0")
 
     // Fragment KTX (FragmentContainerView, fragment support)
     implementation("androidx.fragment:fragment-ktx:1.6.1")
