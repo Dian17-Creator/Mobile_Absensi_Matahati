@@ -15,6 +15,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.ui.graphics.Color
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.ui.res.painterResource
@@ -50,6 +51,7 @@ import kotlinx.coroutines.launch
 class HalamanLogin : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
         setContent {
             LoginUI()
         }

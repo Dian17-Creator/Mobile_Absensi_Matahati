@@ -56,6 +56,7 @@ import org.json.JSONObject
 import android.os.Handler
 import android.os.Looper
 import android.os.Build
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.shape.CircleShape
@@ -83,6 +84,7 @@ private val httpClient by lazy {
 class HalamanManual : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
         setContent {
             MaterialTheme {
                 Surface(
