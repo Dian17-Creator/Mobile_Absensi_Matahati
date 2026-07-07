@@ -124,13 +124,6 @@
             />
 
         <activity
-            android:name=".HalamanForgot"
-            android:exported="true"
-            android:label="Absensi"
-            android:theme="@style/Theme.MyApplication"
-            />
-
-        <activity
             android:name=".HalamanApproval"
             android:exported="true"
             android:label="Absensi"
