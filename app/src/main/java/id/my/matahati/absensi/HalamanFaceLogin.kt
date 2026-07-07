@@ -59,6 +59,7 @@ import android.os.Handler
 import android.os.Looper
 import android.net.wifi.WifiManager
 import android.os.Build
+import androidx.activity.enableEdgeToEdge
 
 private const val TAG = "FACE_LOGIN"
 private const val API_KEY = "MH4T4H4TI_2025_ABSENSI_APP_SECRETx9P2F7Q1L8S3Z0R6W4K2D1M9B7T5"
@@ -99,7 +100,7 @@ class HalamanFaceLogin : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
+        enableEdgeToEdge()
         if (!PERMISSIONS.all {
                 ContextCompat.checkSelfPermission(this, it) == PackageManager.PERMISSION_GRANTED
             }) {

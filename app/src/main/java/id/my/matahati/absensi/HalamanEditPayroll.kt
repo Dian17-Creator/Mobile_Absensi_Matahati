@@ -29,12 +29,13 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import id.my.matahati.absensi.data.PayrollUpdateRequest
 import id.my.matahati.absensi.data.PayrollViewModel
 import android.util.Log
+import androidx.activity.enableEdgeToEdge
 
 class HalamanEditPayroll : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
+        enableEdgeToEdge()
         setContent {
 
             MaterialTheme {

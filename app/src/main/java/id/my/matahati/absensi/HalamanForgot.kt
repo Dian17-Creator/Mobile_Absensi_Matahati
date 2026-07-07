@@ -45,11 +45,13 @@ import java.util.Calendar
 import android.Manifest
 import androidx.core.content.ContextCompat
 import android.content.pm.PackageManager
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.shape.RoundedCornerShape
 
 class HalamanForgot : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
         setContent {
             MaterialTheme {
                 Surface(

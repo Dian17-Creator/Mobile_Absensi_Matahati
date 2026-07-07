@@ -59,6 +59,7 @@ import androidx.compose.ui.unit.sp
 import android.os.Handler
 import android.os.Looper
 import android.os.Build
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.filled.CameraAlt
@@ -83,6 +84,7 @@ private val httpClient by lazy {
 class HalamanIzin : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
         setContent {
             MaterialTheme {
                 Surface(

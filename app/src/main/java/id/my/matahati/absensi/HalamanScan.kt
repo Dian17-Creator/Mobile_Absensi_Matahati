@@ -20,6 +20,7 @@ import androidx.core.content.ContextCompat
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.os.Build
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -117,6 +118,8 @@ class HalamanScan : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        enableEdgeToEdge()
 
         hasAllPermissions = REQUIRED_PERMISSIONS.all {
             ContextCompat.checkSelfPermission(this, it) == PackageManager.PERMISSION_GRANTED
