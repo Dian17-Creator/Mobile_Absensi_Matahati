@@ -678,19 +678,49 @@ data class UploadResult(
 )
 
 fun compressImageFile(originalFile: File, context: Context): File {
-    val bitmap = BitmapFactory.decodeFile(originalFile.absolutePath) ?: return originalFile
+    val options = BitmapFactory.Options().apply {
+        inJustDecodeBounds = true
+    }
+    BitmapFactory.decodeFile(originalFile.absolutePath, options)
+
     val maxSize = 1080
-    val scale = maxOf(bitmap.width, bitmap.height).toFloat() / maxSize
-    val scaledBitmap = if (scale > 1)
-        Bitmap.createScaledBitmap(bitmap, (bitmap.width / scale).toInt(), (bitmap.height / scale).toInt(), true)
-    else bitmap
+    val width = options.outWidth
+    val height = options.outHeight
+
+    // Menghitung inSampleSize agar decoding awal lebih hemat RAM
+    var inSampleSize = 1
+    if (height > maxSize || width > maxSize) {
+        val halfHeight = height / 2
+        val halfWidth = width / 2
+        while (halfHeight / inSampleSize >= maxSize || halfWidth / inSampleSize >= maxSize) {
+            inSampleSize *= 2
+        }
+    }
+
+    options.inJustDecodeBounds = false
+    options.inSampleSize = inSampleSize
+
+    var bitmap = BitmapFactory.decodeFile(originalFile.absolutePath, options) ?: return originalFile
+
+    // Melakukan scaling presisi agar sisi terpanjang tepat 1080px
+    val currentWidth = bitmap.width
+    val currentHeight = bitmap.height
+    if (currentWidth > maxSize || currentHeight > maxSize) {
+        val scale = maxSize.toFloat() / maxOf(currentWidth, currentHeight)
+        val scaledWidth = (currentWidth * scale).toInt()
+        val scaledHeight = (currentHeight * scale).toInt()
+        val scaledBitmap = Bitmap.createScaledBitmap(bitmap, scaledWidth, scaledHeight, true)
+        if (scaledBitmap != bitmap) {
+            bitmap.recycle()
+            bitmap = scaledBitmap
+        }
+    }
 
     val compressedFile = File(context.cacheDir, "compressed_${System.currentTimeMillis()}.jpg")
     FileOutputStream(compressedFile).use { out ->
-        scaledBitmap.compress(Bitmap.CompressFormat.JPEG, 70, out)
+        bitmap.compress(Bitmap.CompressFormat.JPEG, 70, out)
     }
-    if (!bitmap.isRecycled) bitmap.recycle()
-    if (scaledBitmap != bitmap && !scaledBitmap.isRecycled) scaledBitmap.recycle()
+    bitmap.recycle()
     return compressedFile
 }
 
