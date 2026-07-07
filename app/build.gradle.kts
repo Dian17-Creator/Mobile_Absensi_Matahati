@@ -118,7 +118,6 @@ dependencies {
 
     // viewmodel compose
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.2")
-    implementation("androidx.core:core-ktx:1.10.1")
 
     // Material components (BottomNavigationView)
     implementation("com.google.android.material:material:1.13.0")
@@ -133,8 +132,5 @@ dependencies {
     implementation("androidx.navigation:navigation-fragment-ktx:2.7.2")
     implementation("androidx.navigation:navigation-ui-ktx:2.7.2")
     implementation("io.coil-kt:coil-compose:2.4.0")
-
-    implementation("androidx.compose.material3:material3:1.2.1")
-    implementation("androidx.compose.material3:material3-window-size-class:1.2.1")
     implementation("androidx.compose.material:material-icons-extended:1.6.2")
 }
