@@ -120,7 +120,7 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.2")
 
     // Material components (BottomNavigationView)
-    implementation("com.google.android.material:material:1.13.0")
+    implementation("com.google.android.material:material:1.14.0")
 
     // Fragment KTX (FragmentContainerView, fragment support)
     implementation("androidx.fragment:fragment-ktx:1.6.1")
