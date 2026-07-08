@@ -91,7 +91,6 @@ fun HalamanAktivitasScreen() {
         modifier = Modifier
             .fillMaxSize()
             .background(Color.White)
-            .systemBarsPadding()
     ) {
 
         // HEADER
@@ -99,6 +98,7 @@ fun HalamanAktivitasScreen() {
             modifier = Modifier
                 .fillMaxWidth()
                 .height(85.dp)
+                .statusBarsPadding()
                 .background(Color(0xFFB63352)),
             contentAlignment = Alignment.BottomCenter
         ) {
