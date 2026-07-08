@@ -300,6 +300,7 @@ fun HalamanManualUI() {
     Box(
         modifier = Modifier
             .fillMaxSize()
+            .systemBarsPadding()
             .verticalScroll(rememberScrollState())
     ) {
         Box(

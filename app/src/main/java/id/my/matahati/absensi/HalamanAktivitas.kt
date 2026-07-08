@@ -91,6 +91,7 @@ fun HalamanAktivitasScreen() {
         modifier = Modifier
             .fillMaxSize()
             .background(Color.White)
+            .systemBarsPadding()
     ) {
 
         // HEADER

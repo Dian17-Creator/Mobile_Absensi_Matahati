@@ -344,7 +344,7 @@ fun HalamanScanUI(
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-//                .background(backColor)
+                .systemBarsPadding()
                 .padding(horizontal = 16.dp, vertical = 20.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
             horizontalAlignment = Alignment.CenterHorizontally,

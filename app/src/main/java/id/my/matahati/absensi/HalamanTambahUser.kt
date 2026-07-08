@@ -223,6 +223,7 @@ fun HalamanTambahUserUI() {
     Box(
         modifier = Modifier
             .fillMaxSize()
+            .systemBarsPadding()
             .imePadding()
             .verticalScroll(rememberScrollState())
     ) {
