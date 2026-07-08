@@ -152,9 +152,7 @@ fun HalamanJadwalUI(scheduleViewModel: ScheduleViewModel = viewModel()) {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .fillMaxWidth()
             .background(Color.White)
-            .systemBarsPadding()
     ) {
         Box(
             modifier = Modifier
@@ -174,7 +172,7 @@ fun HalamanJadwalUI(scheduleViewModel: ScheduleViewModel = viewModel()) {
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(top = screenHeight * 0.05f),
+                    .padding(top = screenHeight * 0.02f),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 contentPadding = PaddingValues(
