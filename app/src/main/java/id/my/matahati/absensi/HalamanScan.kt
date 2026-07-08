@@ -685,8 +685,7 @@ fun HeaderSection(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .statusBarsPadding() // 🔥 Ini kuncinya agar teks di bawah status bar
-            .padding(bottom = 20.dp)
+            .padding(bottom = 20.dp, top = 30.dp)
             .padding(horizontal = 25.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
