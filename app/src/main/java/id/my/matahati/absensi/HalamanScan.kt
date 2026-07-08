@@ -29,6 +29,9 @@ import androidx.compose.ui.graphics.Color
 import kotlinx.coroutines.*
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.material3.ripple
 import androidx.compose.foundation.border
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
@@ -75,6 +78,7 @@ import id.my.matahati.absensi.data.RetrofitClientLaravel
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.material.icons.filled.MonetizationOn
+import androidx.compose.material.icons.filled.Person
 
 private const val TAG = "FACE_LOGIN"
 private const val API_KEY = "MH4T4H4TI_2025_ABSENSI_APP_SECRETx9P2F7Q1L8S3Z0R6W4K2D1M9B7T5"
@@ -330,54 +334,21 @@ fun HalamanScanUI(
             .fillMaxSize()
             .background(backColor)
     ) {
-        // 🔸 Background atas
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(350.dp)
-                .clip(BottomCurveShape(curveHeight = 50f))
-                .background(primaryColor)
-                .align(Alignment.TopCenter)
-        )
-
-        // 🔸 Konten utama
+        // 🔸 Konten utama (SCROLLABLE)
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .systemBarsPadding()
-                .padding(horizontal = 16.dp, vertical = 20.dp),
+                .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-
             contentPadding = PaddingValues(
-                    bottom = 10.dp
-                    )
+                top = 145.dp, // Agar konten mulai tepat di bawah header merah
+                bottom = 100.dp
+            )
         ) {
-            //Card Waktu
-            item {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    elevation = CardDefaults.cardElevation(6.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFF4C4C59)),
-                    shape = RoundedCornerShape(8.dp)
-                ) {
-                    CardWaktu()
-                }
-            }
-
-            //Card Shift
-            item {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    elevation = CardDefaults.cardElevation(6.dp),
-                    shape = RoundedCornerShape(8.dp)
-                ) {
-                    CardShift(userId = userId)
-                }
-            }
-
             //Box Face Absensi
             item {
+                Spacer(Modifier.height(4.dp))
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -533,28 +504,22 @@ fun HalamanScanUI(
             item {
                 Card(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(min = 250.dp, max = 450.dp),
-                    shape = RoundedCornerShape(12.dp),
+                        .fillMaxWidth(),
+                    shape = RoundedCornerShape(24.dp), // Lebih melengkung agar modern
                     colors = CardDefaults.cardColors(containerColor = Color.White),
-                    elevation = CardDefaults.cardElevation(4.dp)
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                 ) {
-
-                    LazyVerticalGrid(
-                        columns = GridCells.Fixed(4), // ✅ 1 BARIS = 4 MENU
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 12.dp), // 🔥 nempel atas
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
-                        horizontalArrangement = Arrangement.SpaceEvenly,
-                        userScrollEnabled = false,
-
-                        contentPadding = PaddingValues(
-                            bottom = 45.dp
-                        )
+                    Column(
+                        modifier = Modifier.padding(16.dp)
                     ) {
 
-                        item {
+                        @OptIn(ExperimentalLayoutApi::class)
+                        FlowRow(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.Start,
+                            verticalArrangement = Arrangement.spacedBy(16.dp),
+                            maxItemsInEachRow = 4
+                        ) {
                             UserActionItem(
                                 icon = Icons.Default.Event,
                                 label = "Izin"
@@ -566,9 +531,7 @@ fun HalamanScanUI(
                                 }
                                 context.startActivity(intent)
                             }
-                        }
 
-                        item {
                             UserActionItem(
                                 icon = Icons.Default.Edit,
                                 label = "Manual"
@@ -580,18 +543,14 @@ fun HalamanScanUI(
                                 }
                                 context.startActivity(intent)
                             }
-                        }
 
-                        item {
                             UserActionItem(
                                 icon = Icons.Default.List,
                                 label = "Aktivitas"
                             ) {
                                 context.startActivity(Intent(context, HalamanAktivitas::class.java))
                             }
-                        }
 
-                        item {
                             UserActionItem(
                                 icon = Icons.Default.Face,
                                 label = "Face Reg"
@@ -603,9 +562,7 @@ fun HalamanScanUI(
                                 }
                                 context.startActivity(intent)
                             }
-                        }
 
-                        item {
                             UserActionItem(
                                 icon = Icons.Default.Payments,
                                 label = "Gaji",
@@ -613,10 +570,8 @@ fun HalamanScanUI(
                             ) {
                                 context.startActivity(Intent(context, HalamanGaji::class.java))
                             }
-                        }
 
-                        if (isCaptainOrAbove) {
-                            item {
+                            if (isCaptainOrAbove) {
                                 UserActionItem(
                                     icon = Icons.Default.Verified,
                                     label = "Approval",
@@ -625,97 +580,161 @@ fun HalamanScanUI(
                                     context.startActivity(Intent(context, HalamanApproval::class.java))
                                 }
                             }
-                        }
 
-                        if(isHRDOrAbove)
-                            item {
+                            if (isHRDOrAbove) {
                                 UserActionItem(
                                     iconPainter = painterResource(id = R.drawable.adduser),
                                     label = "Tambah User",
-                                    iconColor = Color(0xFFD32F2F)
+                                    iconColor = Color(0xFFE91E63)
                                 ) {
                                     context.startActivity(Intent(context, HalamanTambahUser::class.java))
                                 }
                             }
 
-                        if(isCaptainOrAbove)
-                            item {
+                            if (isCaptainOrAbove) {
                                 UserActionItem(
                                     iconPainter = painterResource(id = R.drawable.faces),
-                                    label = "Face Approval",
-                                    iconColor = Color(0xFFD32F2F),
+                                    label = "Face Acc",
+                                    iconColor = Color(0xFFE91E63),
                                     showBadge = hasPendingFace
                                 ) {
                                     context.startActivity(Intent(context, HalamanFaceApproval::class.java))
                                 }
                             }
 
-                        if(isHRDOrAbove)
-                            item {
+                            if (isHRDOrAbove) {
                                 UserActionItem(
                                     iconPainter = painterResource(id = R.drawable.payroll),
-                                    label = "Payroll User",
-                                    iconColor = Color(0xFFD32F2F)
+                                    label = "Payroll",
+                                    iconColor = Color(0xFFE91E63)
                                 ) {
                                     context.startActivity(Intent(context, HalamanPayroll::class.java))
                                 }
                             }
 
-                        item {
                             UserActionItem(
                                 icon = Icons.Default.Logout,
                                 label = "Logout",
-                                iconColor = Color(0xFFD32F2F)
+                                iconColor = Color.DarkGray
                             ) {
                                 LogoutHelper.logout(context)
                             }
                         }
-
-                                           }
+                    }
                 }
             }
 
         }
+
+        // 🔸 Background atas (FIXED)
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(130.dp)
+                .background(primaryColor)
+                .align(Alignment.TopCenter)
+        ) {
+            HeaderSection(userName = userName, userId = userId)
+        }
     }
 }
 
-/* 🔹 CARD WAKTU (real-time, versi ringkas satu baris) */
 @Composable
-fun CardWaktu() {
-    var waktuSekarang by remember { mutableStateOf("") }
-    var tanggalSekarang by remember { mutableStateOf("") }
+fun HeaderSection(
+    userName: String,
+    userId: Int,
+    scheduleViewModel: ScheduleViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+) {
+    val schedules by scheduleViewModel.schedules.collectAsState()
+    val today = LocalDate.now()
 
-    LaunchedEffect(Unit) {
-        while (true) {
-            val now = java.time.LocalDateTime.now()
-            val formatterJam = java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss")
-            val formatterTgl = java.time.format.DateTimeFormatter.ofPattern(
-                "EEE, dd MMM yyyy", // disingkat: Rabu -> Rab, Oktober -> Okt
-                Locale("id", "ID")
-            )
-            waktuSekarang = now.format(formatterJam)
-            tanggalSekarang = now.format(formatterTgl)
-            delay(1000L)
+    LaunchedEffect(userId) {
+        if (userId != -1) {
+            scheduleViewModel.loadSchedules(userId)
         }
     }
+
+    val todayRows = schedules.filter { it.dwork == today.toString() }
+    val shiftNameToday = todayRows.firstOrNull()?.cschedname ?: "Tidak ada shift"
+
+    // Periode Shift Logic
+    val sameShiftDates = schedules
+        .filter { it.cschedname == shiftNameToday }
+        .mapNotNull { runCatching { LocalDate.parse(it.dwork) }.getOrNull() }
+        .sorted()
+
+    val runs = mutableListOf<MutableList<LocalDate>>()
+    for (d in sameShiftDates) {
+        if (runs.isEmpty()) runs.add(mutableListOf(d))
+        else {
+            val lastRun = runs.last()
+            if (lastRun.last().plusDays(1) == d) lastRun.add(d)
+            else runs.add(mutableListOf(d))
+        }
+    }
+    val containingRun = runs.find { it.contains(today) }
+    val formatterShort = DateTimeFormatter.ofPattern("dd MMM", Locale("id", "ID"))
+    val periodeText = if (containingRun != null) {
+        "${containingRun.first().format(formatterShort)} - ${containingRun.last().format(formatterShort)}"
+    } else ""
+
+    val timeText = if (todayRows.isNotEmpty()) {
+        todayRows.joinToString(" | ") { "${it.dstart.substring(0, 5)} - ${it.dend.substring(0, 5)}" }
+    } else "--:--"
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 6.dp, horizontal = 10.dp),
-        horizontalArrangement = Arrangement.Center,
-        verticalAlignment = Alignment.CenterVertically
+            .statusBarsPadding() // 🔥 Ini kuncinya agar teks di bawah status bar
+            .padding(bottom = 20.dp)
+            .padding(horizontal = 25.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Text(
-            text = "$waktuSekarang • $tanggalSekarang",
-            style = MaterialTheme.typography.bodyMedium.copy(
-                fontSize = 13.sp,
-                fontWeight = FontWeight.SemiBold
-            ),
-            color = Color.White,
-            maxLines = 1
-        )
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = "Halo, $userName",
+                style = MaterialTheme.typography.titleLarge.copy(
+                    fontWeight = FontWeight.ExtraBold,
+                    fontSize = 22.sp
+                ),
+                color = Color.White
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "Shift kamu hari ini : $shiftNameToday",
+                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
+                color = Color.White.copy(alpha = 0.9f)
+            )
+            Text(
+                text = "$timeText | $periodeText",
+                style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
+                color = Color.White.copy(alpha = 0.7f)
+            )
+        }
+
+        // Avatar Icon di Kanan
+        Surface(
+            modifier = Modifier.size(48.dp),
+            shape = CircleShape,
+            color = Color.White.copy(alpha = 0.2f)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Person,
+                contentDescription = null,
+                tint = Color.White,
+                modifier = Modifier
+                    .size(24.dp)
+                    .padding(8.dp)
+            )
+        }
     }
+}
+
+/* 🔹 CARD WAKTU (dihapus/dinonaktifkan sesuai permintaan) */
+@Composable
+fun CardWaktu() { 
+    // Fungsi tetap ada agar tidak error di file lain, tapi tidak dipanggil di HalamanScan
 }
 
 /* 🔹 CARD SHIFT (warna & periode dinamis) */
@@ -776,36 +795,30 @@ fun CardShift(
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = shiftColor),
-        shape = RoundedCornerShape(8.dp),
-        elevation = CardDefaults.cardElevation(4.dp)
+        shape = RoundedCornerShape(16.dp), // Lebih melengkung
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp) // Flat but clean
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 10.dp, horizontal = 12.dp),
+                .padding(vertical = 12.dp, horizontal = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-
-//            Text(
-//                text = "Shift Hari Ini",
-//                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-//                color = if (todayRows.isNotEmpty()) Color.White else Color.Black
-//            )
-
-            Spacer(modifier = Modifier.height(4.dp))
-
             if (todayRows.isNotEmpty()) {
-
-                // 🔹 Baris 1: Judul + Nama Shift
                 Text(
-                    text = "Shift Hari Ini : ${
-                        shiftNameToday!!.replaceFirstChar {
-                            it.titlecase(Locale("id", "ID"))
-                        }
-                    }",
-                    style = MaterialTheme.typography.bodySmall.copy(
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp
+                    text = "Shift Hari Ini",
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontWeight = FontWeight.Normal,
+                        letterSpacing = 1.sp
+                    ),
+                    color = Color.White.copy(alpha = 0.8f)
+                )
+
+                Text(
+                    text = shiftNameToday!!.uppercase(Locale("id", "ID")),
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = 18.sp
                     ),
                     color = Color.White
                 )
@@ -817,28 +830,29 @@ fun CardShift(
                     "${it.dstart.substring(0, 5)} - ${it.dend.substring(0, 5)}"
                 }
 
-                // 🔹 Baris 2: Jam + Periode
-                Text(
-                    text = buildString {
-                        append("($timeText)")
-                        periodeText?.let {
-                            append(" $it ${today.year}")
-                        }
-                    },
-                    style = MaterialTheme.typography.bodySmall.copy(
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.SemiBold
-                    ),
-                    color = Color.White,
-                    lineHeight = 14.sp,
-                    maxLines = 2
-                )
+                Surface(
+                    color = Color.White.copy(alpha = 0.2f),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text(
+                        text = "$timeText ${periodeText ?: ""}",
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                        style = MaterialTheme.typography.bodySmall.copy(
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold
+                        ),
+                        color = Color.White
+                    )
+                }
 
             } else {
                 Text(
-                    text = "Belum ada shift untuk hari ini.",
-                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
-                    color = Color.Black
+                    text = "TIDAK ADA SHIFT HARI INI",
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.sp
+                    ),
+                    color = Color.Black.copy(alpha = 0.6f)
                 )
             }
         }
@@ -856,65 +870,64 @@ fun UserActionItem(
 ) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.width(72.dp)
+        modifier = Modifier
+            .width(80.dp)
+            .clickable(
+                onClick = onClick,
+                interactionSource = remember { MutableInteractionSource() },
+                indication = ripple(bounded = false, radius = 40.dp)
+            )
     ) {
-
-        Box( // 🔥 PARENT UTAMA
-            modifier = Modifier.size(64.dp)
+        Box(
+            modifier = Modifier.size(56.dp),
+            contentAlignment = Alignment.Center
         ) {
-
-            Card(
+            // Background lingkaran lembut
+            Box(
                 modifier = Modifier
-                    .size(60.dp)
-                    .align(Alignment.Center),
-                shape = RoundedCornerShape(10.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
-                elevation = CardDefaults.cardElevation(2.dp),
-                onClick = onClick
-            ) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    if (iconPainter != null) {
+                    .fillMaxSize()
+                    .background(
+                        color = iconColor.copy(alpha = 0.12f),
+                        shape = CircleShape
+                    )
+            )
 
-                        Icon(
-                            painter = iconPainter,
-                            contentDescription = label,
-                            tint = iconColor,
-                            modifier = Modifier.size(26.dp)
-                        )
-
-                    } else if (icon != null) {
-
-                        Icon(
-                            imageVector = icon,
-                            contentDescription = label,
-                            tint = iconColor,
-                            modifier = Modifier.size(26.dp)
-                        )
-                    }
-                }
+            // Ikon
+            if (iconPainter != null) {
+                Icon(
+                    painter = iconPainter,
+                    contentDescription = label,
+                    tint = iconColor,
+                    modifier = Modifier.size(26.dp)
+                )
+            } else if (icon != null) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = label,
+                    tint = iconColor,
+                    modifier = Modifier.size(26.dp)
+                )
             }
 
+            // Badge dengan border putih agar lebih "pop"
             if (showBadge) {
                 Box(
                     modifier = Modifier
                         .size(12.dp)
-                        .background(Color.Red, shape = CircleShape)
                         .align(Alignment.TopEnd)
-                        .offset(x = 5.dp, y = (-5).dp)
+                        .background(Color.Red, CircleShape)
+                        .border(2.dp, Color.White, CircleShape)
                 )
             }
         }
 
-        Spacer(Modifier.height(6.dp))
+        Spacer(Modifier.height(8.dp))
 
         Text(
             text = label,
-            fontSize = 12.sp,
-            fontWeight = FontWeight.Medium,
-            color = Color(0xFFB63352),
+            fontSize = 11.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = Color(0xFF424242),
             textAlign = TextAlign.Center,
             maxLines = 1
         )
