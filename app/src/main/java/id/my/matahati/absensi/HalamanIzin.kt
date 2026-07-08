@@ -329,7 +329,7 @@ fun HalamanIzinUI() {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .systemBarsPadding()
+            .background(Color.White)
             .verticalScroll(rememberScrollState())
     ) {
         Box(
