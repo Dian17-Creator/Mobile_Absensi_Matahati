@@ -154,6 +154,7 @@ fun HalamanJadwalUI(scheduleViewModel: ScheduleViewModel = viewModel()) {
             .fillMaxSize()
             .fillMaxWidth()
             .background(Color.White)
+            .systemBarsPadding()
     ) {
         Box(
             modifier = Modifier

@@ -65,16 +65,16 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
 
         val bottomNav = findViewById<BottomNavigationView>(R.id.bottom_navigation)
+        val fragmentContainer = findViewById<View>(R.id.fragment_container)
 
-        ViewCompat.setOnApplyWindowInsetsListener(bottomNav) { view, insets ->
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { _, insets ->
             val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-
-            view.setPadding(
-                view.paddingLeft,
-                view.paddingTop,
-                view.paddingRight,
-                bars.bottom
-            )
+            
+            // Berikan padding atas ke container fragment agar tidak tertutup Status Bar
+            fragmentContainer.setPadding(0, bars.top, 0, 0)
+            
+            // Berikan padding bawah ke bottom navigation agar tidak tertutup Navigation Bar
+            bottomNav.setPadding(0, 0, 0, bars.bottom)
 
             insets
         }

@@ -134,7 +134,8 @@ fun LoginUI() {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.White),
+            .background(Color.White)
+            .systemBarsPadding(),
         contentAlignment = Alignment.Center
     ) {
         Column(

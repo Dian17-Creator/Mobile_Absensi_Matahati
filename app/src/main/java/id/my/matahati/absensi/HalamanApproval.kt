@@ -84,6 +84,7 @@ fun HalamanApprovalScreen() {
         modifier = Modifier
             .fillMaxSize()
             .background(Color.White)
+            .systemBarsPadding()
     ) {
 
         // ===== HEADER =====

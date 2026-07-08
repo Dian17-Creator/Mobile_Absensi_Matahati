@@ -86,6 +86,7 @@ fun HalamanPayrollScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .systemBarsPadding()
                 .padding(horizontal = 20.dp)
                 .padding(top = 28.dp)
         ) {
