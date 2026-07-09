@@ -18,6 +18,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.Dp
 import id.my.matahati.absensi.data.ApprovalItem
 import id.my.matahati.absensi.data.RetrofitClient
 import kotlinx.coroutines.*
@@ -27,14 +28,21 @@ class HalamanApproval : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            HalamanApprovalScreen()
+            val topPadding =
+                WindowInsets.statusBars
+                    .asPaddingValues()
+                    .calculateTopPadding()
+
+            HalamanApprovalScreen(topPadding)
         }
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HalamanApprovalScreen() {
+fun HalamanApprovalScreen(
+    topPadding : Dp
+) {
 
     val context = LocalContext.current
     val session = remember { SessionManager(context) }
@@ -84,8 +92,14 @@ fun HalamanApprovalScreen() {
         modifier = Modifier
             .fillMaxSize()
             .background(Color.White)
-            .systemBarsPadding()
     ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(topPadding)
+                .background(Color.Black)
+                .align(Alignment.CenterHorizontally)
+        )
 
         // ===== HEADER =====
         Box(

@@ -25,6 +25,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -37,15 +38,19 @@ class HalamanFaceApproval : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            MaterialTheme {
-                HalamanFaceApprovalScreen()
-            }
+            val topPadding =
+                WindowInsets.statusBars
+                    .asPaddingValues()
+                    .calculateTopPadding()
+
+            HalamanFaceApprovalScreen(topPadding)
         }
     }
 }
 
 @Composable
 fun HalamanFaceApprovalScreen(
+    topPadding : Dp,
     viewModel: FaceApprovalViewModel = viewModel()
 ) {
 
@@ -68,6 +73,14 @@ fun HalamanFaceApprovalScreen(
     ) {
 
         /* ================= HEADER BACKGROUND ================= */
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(topPadding)
+                .background(Color.Black)
+                .align(Alignment.TopCenter)
+        )
 
         Box(
             modifier = Modifier

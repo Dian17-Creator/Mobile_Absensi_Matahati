@@ -53,6 +53,7 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.coerceAtLeast
 
 class HalamanTambahUser : ComponentActivity() {
@@ -61,20 +62,20 @@ class HalamanTambahUser : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            MaterialTheme {
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = Color.White
-                ) {
-                    HalamanTambahUserUI()
-                }
-            }
+            val topPadding =
+                WindowInsets.statusBars
+                    .asPaddingValues()
+                    .calculateTopPadding()
+
+            HalamanTambahUserUI(topPadding)
         }
     }
 }
 
 @Composable
-fun HalamanTambahUserUI() {
+fun HalamanTambahUserUI(
+    topPadding : Dp
+) {
 
     val primaryColor = Color(0xFFB63352)
     val context = LocalContext.current
@@ -223,10 +224,16 @@ fun HalamanTambahUserUI() {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .systemBarsPadding()
-            .imePadding()
             .verticalScroll(rememberScrollState())
     ) {
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(topPadding)
+                .background(Color.Black)
+                .align(Alignment.TopCenter)
+        )
 
         // BACKGROUND BAWAH
         Box(
@@ -246,7 +253,9 @@ fun HalamanTambahUserUI() {
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
 
-            Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+            Box(modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 12.dp), contentAlignment = Alignment.Center) {
                 IconButton(
                     onClick = { (context as Activity).finish() },
                     modifier = Modifier.align(Alignment.CenterStart)

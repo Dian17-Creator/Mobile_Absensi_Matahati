@@ -34,6 +34,7 @@ import id.my.matahati.absensi.data.PayrollViewModel
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 
 class HalamanPayroll : ComponentActivity() {
 
@@ -41,9 +42,12 @@ class HalamanPayroll : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            MaterialTheme {
-                HalamanPayrollScreen()
-            }
+            val topPadding =
+                WindowInsets.statusBars
+                    .asPaddingValues()
+                    .calculateTopPadding()
+
+            HalamanPayrollScreen(topPadding)
         }
     }
 }
@@ -51,6 +55,7 @@ class HalamanPayroll : ComponentActivity() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HalamanPayrollScreen(
+    topPadding : Dp,
     viewModel: PayrollViewModel = viewModel()
 ) {
 
@@ -74,6 +79,14 @@ fun HalamanPayrollScreen(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
+                .height(topPadding)
+                .background(Color.Black)
+                .align(Alignment.TopCenter)
+        )
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
                 .height(450.dp)
                 .clip(
                     BottomCurveShape(
@@ -86,7 +99,6 @@ fun HalamanPayrollScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .systemBarsPadding()
                 .padding(horizontal = 20.dp)
                 .padding(top = 28.dp)
         ) {
