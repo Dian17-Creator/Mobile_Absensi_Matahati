@@ -342,7 +342,7 @@ fun HalamanScanUI(
             verticalArrangement = Arrangement.spacedBy(12.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             contentPadding = PaddingValues(
-                top = 145.dp, // Agar konten mulai tepat di bawah header merah
+                top = 130.dp, // Agar konten mulai tepat di bawah header merah
                 bottom = 100.dp
             )
         ) {
@@ -615,7 +615,7 @@ fun HalamanScanUI(
                             UserActionItem(
                                 icon = Icons.Default.Logout,
                                 label = "Logout",
-                                iconColor = Color.DarkGray
+                                iconColor = Color.Red
                             ) {
                                 LogoutHelper.logout(context)
                             }
@@ -630,7 +630,7 @@ fun HalamanScanUI(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(130.dp)
+                .height(120.dp)
                 .background(primaryColor)
                 .align(Alignment.TopCenter)
         ) {
@@ -685,7 +685,7 @@ fun HeaderSection(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(bottom = 20.dp, top = 30.dp)
+            .padding(bottom = 20.dp, top = 25.dp)
             .padding(horizontal = 25.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
