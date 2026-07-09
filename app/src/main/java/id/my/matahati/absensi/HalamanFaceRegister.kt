@@ -62,9 +62,11 @@ import com.google.mlkit.vision.face.FaceDetector
 import com.google.mlkit.vision.face.FaceDetectorOptions
 import android.graphics.drawable.BitmapDrawable
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.ui.unit.Dp
 import coil.ImageLoader
 import coil.request.ImageRequest
 import coil.request.SuccessResult
+import com.google.android.material.internal.ViewUtils
 
 
 private const val TAG_FACE = "FACE_REGISTER"
@@ -139,7 +141,12 @@ class HalamanFaceRegister : ComponentActivity() {
         }
 
         setContent {
-            FaceRegisterScreen()
+            val topPadding =
+                WindowInsets.statusBars
+                    .asPaddingValues()
+                    .calculateTopPadding()
+
+            FaceRegisterScreen(topPadding)
         }
     }
 
@@ -152,7 +159,9 @@ class HalamanFaceRegister : ComponentActivity() {
 private val PrimaryColor = Color(0xFFB63352)
 
 @Composable
-fun FaceRegisterScreen() {
+fun FaceRegisterScreen(
+    topPadding : Dp
+) {
 
     val scope = rememberCoroutineScope()
     var uploadStatus by remember { mutableStateOf<String?>(null) }
@@ -226,10 +235,17 @@ fun FaceRegisterScreen() {
             .fillMaxSize()
             .background(Color.White)
     ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(topPadding)
+                .background(Color.Black)
+                .align(Alignment.TopCenter)
+        )
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .systemBarsPadding()
                 .padding(20.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
