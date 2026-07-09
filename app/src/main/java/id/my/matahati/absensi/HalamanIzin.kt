@@ -70,6 +70,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.coerceAtLeast
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.Dp
 
 private val httpClient by lazy {
     OkHttpClient.Builder()
@@ -86,19 +87,19 @@ class HalamanIzin : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            MaterialTheme {
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = Color.White
-                ) {
-                    HalamanIzinUI()
-                }
-            }
+            val topPadding =
+                WindowInsets.statusBars
+                    .asPaddingValues()
+                    .calculateTopPadding()
+
+            HalamanIzinUI(topPadding)
         }
     }
 }
 @Composable
-fun HalamanIzinUI() {
+fun HalamanIzinUI(
+    topPadding : Dp
+) {
     val localeId = Locale("id", "ID")
     val displayFormat = SimpleDateFormat("dd-MM-yyyy", localeId)
     val valueFormat = SimpleDateFormat("yyyy-MM-dd", Locale.US)
@@ -329,9 +330,16 @@ fun HalamanIzinUI() {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.White)
-            .verticalScroll(rememberScrollState())
+
     ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(topPadding)
+                .background(Color.Black)
+                .align(Alignment.TopCenter)
+        )
+
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -348,7 +356,11 @@ fun HalamanIzinUI() {
                 .padding(top = (20.dp * scaleFactor), bottom = (24.dp * scaleFactor)),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+            Box(modifier = Modifier
+                .padding(top = 16.dp)
+                .fillMaxWidth(),
+                contentAlignment = Alignment.Center) {
+
                 IconButton(
                     onClick = { (context as Activity).finish() },
                     modifier = Modifier.align(Alignment.CenterStart)
@@ -383,7 +395,8 @@ fun HalamanIzinUI() {
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = (25.dp * scaleFactor)),
+                    .padding(bottom = (25.dp * scaleFactor))
+                ,
                 shape = RoundedCornerShape((20.dp * scaleFactor)),
                 elevation = CardDefaults.cardElevation(8.dp),
                 colors = CardDefaults.cardColors(containerColor = Color(0xFFFDF9FC))
@@ -392,6 +405,7 @@ fun HalamanIzinUI() {
                     modifier = Modifier
                         .padding((20.dp * scaleFactor))
                         .fillMaxWidth()
+                        .verticalScroll(rememberScrollState())
                 ) {
 
                     // 🔽 LOKASI (FULL)
@@ -404,7 +418,7 @@ fun HalamanIzinUI() {
                         maxLines = 2
                     )
 
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(6.dp))
 
                     // 🔽 ROW: KATEGORI + FOTO
                     Row(
@@ -604,10 +618,18 @@ fun HalamanIzinUI() {
                     OutlinedTextField(
                         value = reason.value,
                         onValueChange = { reason.value = it },
-                        label = { Text("Alasan") },
+                        label = {
+                            Text(
+                                "Alasan",
+                                fontSize = 14.sp
+                            )
+                        },
+                        textStyle = TextStyle(
+                            fontSize = 12.sp
+                        ),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(90.dp),
+                            .height(50.dp),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = primaryColor,
                             focusedLabelColor = primaryColor
@@ -665,7 +687,7 @@ fun HalamanIzinUI() {
                         },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(50.dp),
+                            .height(45.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = Color(0xFF4C4C59),
                             contentColor = Color.White

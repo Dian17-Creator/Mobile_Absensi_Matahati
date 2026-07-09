@@ -15,7 +15,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -28,6 +27,8 @@ import id.my.matahati.absensi.data.AktivitasResponse
 import kotlinx.coroutines.launch
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.unit.Dp
 
 class HalamanAktivitas : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -36,14 +37,21 @@ class HalamanAktivitas : ComponentActivity() {
         enableEdgeToEdge()
 
         setContent {
-            HalamanAktivitasScreen()
+            val topPadding =
+                WindowInsets.statusBars
+                    .asPaddingValues()
+                    .calculateTopPadding()
+
+            HalamanAktivitasScreen(topPadding)
         }
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HalamanAktivitasScreen() {
+fun HalamanAktivitasScreen(
+    topPadding: Dp
+) {
 
     val tabs = listOf("Absen Manual", "Izin")
 
@@ -92,13 +100,19 @@ fun HalamanAktivitasScreen() {
             .fillMaxSize()
             .background(Color.White)
     ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(topPadding)
+                .background(Color.Black)
+                .align(Alignment.CenterHorizontally)
+        )
 
         // HEADER
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(85.dp)
-                .statusBarsPadding()
+                .height(55.dp)
                 .background(Color(0xFFB63352)),
             contentAlignment = Alignment.BottomCenter
         ) {

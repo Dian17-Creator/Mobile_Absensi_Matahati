@@ -67,6 +67,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.coerceAtLeast
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -86,14 +87,12 @@ class HalamanManual : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            MaterialTheme {
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = Color.White
-                ) {
-                    HalamanManualUI()
-                }
-            }
+            val topPadding =
+                WindowInsets.statusBars
+                    .asPaddingValues()
+                    .calculateTopPadding()
+
+            HalamanManualUI(topPadding)
         }
     }
 }
@@ -121,7 +120,9 @@ fun rememberAdaptiveScale(baseWidthDp: Float = 411f): Float {
 }
 
 @Composable
-fun HalamanManualUI() {
+fun HalamanManualUI(
+    topPadding : Dp
+) {
     val activity = LocalContext.current as Activity
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
@@ -300,9 +301,16 @@ fun HalamanManualUI() {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .systemBarsPadding()
             .verticalScroll(rememberScrollState())
     ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(topPadding)
+                .background(Color.Black)
+                .align(Alignment.TopCenter)
+        )
+
         Box(
             modifier = Modifier
                 .fillMaxWidth()
