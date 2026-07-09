@@ -85,6 +85,7 @@ fun HalamanFaceApprovalScreen(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
+                .padding(top = topPadding)
                 .height(400.dp)
                 .clip(
                     BottomCurveShape(
@@ -98,7 +99,6 @@ fun HalamanFaceApprovalScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .systemBarsPadding()
                 .padding(horizontal = 20.dp)
                 .padding(top = 28.dp)
         ) {

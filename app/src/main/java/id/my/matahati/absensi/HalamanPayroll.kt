@@ -87,6 +87,7 @@ fun HalamanPayrollScreen(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
+                .padding(top = topPadding)
                 .height(450.dp)
                 .clip(
                     BottomCurveShape(
