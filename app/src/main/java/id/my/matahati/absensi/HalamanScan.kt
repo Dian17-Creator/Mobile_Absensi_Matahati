@@ -349,7 +349,8 @@ fun HalamanScanUI(
             horizontalAlignment = Alignment.CenterHorizontally,
             contentPadding = PaddingValues(
                 top = headerHeight, // Dinamis sesuai layar
-                bottom = 116.dp // Tambahan space agar tidak mepet bottom nav (100 + 16)
+                // 80dp (estimasi tinggi BottomNav) + 16dp (gap) + system navigation bar height
+                bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + 96.dp
             )
         ) {
             //Box Face Absensi

@@ -65,15 +65,12 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
 
         val bottomNav = findViewById<BottomNavigationView>(R.id.bottom_navigation)
-        val fragmentContainer = findViewById<View>(R.id.fragment_container)
 
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { _, insets ->
             val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             
-            // Berikan padding atas ke container fragment agar tidak tertutup Status Bar
-            fragmentContainer.setPadding(0, bars.top, 0, 0)
-            
-            // Berikan padding bawah ke bottom navigation agar tidak tertutup Navigation Bar
+            // Berikan padding bawah ke bottom navigation agar ikon tidak tertutup tombol sistem (Back/Home)
+            // Ini adalah cara resmi menangani inset untuk komponen View-based di Edge-to-Edge
             bottomNav.setPadding(0, 0, 0, bars.bottom)
 
             insets

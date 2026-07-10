@@ -62,20 +62,13 @@ class HalamanTambahUser : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            val topPadding =
-                WindowInsets.statusBars
-                    .asPaddingValues()
-                    .calculateTopPadding()
-
-            HalamanTambahUserUI(topPadding)
+            HalamanTambahUserUI()
         }
     }
 }
 
 @Composable
-fun HalamanTambahUserUI(
-    topPadding : Dp
-) {
+fun HalamanTambahUserUI() {
 
     val primaryColor = Color(0xFFB63352)
     val context = LocalContext.current
@@ -224,17 +217,10 @@ fun HalamanTambahUserUI(
     Box(
         modifier = Modifier
             .fillMaxSize()
+            .background(Color.White) // Pastikan background utama putih atau mengikuti tema
+            .systemBarsPadding() // Menangani padding sistem secara otomatis di tingkat root
             .verticalScroll(rememberScrollState())
     ) {
-
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(topPadding)
-                .background(Color.Black)
-                .align(Alignment.TopCenter)
-        )
-
         // BACKGROUND BAWAH
         Box(
             modifier = Modifier
