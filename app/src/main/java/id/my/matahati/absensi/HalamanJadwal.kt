@@ -178,7 +178,7 @@ fun HalamanJadwalUI(scheduleViewModel: ScheduleViewModel = viewModel()) {
                 verticalArrangement = Arrangement.spacedBy(12.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 contentPadding = PaddingValues(
-                    bottom = 50.dp
+                    bottom = 125.dp // Ditambah agar Card Log Absensi tidak menempel Bottom Navigation
                 )
             ) {
                 item {
@@ -255,19 +255,17 @@ fun HalamanJadwalUI(scheduleViewModel: ScheduleViewModel = viewModel()) {
                     // === Card Log Absensi ===
                     Card(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .height(200.dp)
-                            .padding(bottom = 30.dp),
+                            .fillMaxWidth(),
                         elevation = CardDefaults.cardElevation(6.dp),
                         shape = RoundedCornerShape(12.dp),
                         colors = CardDefaults.cardColors(containerColor = Color.White)
                     ) {
-                        Column(modifier = Modifier.fillMaxSize()) {
+                        Column(modifier = Modifier.fillMaxWidth()) {
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .background(Color(0xFF4C4C59))
-                                    .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
+                                    .clip(RoundedCornerShape(12.dp, 12.dp, 0.dp, 0.dp)) // Perbaikan clip agar rapi
                                     .padding(horizontal = 16.dp, vertical = 10.dp),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
@@ -292,7 +290,7 @@ fun HalamanJadwalUI(scheduleViewModel: ScheduleViewModel = viewModel()) {
 
                             Box(
                                 modifier = Modifier
-                                    .fillMaxSize()
+                                    .fillMaxWidth()
                                     .background(Color(0xFFFFF9F2))
                                     .padding(12.dp)
                             ) {
@@ -315,8 +313,10 @@ fun HalamanJadwalUI(scheduleViewModel: ScheduleViewModel = viewModel()) {
                                         )
                                     }
                                     else -> {
-                                        LazyColumn(modifier = Modifier.fillMaxSize()) {
-                                            items(filteredLogs) { log ->
+                                        // Menggunakan Column agar tinggi Card mengikuti jumlah data (wrap content)
+                                        // dan menghilangkan double scrolling
+                                        Column(modifier = Modifier.fillMaxWidth()) {
+                                            filteredLogs.forEach { log ->
                                                 val bgColor = when (log.typeAbsensi) {
                                                     "manual" -> Color(0xFFFFF59D)
                                                     "scan" -> Color(0xFFC8D7E6)
