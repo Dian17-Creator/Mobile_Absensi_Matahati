@@ -343,7 +343,7 @@ fun HalamanIzinUI(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height((445.dp * scaleFactor).coerceAtLeast(250.dp))
+                .height((400.dp * scaleFactor).coerceAtLeast(200.dp))
                 .align(Alignment.BottomCenter)
                 .semiCircleTop()
                 .background(primaryColor)
@@ -380,13 +380,13 @@ fun HalamanIzinUI(
                 )
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(4.dp))
 
             Image(
                 painter = painterResource(id = R.drawable.izin),
                 contentDescription = "Password illustration",
                 modifier = Modifier
-                    .size(225.dp)
+                    .size(200.dp)
                     .padding(top = 4.dp)
             )
 
@@ -395,7 +395,7 @@ fun HalamanIzinUI(
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = (25.dp * scaleFactor))
+                    .padding(bottom = (50.dp * scaleFactor))
                 ,
                 shape = RoundedCornerShape((20.dp * scaleFactor)),
                 elevation = CardDefaults.cardElevation(8.dp),
