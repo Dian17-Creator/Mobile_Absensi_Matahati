@@ -68,6 +68,10 @@ class HalamanJadwal : ComponentActivity() {
 @Composable
 fun HalamanJadwalUI(scheduleViewModel: ScheduleViewModel = viewModel()) {
     val context = LocalContext.current
+    val configuration = LocalConfiguration.current
+    val screenWidth = configuration.screenWidthDp
+    val isCompact = screenWidth <= 360
+    val screenHeightDp = configuration.screenHeightDp.dp
 
     val absensiViewModel: AbsensiViewModel = viewModel()
     val contractViewModel: UserContractViewModel = viewModel()
@@ -146,8 +150,6 @@ fun HalamanJadwalUI(scheduleViewModel: ScheduleViewModel = viewModel()) {
     }
 
     val calendarBackground = Color(0xFFF5F5F5)
-    val configuration = LocalConfiguration.current
-    val screenHeight = configuration.screenHeightDp.dp
 
     Box(
         modifier = Modifier
@@ -158,7 +160,7 @@ fun HalamanJadwalUI(scheduleViewModel: ScheduleViewModel = viewModel()) {
             modifier = Modifier
                 .fillMaxWidth()
                 .align(Alignment.TopCenter)
-                .height(screenHeight * 0.25f)
+                .height(if (isCompact) screenHeightDp * 0.18f else screenHeightDp * 0.25f)
                 .background(color = Color(0xFFB63352))
         )
 
@@ -167,12 +169,12 @@ fun HalamanJadwalUI(scheduleViewModel: ScheduleViewModel = viewModel()) {
                 .fillMaxSize()
                 .padding(horizontal = 16.dp)
         ) {
-            val calendarHeight = maxHeight * 0.45f
+            val calendarHeight = maxHeight * (if (isCompact) 0.55f else 0.45f)
 
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(top = screenHeight * 0.02f),
+                    .padding(top = if (isCompact) 10.dp else 20.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 contentPadding = PaddingValues(
@@ -183,7 +185,8 @@ fun HalamanJadwalUI(scheduleViewModel: ScheduleViewModel = viewModel()) {
                     // === Judul ===
                     Text(
                         text = "Jadwal & Shift",
-                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                        style = if (isCompact) MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold) 
+                               else MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
                         color = Color.White
                     )
                 }
