@@ -42,11 +42,9 @@ import kotlinx.coroutines.delay
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.ui.unit.coerceAtLeast
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
-import androidx.core.view.WindowCompat
-import androidx.core.view.WindowInsetsControllerCompat
 
 class UbahPassword : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -69,6 +67,10 @@ class UbahPassword : ComponentActivity() {
 @Composable
 fun UbahPasswordUI() {
     val context = LocalContext.current
+    val configuration = LocalConfiguration.current
+    val screenWidth = configuration.screenWidthDp
+    val isCompact = screenWidth <= 360
+    
     val session = SessionManager(context)
     val focusManager = LocalFocusManager.current
     val scope = rememberCoroutineScope()
@@ -84,29 +86,27 @@ fun UbahPasswordUI() {
     val bringIntoViewRequester = remember { BringIntoViewRequester() }
 
     val primaryColor = Color(0xFFB63352)
-    val scaleFactor = rememberAdaptiveScale()
-    var showPreview by remember { mutableStateOf(false) }
-    val secondaryColor = Color(0xFF7F0B27)
 
     //UI BARU
     Box(
         modifier = Modifier
             .fillMaxSize()
+            .systemBarsPadding()
+            .verticalScroll(rememberScrollState())
     )   {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height((445.dp * scaleFactor).coerceAtLeast(250.dp))
+                .height(if (isCompact) 300.dp else 325.dp)
                 .align(Alignment.BottomCenter)
-                .semiCircleTop()
                 .background(primaryColor)
         )
 
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = (24.dp * scaleFactor))
-                .padding(top = (16.dp * scaleFactor), bottom = (24.dp * scaleFactor)),
+                .padding(horizontal = 24.dp)
+                .padding(top = (if (isCompact) 0.dp else 0.dp), bottom = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
@@ -114,7 +114,7 @@ fun UbahPasswordUI() {
                 style = MaterialTheme.typography.headlineSmall,
                 modifier = Modifier.fillMaxWidth(),
                 fontWeight = FontWeight.Bold,
-                fontSize = (22.sp * scaleFactor),
+                fontSize = if (isCompact) 18.sp else 22.sp,
                 color = Color.Black,
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center
             )
@@ -125,7 +125,7 @@ fun UbahPasswordUI() {
                 painter = painterResource(id = R.drawable.passwordbro),
                 contentDescription = "Password illustration",
                 modifier = Modifier
-                    .size(225.dp)
+                    .size(if (isCompact) 180.dp else 225.dp)
                     .padding(top = 4.dp)
             )
 
@@ -134,14 +134,14 @@ fun UbahPasswordUI() {
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = (25.dp * scaleFactor)),
-                shape = RoundedCornerShape((20.dp * scaleFactor)),
+                    .padding(bottom = 25.dp),
+                shape = RoundedCornerShape(20.dp),
                 elevation = CardDefaults.cardElevation(8.dp),
                 colors = CardDefaults.cardColors(containerColor = Color(0xFFFDF9FC))
             ) {
                 Column(
                     modifier = Modifier
-                        .padding((20.dp * scaleFactor)) // 🔥 INI PENTING
+                        .padding(20.dp)
                         .fillMaxWidth()
                 ) {
                     OutlinedTextField(
@@ -221,11 +221,11 @@ fun UbahPasswordUI() {
                         }),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .bringIntoViewRequester(bringIntoViewRequester) // ✅ ini kuncinya
+                            .bringIntoViewRequester(bringIntoViewRequester)
                             .onFocusEvent { focusState ->
                                 if (focusState.isFocused) {
                                     scope.launch {
-                                        delay(1) // beri waktu keyboard muncul
+                                        delay(1)
                                         bringIntoViewRequester.bringIntoView()
                                     }
                                 }
@@ -234,7 +234,6 @@ fun UbahPasswordUI() {
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // ✅ Tombol Simpan
                     Button(
                         onClick = {
                             if (newPassword != confirmPassword) {
@@ -283,7 +282,6 @@ fun UbahPasswordUI() {
     }
 }
 
-// 🔹 Fungsi kirim password ke server
 fun updatePassword(
     context: Context,
     userId: String,
@@ -292,7 +290,6 @@ fun updatePassword(
     onSuccess: () -> Unit
 ) {
     val client = OkHttpClient()
-    // val url = "https://absensi.matahati.my.id/change_password.php"
     val url = "https://absensi.karyatra.cloud/change_password.php"
 
     val json = JSONObject()

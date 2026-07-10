@@ -40,6 +40,7 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Event
 import androidx.compose.material.icons.filled.Face
 import androidx.compose.material.icons.filled.List
+import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.Verified
 import androidx.compose.runtime.getValue
@@ -77,7 +78,6 @@ import id.my.matahati.absensi.data.RetrofitClient
 import id.my.matahati.absensi.data.RetrofitClientLaravel
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.MonetizationOn
 import androidx.compose.material.icons.filled.Person
 
@@ -274,9 +274,13 @@ fun HalamanScanUI(
     val activity = context as? ComponentActivity
 
     val configuration = LocalConfiguration.current
-    val screenHeight = configuration.screenHeightDp
+    val screenWidth = configuration.screenWidthDp
+    val isCompact = screenWidth <= 360
+
     val primaryColor = Color(0xFFB63352)
     val backColor = Color(0xFFFFF5F5)
+
+    val headerHeight = if (isCompact) 120.dp else 125.dp
 
     val storedUserId = session.getUserId()
     val userId = if (storedUserId != -1) storedUserId else activity?.intent?.getIntExtra("USER_ID", -1) ?: -1
@@ -336,6 +340,7 @@ fun HalamanScanUI(
             .background(backColor)
     ) {
         // 🔸 Konten utama (SCROLLABLE)
+        // Diletakkan pertama agar digambar di BEAKANG header merah
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
@@ -343,17 +348,17 @@ fun HalamanScanUI(
             verticalArrangement = Arrangement.spacedBy(12.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             contentPadding = PaddingValues(
-                top = 130.dp, // Agar konten mulai tepat di bawah header merah
-                bottom = 100.dp
+                top = headerHeight, // Dinamis sesuai layar
+                bottom = 116.dp // Tambahan space agar tidak mepet bottom nav (100 + 16)
             )
         ) {
             //Box Face Absensi
             item {
-                Spacer(Modifier.height(4.dp))
+                Spacer(Modifier.height(if (isCompact) 16.dp else 16.dp))
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(350.dp)
+                        .height(if (isCompact) 310.dp else 350.dp)
                         .clip(RoundedCornerShape(16.dp)),
                     contentAlignment = Alignment.Center
                 ) {
@@ -408,22 +413,22 @@ fun HalamanScanUI(
                 Surface(
                     color = Color.Black.copy(alpha = 0.05f),
                     shape = RoundedCornerShape(20.dp),
-                    modifier = Modifier.padding(top = 4.dp)
+                    modifier = Modifier.padding(top = 2.dp)
                 ) {
                     Row(
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
                             imageVector = Icons.Default.LocationOn,
                             contentDescription = null,
                             tint = primaryColor,
-                            modifier = Modifier.size(14.dp)
+                            modifier = Modifier.size(if (isCompact) 12.dp else 14.dp)
                         )
                         Spacer(Modifier.width(6.dp))
                         Text(
                             text = placeName,
-                            fontSize = 11.sp,
+                            fontSize = if (isCompact) 10.sp else 11.sp,
                             color = Color.DarkGray,
                             fontWeight = FontWeight.Medium,
                             textAlign = TextAlign.Center,
@@ -442,18 +447,19 @@ fun HalamanScanUI(
                         statusText = ""
                         statusColor = Color.Black
                     },
-                    modifier = Modifier.fillMaxWidth().height(45.dp),
+                    modifier = Modifier.fillMaxWidth().height(if (isCompact) 40.dp else 45.dp),
                     shape = RoundedCornerShape(8.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = primaryColor
                     )
                 ) {
                     Text(
-                        when {
+                        text = when {
                             isUploading -> "Lihat Ke kamera"
                             isCapturing -> "Lihat Ke kamera"
                             else -> "Mulai Absen"
-                        }
+                        },
+                        fontSize = if (isCompact) 13.sp else 14.sp
                     )
                 }
 
@@ -471,7 +477,7 @@ fun HalamanScanUI(
 
                 if (statusText.isNotEmpty()) {
                     Spacer(Modifier.height(12.dp))
-                    Text(statusText, color = statusColor, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+                    Text(statusText, color = statusColor, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center, fontSize = if (isCompact) 12.sp else 14.sp)
                 }
 
                 if (showSuccessDialog) {
@@ -536,14 +542,14 @@ fun HalamanScanUI(
                     elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                 ) {
                     Column(
-                        modifier = Modifier.padding(16.dp)
+                        modifier = Modifier.padding(if (isCompact) 12.dp else 16.dp)
                     ) {
 
                         @OptIn(ExperimentalLayoutApi::class)
                         FlowRow(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.Start,
-                            verticalArrangement = Arrangement.spacedBy(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(if (isCompact) 12.dp else 16.dp),
                             maxItemsInEachRow = 4
                         ) {
                             UserActionItem(
@@ -653,10 +659,11 @@ fun HalamanScanUI(
         }
 
         // 🔸 Background atas (FIXED)
+        // Diletakkan terakhir agar digambar di ATAS konten utama
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(120.dp)
+                .height(headerHeight)
                 .background(primaryColor)
                 .align(Alignment.TopCenter)
         ) {
@@ -671,6 +678,9 @@ fun HeaderSection(
     userId: Int,
     scheduleViewModel: ScheduleViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
 ) {
+    val configuration = LocalConfiguration.current
+    val isCompact = configuration.screenWidthDp <= 360
+    
     val schedules by scheduleViewModel.schedules.collectAsState()
     val today = LocalDate.now()
 
@@ -711,8 +721,12 @@ fun HeaderSection(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(bottom = 20.dp, top = 25.dp)
-            .padding(horizontal = 25.dp),
+            .statusBarsPadding()
+            .padding(
+                bottom = if (isCompact) 6.dp else 25.dp,
+                top = if (isCompact) 0.dp else 0.dp
+            )
+            .padding(horizontal = if (isCompact) 25.dp else 25.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
@@ -721,26 +735,31 @@ fun HeaderSection(
                 text = "Halo, $userName",
                 style = MaterialTheme.typography.titleLarge.copy(
                     fontWeight = FontWeight.ExtraBold,
-                    fontSize = 22.sp
+                    fontSize = if (isCompact) 20.sp else 22.sp
                 ),
                 color = Color.White
             )
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(if (isCompact) 2.dp else 2.dp))
             Text(
                 text = "Shift kamu hari ini : $shiftNameToday",
-                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    fontWeight = FontWeight.Medium,
+                    fontSize = if (isCompact) 12.sp else 14.sp
+                ),
                 color = Color.White.copy(alpha = 0.9f)
             )
             Text(
                 text = "$timeText | $periodeText",
-                style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontSize = if (isCompact) 10.sp else 12.sp
+                ),
                 color = Color.White.copy(alpha = 0.7f)
             )
         }
 
         // Avatar Icon di Kanan
         Surface(
-            modifier = Modifier.size(48.dp),
+            modifier = Modifier.size(if (isCompact) 40.dp else 48.dp),
             shape = CircleShape,
             color = Color.White.copy(alpha = 0.2f)
         ) {
@@ -749,8 +768,8 @@ fun HeaderSection(
                 contentDescription = null,
                 tint = Color.White,
                 modifier = Modifier
-                    .size(24.dp)
-                    .padding(8.dp)
+                    .size(if (isCompact) 20.dp else 24.dp)
+                    .padding(if (isCompact) 6.dp else 8.dp)
             )
         }
     }
@@ -893,18 +912,25 @@ fun UserActionItem(
     showBadge: Boolean = false,
     onClick: () -> Unit
 ) {
+    val configuration = LocalConfiguration.current
+    val isCompact = configuration.screenWidthDp <= 360
+    
+    val itemWidth = if (isCompact) 72.dp else 80.dp
+    val iconBoxSize = if (isCompact) 48.dp else 56.dp
+    val iconSize = if (isCompact) 22.dp else 26.dp
+
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
-            .width(80.dp)
+            .width(itemWidth)
             .clickable(
                 onClick = onClick,
                 interactionSource = remember { MutableInteractionSource() },
-                indication = ripple(bounded = false, radius = 40.dp)
+                indication = ripple(bounded = false, radius = if (isCompact) 32.dp else 40.dp)
             )
     ) {
         Box(
-            modifier = Modifier.size(56.dp),
+            modifier = Modifier.size(iconBoxSize),
             contentAlignment = Alignment.Center
         ) {
             // Background lingkaran lembut
@@ -923,14 +949,14 @@ fun UserActionItem(
                     painter = iconPainter,
                     contentDescription = label,
                     tint = iconColor,
-                    modifier = Modifier.size(26.dp)
+                    modifier = Modifier.size(iconSize)
                 )
             } else if (icon != null) {
                 Icon(
                     imageVector = icon,
                     contentDescription = label,
                     tint = iconColor,
-                    modifier = Modifier.size(26.dp)
+                    modifier = Modifier.size(iconSize)
                 )
             }
 
@@ -938,19 +964,19 @@ fun UserActionItem(
             if (showBadge) {
                 Box(
                     modifier = Modifier
-                        .size(12.dp)
+                        .size(if (isCompact) 10.dp else 12.dp)
                         .align(Alignment.TopEnd)
                         .background(Color.Red, CircleShape)
-                        .border(2.dp, Color.White, CircleShape)
+                        .border(1.5.dp, Color.White, CircleShape)
                 )
             }
         }
 
-        Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.height(if (isCompact) 6.dp else 8.dp))
 
         Text(
             text = label,
-            fontSize = 11.sp,
+            fontSize = if (isCompact) 10.sp else 11.sp,
             fontWeight = FontWeight.SemiBold,
             color = Color(0xFF424242),
             textAlign = TextAlign.Center,
