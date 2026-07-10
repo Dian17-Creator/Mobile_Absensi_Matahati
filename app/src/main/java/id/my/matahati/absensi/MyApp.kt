@@ -40,7 +40,7 @@ class MyApp : Application(), Configuration.Provider {
 //        }
 
         clearOldCache()
-        clearSessionIfAppUpdated()
+//        clearSessionIfAppUpdated()
     }
     override fun getWorkManagerConfiguration(): Configuration {
         return Configuration.Builder()
