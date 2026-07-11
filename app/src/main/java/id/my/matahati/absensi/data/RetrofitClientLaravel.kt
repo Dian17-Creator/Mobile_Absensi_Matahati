@@ -4,7 +4,7 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
 object RetrofitClientLaravel {
-    private const val BASE_URL = "https://hrd.karyatra.cloud/"
+    private const val BASE_URL = "https://hrdapp.karyatra.cloud/"
 
     val instance: ApiService by lazy {
         Retrofit.Builder()
