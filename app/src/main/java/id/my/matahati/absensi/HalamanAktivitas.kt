@@ -5,6 +5,7 @@ import android.util.Log
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -14,7 +15,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -25,21 +25,37 @@ import androidx.compose.ui.unit.sp
 import id.my.matahati.absensi.data.RetrofitClient
 import id.my.matahati.absensi.data.AktivitasResponse
 import kotlinx.coroutines.launch
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.unit.Dp
 
 class HalamanAktivitas : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        enableEdgeToEdge()
+
         setContent {
-            HalamanAktivitasScreen()
+            val topPadding =
+                WindowInsets.statusBars
+                    .asPaddingValues()
+                    .calculateTopPadding()
+
+            HalamanAktivitasScreen(topPadding)
         }
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HalamanAktivitasScreen() {
-    var selectedTab by remember { mutableStateOf(0) }
+fun HalamanAktivitasScreen(
+    topPadding: Dp
+) {
+
     val tabs = listOf("Absen Manual", "Izin")
+
+    val pagerState = rememberPagerState(pageCount = { tabs.size })
 
     var aktivitasList by remember { mutableStateOf<List<AktivitasResponse>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
@@ -49,131 +65,154 @@ fun HalamanAktivitasScreen() {
     val context = LocalContext.current
     val sessionManager = remember { SessionManager(context) }
 
-    // Ambil userId dari session
     val userId = sessionManager.getUserId()
 
-    // Fetch data dari API setiap kali tab berpindah
+    // Ambil page aktif dari pager
+    val selectedTab = pagerState.currentPage
+
+    // Fetch data ketika page berubah
     LaunchedEffect(selectedTab) {
         isLoading = true
         errorMessage = null
-        coroutineScope.launch {
-            try {
-                val type = if (selectedTab == 0) "mscan_manual" else "mrequest"
-                Log.d("AKTIVITAS", "Fetching $type untuk userId=$userId")
 
-                val response = RetrofitClient.instance.getAktivitas(type, userId)
-                if (response.isSuccessful && response.body()?.success == true) {
-                    aktivitasList = response.body()?.data ?: emptyList()
-                    Log.d("AKTIVITAS", "Data berhasil diambil: ${aktivitasList.size} item")
-                } else {
-                    errorMessage = "Gagal memuat data (${response.code()})"
-                    Log.e("AKTIVITAS", "Response gagal: ${response.errorBody()?.string()}")
-                }
-            } catch (e: Exception) {
-                e.printStackTrace()
-                errorMessage = "Koneksi gagal: ${e.message}"
-                Log.e("AKTIVITAS", "Exception: ${e.message}")
-            } finally {
-                isLoading = false
+        try {
+            val type = if (selectedTab == 0) "mscan_manual" else "mrequest"
+
+            Log.d("AKTIVITAS", "Fetching $type untuk userId=$userId")
+
+            val response = RetrofitClient.instance.getAktivitas(type, userId)
+
+            if (response.isSuccessful && response.body()?.success == true) {
+                aktivitasList = response.body()?.data ?: emptyList()
+            } else {
+                errorMessage = "Gagal memuat data (${response.code()})"
             }
+
+        } catch (e: Exception) {
+            errorMessage = "Koneksi gagal: ${e.message}"
+        } finally {
+            isLoading = false
         }
     }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-//            .padding(20.dp)
             .background(Color.White)
     ) {
-        // Header
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(85.dp)
+                .height(topPadding)
+                .background(Color.Black)
+                .align(Alignment.CenterHorizontally)
+        )
+
+        // HEADER
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(55.dp)
                 .background(Color(0xFFB63352)),
             contentAlignment = Alignment.BottomCenter
         ) {
+
             IconButton(
-            onClick = { (context as Activity).finish() },
-            modifier = Modifier
-                .align(Alignment.BottomStart)
-                .padding(horizontal = 20.dp, vertical = 0.dp)
-        ) {
-            Icon(Icons.Default.ArrowBack, null, tint = Color(0xFFFFFFFF))
-        }
+                onClick = { (context as Activity).finish() },
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .padding(horizontal = 20.dp)
+            ) {
+                Icon(Icons.Default.ArrowBack, null, tint = Color.White)
+            }
+
             Text(
                 text = "AKTIVITAS",
                 fontWeight = FontWeight.Bold,
                 fontSize = 20.sp,
                 color = Color.White,
-                modifier = Modifier
-                    .padding(horizontal = 0.dp, vertical = 15.dp)
+                modifier = Modifier.padding(bottom = 15.dp)
             )
         }
 
-        // Tabs
+        // TAB
         TabRow(
             selectedTabIndex = selectedTab,
             containerColor = Color(0xFFB63352),
             contentColor = Color.White
         ) {
             tabs.forEachIndexed { index, title ->
+
                 Tab(
                     selected = selectedTab == index,
-                    onClick = { selectedTab = index },
-                    text = { Text(title, fontSize = 14.sp, fontWeight = FontWeight.Medium) }
+
+                    onClick = {
+                        coroutineScope.launch {
+                            pagerState.animateScrollToPage(index)
+                        }
+                    },
+
+                    text = {
+                        Text(
+                            title,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
                 )
             }
         }
 
-        // Konten (loading / error / list)
-        when {
-            isLoading -> {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(color = Color(0xFFB63352))
-                }
-            }
+        // PAGER (BISA DI SWIPE)
+        HorizontalPager(
+            state = pagerState,
+            modifier = Modifier.weight(1f)
+        ) { page ->
 
-            errorMessage != null -> {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text(errorMessage ?: "Terjadi kesalahan", color = Color.Red)
+            when {
+                isLoading -> {
+                    Box(
+                        Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(color = Color(0xFFB63352))
+                    }
                 }
-            }
 
-            aktivitasList.isEmpty() -> {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("Tidak ada data", color = Color.Gray)
+                errorMessage != null -> {
+                    Box(
+                        Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(errorMessage ?: "Terjadi kesalahan", color = Color.Red)
+                    }
                 }
-            }
 
-            else -> {
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = 12.dp, vertical = 8.dp)
-                ) {
-                    items(aktivitasList) { item ->
-                        AktivitasCard(item)
+                aktivitasList.isEmpty() -> {
+                    Box(
+                        Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("Tidak ada data", color = Color.Gray)
+                    }
+                }
+
+                else -> {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = 12.dp, vertical = 8.dp)
+                    ) {
+                        items(aktivitasList) { item ->
+                            AktivitasCard(item)
+                        }
                     }
                 }
             }
         }
-
-        // Navbar placeholder
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(50.dp)
-                .background(Color(0xFFE0E0E0)),
-            contentAlignment = Alignment.Center
-        ) {
-            Text("NAVBAR", fontSize = 14.sp)
-        }
     }
 }
-// ------------------------------------------------------------
-//  CARD ITEM
-// ------------------------------------------------------------
+
 @Composable
 fun AktivitasCard(item: AktivitasResponse) {
     // Tentukan status gabungan (final)
@@ -219,15 +258,14 @@ fun AktivitasCard(item: AktivitasResponse) {
         }
     }
 }
-// ------------------------------------------------------------
-//  STATUS BUTTON
-// ------------------------------------------------------------
+
 @Composable
 fun StatusButton(status: String) {
     val color = when (status.lowercase()) {
         "pending" -> Color(0xFFFFC107)
         "approved" -> Color(0xFF4CAF50)
         "rejected" -> Color(0xFFF44336)
+        "by_system" -> Color(0xFF2196F3)
         else -> Color.LightGray
     }
 

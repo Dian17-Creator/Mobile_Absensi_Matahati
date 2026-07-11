@@ -4,6 +4,7 @@ import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -17,6 +18,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.Dp
 import id.my.matahati.absensi.data.ApprovalItem
 import id.my.matahati.absensi.data.RetrofitClient
 import kotlinx.coroutines.*
@@ -24,15 +26,23 @@ import kotlinx.coroutines.*
 class HalamanApproval : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
         setContent {
-            HalamanApprovalScreen()
+            val topPadding =
+                WindowInsets.statusBars
+                    .asPaddingValues()
+                    .calculateTopPadding()
+
+            HalamanApprovalScreen(topPadding)
         }
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HalamanApprovalScreen() {
+fun HalamanApprovalScreen(
+    topPadding : Dp
+) {
 
     val context = LocalContext.current
     val session = remember { SessionManager(context) }
@@ -83,6 +93,13 @@ fun HalamanApprovalScreen() {
             .fillMaxSize()
             .background(Color.White)
     ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(topPadding)
+                .background(Color.Black)
+                .align(Alignment.CenterHorizontally)
+        )
 
         // ===== HEADER =====
         Box(
@@ -153,20 +170,20 @@ fun HalamanApprovalScreen() {
                     items(listData) { item ->
                         ApprovalCard(
                             item = item,
-                            onApprove = {
-                                handleAction(
-                                    userId = userId,
-                                    id = item.nid, // ✅ PAKAI nid
-                                    type = if (selectedTab == 0) "mscan_manual" else "mrequest",
-                                    action = "approve"
-                                ) { loadData() }
-                            },
                             onReject = {
                                 handleAction(
                                     userId = userId,
                                     id = item.nid, // ✅ PAKAI nid
                                     type = if (selectedTab == 0) "mscan_manual" else "mrequest",
                                     action = "reject"
+                                ) { loadData() }
+                            },
+                            onApprove = {
+                                handleAction(
+                                    userId = userId,
+                                    id = item.nid, // ✅ PAKAI nid
+                                    type = if (selectedTab == 0) "mscan_manual" else "mrequest",
+                                    action = "approve"
                                 ) { loadData() }
                             }
                         )

@@ -45,8 +45,8 @@ class SyncManualWorker(
 
                 val request = Request.Builder()
 
-                    .url("https://absensi.matahati.my.id/mscan_manual.php")
-                    //.url("https://absensi.karyatra.cloud/mscan_manual.php")
+                    // .url("https://absensi.matahati.my.id/mscan_manual.php")
+                    .url("https://absensi.karyatra.cloud/mscan_manual.php")
 
                     .post(jsonBody.toRequestBody("application/json".toMediaTypeOrNull()))
                     .addHeader("Accept", "application/json")

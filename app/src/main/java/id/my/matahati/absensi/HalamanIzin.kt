@@ -59,6 +59,7 @@ import androidx.compose.ui.unit.sp
 import android.os.Handler
 import android.os.Looper
 import android.os.Build
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.filled.CameraAlt
@@ -69,6 +70,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.coerceAtLeast
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.Dp
 
 private val httpClient by lazy {
     OkHttpClient.Builder()
@@ -83,20 +85,21 @@ private val httpClient by lazy {
 class HalamanIzin : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
         setContent {
-            MaterialTheme {
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = Color.White
-                ) {
-                    HalamanIzinUI()
-                }
-            }
+            val topPadding =
+                WindowInsets.statusBars
+                    .asPaddingValues()
+                    .calculateTopPadding()
+
+            HalamanIzinUI(topPadding)
         }
     }
 }
 @Composable
-fun HalamanIzinUI() {
+fun HalamanIzinUI(
+    topPadding : Dp
+) {
     val localeId = Locale("id", "ID")
     val displayFormat = SimpleDateFormat("dd-MM-yyyy", localeId)
     val valueFormat = SimpleDateFormat("yyyy-MM-dd", Locale.US)
@@ -263,8 +266,8 @@ fun HalamanIzinUI() {
             coroutineScope.launch(Dispatchers.IO) {
                 try {
 
-                    val url = "https://absensi.matahati.my.id/reverse_geocode.php?lat=$lat&lon=$lng"
-                    // val url = "https://absensi.karyatra.cloud/reverse_geocode.php?lat=$lat&lon=$lng"
+                    // val url = "https://absensi.matahati.my.id/reverse_geocode.php?lat=$lat&lon=$lng"
+                    val url = "https://absensi.karyatra.cloud/reverse_geocode.php?lat=$lat&lon=$lng"
 
                     Log.d("IZIN_DEBUG", "CALL SERVER: $url")
 
@@ -327,12 +330,20 @@ fun HalamanIzinUI() {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState())
+
     ) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height((445.dp * scaleFactor).coerceAtLeast(250.dp))
+                .height(topPadding)
+                .background(Color.Black)
+                .align(Alignment.TopCenter)
+        )
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height((400.dp * scaleFactor).coerceAtLeast(200.dp))
                 .align(Alignment.BottomCenter)
                 .semiCircleTop()
                 .background(primaryColor)
@@ -345,7 +356,11 @@ fun HalamanIzinUI() {
                 .padding(top = (20.dp * scaleFactor), bottom = (24.dp * scaleFactor)),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+            Box(modifier = Modifier
+                .padding(top = 16.dp)
+                .fillMaxWidth(),
+                contentAlignment = Alignment.Center) {
+
                 IconButton(
                     onClick = { (context as Activity).finish() },
                     modifier = Modifier.align(Alignment.CenterStart)
@@ -365,13 +380,13 @@ fun HalamanIzinUI() {
                 )
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(4.dp))
 
             Image(
                 painter = painterResource(id = R.drawable.izin),
                 contentDescription = "Password illustration",
                 modifier = Modifier
-                    .size(225.dp)
+                    .size(200.dp)
                     .padding(top = 4.dp)
             )
 
@@ -380,7 +395,8 @@ fun HalamanIzinUI() {
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = (25.dp * scaleFactor)),
+                    .padding(bottom = (50.dp * scaleFactor))
+                ,
                 shape = RoundedCornerShape((20.dp * scaleFactor)),
                 elevation = CardDefaults.cardElevation(8.dp),
                 colors = CardDefaults.cardColors(containerColor = Color(0xFFFDF9FC))
@@ -389,6 +405,7 @@ fun HalamanIzinUI() {
                     modifier = Modifier
                         .padding((20.dp * scaleFactor))
                         .fillMaxWidth()
+                        .verticalScroll(rememberScrollState())
                 ) {
 
                     // 🔽 LOKASI (FULL)
@@ -401,7 +418,7 @@ fun HalamanIzinUI() {
                         maxLines = 2
                     )
 
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(6.dp))
 
                     // 🔽 ROW: KATEGORI + FOTO
                     Row(
@@ -601,10 +618,18 @@ fun HalamanIzinUI() {
                     OutlinedTextField(
                         value = reason.value,
                         onValueChange = { reason.value = it },
-                        label = { Text("Alasan") },
+                        label = {
+                            Text(
+                                "Alasan",
+                                fontSize = 14.sp
+                            )
+                        },
+                        textStyle = TextStyle(
+                            fontSize = 12.sp
+                        ),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(90.dp),
+                            .height(50.dp),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = primaryColor,
                             focusedLabelColor = primaryColor
@@ -662,7 +687,7 @@ fun HalamanIzinUI() {
                         },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(50.dp),
+                            .height(45.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = Color(0xFF4C4C59),
                             contentColor = Color.White
@@ -866,8 +891,8 @@ suspend fun uploadRequest(
 
         val request = Request.Builder()
 
-            .url("https://absensi.matahati.my.id/user_request_mobile_2.php")
-            // .url("https://absensi.karyatra.cloud/user_request_mobile_2.php")
+            // .url("https://absensi.matahati.my.id/user_request_mobile_2.php")
+            .url("https://absensi.karyatra.cloud/user_request_mobile_2.php")
 
             .post(body)
             .addHeader("Accept", "application/json")

@@ -14,8 +14,8 @@ android {
         applicationId = "id.my.matahati.absensi"
         minSdk = 24
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 17
+        versionName = "1.0.17"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -26,8 +26,8 @@ android {
     }
     buildTypes {
         release {
-            isMinifyEnabled = true
-            isShrinkResources = true
+            isMinifyEnabled = false
+            isShrinkResources = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -50,8 +50,10 @@ android {
 }
 
 dependencies {
-    val camerax_version = "1.3.1"
+    val camerax_version = "1.5.0"
     implementation(libs.androidx.compose.runtime.saveable)
+
+    implementation("androidx.compose.foundation:foundation")
 
     //Firebase Toast Message
     implementation("com.google.firebase:firebase-messaging:23.4.1")
@@ -115,11 +117,10 @@ dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.3")
 
     // viewmodel compose
-    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.6.2")
-    implementation("androidx.core:core-ktx:1.10.1")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.2")
 
     // Material components (BottomNavigationView)
-    implementation("com.google.android.material:material:1.9.0")
+    implementation("com.google.android.material:material:1.14.0")
 
     // Fragment KTX (FragmentContainerView, fragment support)
     implementation("androidx.fragment:fragment-ktx:1.6.1")
@@ -131,8 +132,5 @@ dependencies {
     implementation("androidx.navigation:navigation-fragment-ktx:2.7.2")
     implementation("androidx.navigation:navigation-ui-ktx:2.7.2")
     implementation("io.coil-kt:coil-compose:2.4.0")
-
-    implementation("androidx.compose.material3:material3:1.2.1")
-    implementation("androidx.compose.material3:material3-window-size-class:1.2.1")
     implementation("androidx.compose.material:material-icons-extended:1.6.2")
 }

@@ -20,6 +20,7 @@ import androidx.core.content.ContextCompat
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.os.Build
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -28,6 +29,9 @@ import androidx.compose.ui.graphics.Color
 import kotlinx.coroutines.*
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.material3.ripple
 import androidx.compose.foundation.border
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
@@ -36,6 +40,7 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Event
 import androidx.compose.material.icons.filled.Face
 import androidx.compose.material.icons.filled.List
+import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.Verified
 import androidx.compose.runtime.getValue
@@ -63,14 +68,24 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.filled.Approval
 import androidx.compose.material.icons.filled.Payments
+import androidx.compose.material.icons.filled.PersonAdd
+import androidx.compose.material.icons.filled.VerifiedUser
+import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.res.painterResource
 import id.my.matahati.absensi.data.RetrofitClient
+import id.my.matahati.absensi.data.RetrofitClientLaravel
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.material.icons.filled.MonetizationOn
+import androidx.compose.material.icons.filled.Person
 
 private const val TAG = "FACE_LOGIN"
 private const val API_KEY = "MH4T4H4TI_2025_ABSENSI_APP_SECRETx9P2F7Q1L8S3Z0R6W4K2D1M9B7T5"
-private const val FACE_LOGIN_URL = "https://absensi.matahati.my.id/user_face_scan_ssid.php"
 
-//private const val FACE_LOGIN_URL = "https://absensi.karyatra.cloud/user_face_scan_ssid.php"
+// private const val FACE_LOGIN_URL = "https://absensi.matahati.my.id/user_face_scan_ssid.php"
+private const val FACE_LOGIN_URL = "https://absensi.karyatra.cloud/user_face_scan_ssid.php"
 
 private val httpClient by lazy {
     OkHttpClient.Builder()
@@ -95,21 +110,21 @@ object FaceLoginDetector {
     }
 }
 
-
-
 class HalamanScan : ComponentActivity() {
     private var hasAllPermissions by mutableStateOf(false)
-
-
 
     private val REQUIRED_PERMISSIONS = arrayOf(
         Manifest.permission.CAMERA,
         Manifest.permission.ACCESS_FINE_LOCATION,
-        Manifest.permission.ACCESS_COARSE_LOCATION
+        Manifest.permission.ACCESS_COARSE_LOCATION,
+        Manifest.permission.ACCESS_NOTIFICATION_POLICY
+
     )
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        enableEdgeToEdge()
 
         hasAllPermissions = REQUIRED_PERMISSIONS.all {
             ContextCompat.checkSelfPermission(this, it) == PackageManager.PERMISSION_GRANTED
@@ -169,7 +184,11 @@ fun HalamanScanUI(
     hasCameraPermission: Boolean,
     onRequestPermission: () -> Unit,
 ) {
+    //    Pending Approval & Gaji
     var hasPendingApproval by remember { mutableStateOf(false) }
+    var hasPendingGaji by remember { mutableStateOf(false) }
+    var hasPendingFace by remember {mutableStateOf(false)}
+
     var isSessionStarted by remember { mutableStateOf(false) }
     var showSuccessDialog by remember { mutableStateOf(false) }
     var isCameraReady by remember { mutableStateOf(false) }
@@ -248,12 +267,20 @@ fun HalamanScanUI(
         session.isCaptainOrAbove()
     }
 
+    val isHRDOrAbove = remember {
+        session.isHRDOrAbove()
+    }
+
     val activity = context as? ComponentActivity
 
     val configuration = LocalConfiguration.current
-    val screenHeight = configuration.screenHeightDp
+    val screenWidth = configuration.screenWidthDp
+    val isCompact = screenWidth <= 360
+
     val primaryColor = Color(0xFFB63352)
     val backColor = Color(0xFFFFF5F5)
+
+    val headerHeight = if (isCompact) 120.dp else 125.dp
 
     val storedUserId = session.getUserId()
     val userId = if (storedUserId != -1) storedUserId else activity?.intent?.getIntExtra("USER_ID", -1) ?: -1
@@ -279,6 +306,12 @@ fun HalamanScanUI(
         }
     }
 
+    LaunchedEffect(Unit) {
+        hasPendingGaji = checkPendingGaji(userId)
+        hasPendingFace = checkPendingFace(userId)
+    }
+
+
     val lifecycleOwner = LocalLifecycleOwner.current
 
     DisposableEffect(lifecycleOwner) {
@@ -286,8 +319,9 @@ fun HalamanScanUI(
             if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
                 // 🔥 RELOAD SAAT BALIK KE HOME
                 CoroutineScope(Dispatchers.Main).launch {
-                    hasPendingApproval =
-                        checkPendingApproval(userId, isCaptainOrAbove)
+                    hasPendingApproval = checkPendingApproval(userId, isCaptainOrAbove)
+                    hasPendingGaji = checkPendingGaji(userId)
+                    hasPendingFace = checkPendingFace(userId)
                 }
             }
         }
@@ -305,54 +339,27 @@ fun HalamanScanUI(
             .fillMaxSize()
             .background(backColor)
     ) {
-        // 🔸 Background atas
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(350.dp)
-                .clip(BottomCurveShape(curveHeight = 50f))
-                .background(primaryColor)
-                .align(Alignment.TopCenter)
-        )
-
-        // 🔸 Konten utama
+        // 🔸 Konten utama (SCROLLABLE)
+        // Diletakkan pertama agar digambar di BEAKANG header merah
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-//                .background(backColor)
-                .padding(horizontal = 16.dp, vertical = 20.dp),
+                .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+            horizontalAlignment = Alignment.CenterHorizontally,
+            contentPadding = PaddingValues(
+                top = headerHeight, // Dinamis sesuai layar
+                // 80dp (estimasi tinggi BottomNav) + 16dp (gap) + system navigation bar height
+                bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + 96.dp
+            )
         ) {
-            //Card Waktu
-            item {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    elevation = CardDefaults.cardElevation(6.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFF4C4C59)),
-                    shape = RoundedCornerShape(8.dp)
-                ) {
-                    CardWaktu()
-                }
-            }
-
-            //Card Shift
-            item {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    elevation = CardDefaults.cardElevation(6.dp),
-                    shape = RoundedCornerShape(8.dp)
-                ) {
-                    CardShift(userId = userId)
-                }
-            }
-
             //Box Face Absensi
             item {
+                Spacer(Modifier.height(if (isCompact) 16.dp else 16.dp))
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(350.dp)
+                        .height(if (isCompact) 310.dp else 350.dp)
                         .clip(RoundedCornerShape(16.dp)),
                     contentAlignment = Alignment.Center
                 ) {
@@ -404,7 +411,32 @@ fun HalamanScanUI(
 
             //Lokasi text
             item {
-                Text("📍 $placeName", fontSize = 12.sp, color = Color.Gray, textAlign = TextAlign.Center)
+                Surface(
+                    color = Color.Black.copy(alpha = 0.05f),
+                    shape = RoundedCornerShape(20.dp),
+                    modifier = Modifier.padding(top = 2.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.LocationOn,
+                            contentDescription = null,
+                            tint = primaryColor,
+                            modifier = Modifier.size(if (isCompact) 12.dp else 14.dp)
+                        )
+                        Spacer(Modifier.width(6.dp))
+                        Text(
+                            text = placeName,
+                            fontSize = if (isCompact) 10.sp else 11.sp,
+                            color = Color.DarkGray,
+                            fontWeight = FontWeight.Medium,
+                            textAlign = TextAlign.Center,
+                            maxLines = 2
+                        )
+                    }
+                }
             }
 
             //Button submit
@@ -416,18 +448,19 @@ fun HalamanScanUI(
                         statusText = ""
                         statusColor = Color.Black
                     },
-                    modifier = Modifier.fillMaxWidth().height(45.dp),
+                    modifier = Modifier.fillMaxWidth().height(if (isCompact) 40.dp else 45.dp),
                     shape = RoundedCornerShape(8.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = primaryColor
                     )
                 ) {
                     Text(
-                        when {
+                        text = when {
                             isUploading -> "Lihat Ke kamera"
                             isCapturing -> "Lihat Ke kamera"
                             else -> "Mulai Absen"
-                        }
+                        },
+                        fontSize = if (isCompact) 13.sp else 14.sp
                     )
                 }
 
@@ -445,7 +478,7 @@ fun HalamanScanUI(
 
                 if (statusText.isNotEmpty()) {
                     Spacer(Modifier.height(12.dp))
-                    Text(statusText, color = statusColor, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+                    Text(statusText, color = statusColor, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center, fontSize = if (isCompact) 12.sp else 14.sp)
                 }
 
                 if (showSuccessDialog) {
@@ -504,24 +537,22 @@ fun HalamanScanUI(
             item {
                 Card(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .height(250.dp),
-                    shape = RoundedCornerShape(12.dp),
+                        .fillMaxWidth(),
+                    shape = RoundedCornerShape(14.dp), // Lebih melengkung agar modern
                     colors = CardDefaults.cardColors(containerColor = Color.White),
-                    elevation = CardDefaults.cardElevation(4.dp)
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                 ) {
-
-                    LazyVerticalGrid(
-                        columns = GridCells.Fixed(4), // ✅ 1 BARIS = 4 MENU
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(top = 12.dp), // 🔥 nempel atas
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
-                        horizontalArrangement = Arrangement.SpaceEvenly,
-                        userScrollEnabled = false // ❌ grid diam, tidak scroll
+                    Column(
+                        modifier = Modifier.padding(if (isCompact) 12.dp else 16.dp)
                     ) {
 
-                        item {
+                        @OptIn(ExperimentalLayoutApi::class)
+                        FlowRow(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.Start,
+                            verticalArrangement = Arrangement.spacedBy(if (isCompact) 12.dp else 16.dp),
+                            maxItemsInEachRow = 4
+                        ) {
                             UserActionItem(
                                 icon = Icons.Default.Event,
                                 label = "Izin"
@@ -533,9 +564,7 @@ fun HalamanScanUI(
                                 }
                                 context.startActivity(intent)
                             }
-                        }
 
-                        item {
                             UserActionItem(
                                 icon = Icons.Default.Edit,
                                 label = "Manual"
@@ -547,18 +576,14 @@ fun HalamanScanUI(
                                 }
                                 context.startActivity(intent)
                             }
-                        }
 
-                        item {
                             UserActionItem(
                                 icon = Icons.Default.List,
                                 label = "Aktivitas"
                             ) {
                                 context.startActivity(Intent(context, HalamanAktivitas::class.java))
                             }
-                        }
 
-                        item {
                             UserActionItem(
                                 icon = Icons.Default.Face,
                                 label = "Face Reg"
@@ -570,28 +595,16 @@ fun HalamanScanUI(
                                 }
                                 context.startActivity(intent)
                             }
-                        }
 
-//                        item {
-//                            UserActionItem(
-//                                icon = Icons.Default.Close,
-//                                label = "Lupa Absen"
-//                            ) {
-//                                context.startActivity(Intent(context, HalamanForgot::class.java))
-//                            }
-//                        }
-
-                        item {
                             UserActionItem(
                                 icon = Icons.Default.Payments,
-                                label = "Gaji"
+                                label = "Gaji",
+                                showBadge = hasPendingGaji
                             ) {
                                 context.startActivity(Intent(context, HalamanGaji::class.java))
                             }
-                        }
 
-                        if (isCaptainOrAbove) {
-                            item {
+                            if (isCaptainOrAbove) {
                                 UserActionItem(
                                     icon = Icons.Default.Verified,
                                     label = "Approval",
@@ -600,13 +613,42 @@ fun HalamanScanUI(
                                     context.startActivity(Intent(context, HalamanApproval::class.java))
                                 }
                             }
-                        }
 
-                        item {
+                            if (isHRDOrAbove) {
+                                UserActionItem(
+                                    iconPainter = painterResource(id = R.drawable.adduser),
+                                    label = "Tambah User",
+                                    iconColor = Color(0xFFE91E63)
+                                ) {
+                                    context.startActivity(Intent(context, HalamanTambahUser::class.java))
+                                }
+                            }
+
+                            if (isCaptainOrAbove) {
+                                UserActionItem(
+                                    iconPainter = painterResource(id = R.drawable.faces),
+                                    label = "Face Acc",
+                                    iconColor = Color(0xFFE91E63),
+                                    showBadge = hasPendingFace
+                                ) {
+                                    context.startActivity(Intent(context, HalamanFaceApproval::class.java))
+                                }
+                            }
+
+                            if (isHRDOrAbove) {
+                                UserActionItem(
+                                    iconPainter = painterResource(id = R.drawable.payroll),
+                                    label = "Payroll",
+                                    iconColor = Color(0xFFE91E63)
+                                ) {
+                                    context.startActivity(Intent(context, HalamanPayroll::class.java))
+                                }
+                            }
+
                             UserActionItem(
                                 icon = Icons.Default.Logout,
                                 label = "Logout",
-                                iconColor = Color(0xFFD32F2F)
+                                iconColor = Color.Red
                             ) {
                                 LogoutHelper.logout(context)
                             }
@@ -614,47 +656,130 @@ fun HalamanScanUI(
                     }
                 }
             }
+
+        }
+
+        // 🔸 Background atas (FIXED)
+        // Diletakkan terakhir agar digambar di ATAS konten utama
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(headerHeight)
+                .background(primaryColor)
+                .align(Alignment.TopCenter)
+        ) {
+            HeaderSection(userName = userName, userId = userId)
         }
     }
 }
 
-/* 🔹 CARD WAKTU (real-time, versi ringkas satu baris) */
 @Composable
-fun CardWaktu() {
-    var waktuSekarang by remember { mutableStateOf("") }
-    var tanggalSekarang by remember { mutableStateOf("") }
+fun HeaderSection(
+    userName: String,
+    userId: Int,
+    scheduleViewModel: ScheduleViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+) {
+    val configuration = LocalConfiguration.current
+    val isCompact = configuration.screenWidthDp <= 360
+    
+    val schedules by scheduleViewModel.schedules.collectAsState()
+    val today = LocalDate.now()
 
-    LaunchedEffect(Unit) {
-        while (true) {
-            val now = java.time.LocalDateTime.now()
-            val formatterJam = java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss")
-            val formatterTgl = java.time.format.DateTimeFormatter.ofPattern(
-                "EEE, dd MMM yyyy", // disingkat: Rabu -> Rab, Oktober -> Okt
-                Locale("id", "ID")
-            )
-            waktuSekarang = now.format(formatterJam)
-            tanggalSekarang = now.format(formatterTgl)
-            delay(1000L)
+    LaunchedEffect(userId) {
+        if (userId != -1) {
+            scheduleViewModel.loadSchedules(userId)
         }
     }
+
+    val todayRows = schedules.filter { it.dwork == today.toString() }
+    val shiftNameToday = todayRows.firstOrNull()?.cschedname ?: "Tidak ada shift"
+
+    // Periode Shift Logic
+    val sameShiftDates = schedules
+        .filter { it.cschedname == shiftNameToday }
+        .mapNotNull { runCatching { LocalDate.parse(it.dwork) }.getOrNull() }
+        .sorted()
+
+    val runs = mutableListOf<MutableList<LocalDate>>()
+    for (d in sameShiftDates) {
+        if (runs.isEmpty()) runs.add(mutableListOf(d))
+        else {
+            val lastRun = runs.last()
+            if (lastRun.last().plusDays(1) == d) lastRun.add(d)
+            else runs.add(mutableListOf(d))
+        }
+    }
+    val containingRun = runs.find { it.contains(today) }
+    val formatterShort = DateTimeFormatter.ofPattern("dd MMM", Locale("id", "ID"))
+    val periodeText = if (containingRun != null) {
+        "${containingRun.first().format(formatterShort)} - ${containingRun.last().format(formatterShort)}"
+    } else ""
+
+    val timeText = if (todayRows.isNotEmpty()) {
+        todayRows.joinToString(" | ") { "${it.dstart.substring(0, 5)} - ${it.dend.substring(0, 5)}" }
+    } else "--:--"
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 6.dp, horizontal = 10.dp),
-        horizontalArrangement = Arrangement.Center,
-        verticalAlignment = Alignment.CenterVertically
+            .statusBarsPadding()
+            .padding(
+                bottom = if (isCompact) 6.dp else 25.dp,
+                top = if (isCompact) 0.dp else 0.dp
+            )
+            .padding(horizontal = if (isCompact) 25.dp else 25.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Text(
-            text = "$waktuSekarang • $tanggalSekarang",
-            style = MaterialTheme.typography.bodyMedium.copy(
-                fontSize = 13.sp,
-                fontWeight = FontWeight.SemiBold
-            ),
-            color = Color.White,
-            maxLines = 1
-        )
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = "Halo, $userName",
+                style = MaterialTheme.typography.titleLarge.copy(
+                    fontWeight = FontWeight.ExtraBold,
+                    fontSize = if (isCompact) 20.sp else 22.sp
+                ),
+                color = Color.White
+            )
+            Spacer(modifier = Modifier.height(if (isCompact) 2.dp else 2.dp))
+            Text(
+                text = "Shift kamu hari ini : $shiftNameToday",
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    fontWeight = FontWeight.Medium,
+                    fontSize = if (isCompact) 12.sp else 14.sp
+                ),
+                color = Color.White.copy(alpha = 0.9f)
+            )
+            Text(
+                text = "$timeText | $periodeText",
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontSize = if (isCompact) 10.sp else 12.sp
+                ),
+                color = Color.White.copy(alpha = 0.7f)
+            )
+        }
+
+        // Avatar Icon di Kanan
+        Surface(
+            modifier = Modifier.size(if (isCompact) 40.dp else 48.dp),
+            shape = CircleShape,
+            color = Color.White.copy(alpha = 0.2f)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Person,
+                contentDescription = null,
+                tint = Color.White,
+                modifier = Modifier
+                    .size(if (isCompact) 20.dp else 24.dp)
+                    .padding(if (isCompact) 6.dp else 8.dp)
+            )
+        }
     }
+}
+
+/* 🔹 CARD WAKTU (dihapus/dinonaktifkan sesuai permintaan) */
+@Composable
+fun CardWaktu() { 
+    // Fungsi tetap ada agar tidak error di file lain, tapi tidak dipanggil di HalamanScan
 }
 
 /* 🔹 CARD SHIFT (warna & periode dinamis) */
@@ -715,36 +840,30 @@ fun CardShift(
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = shiftColor),
-        shape = RoundedCornerShape(8.dp),
-        elevation = CardDefaults.cardElevation(4.dp)
+        shape = RoundedCornerShape(16.dp), // Lebih melengkung
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp) // Flat but clean
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 10.dp, horizontal = 12.dp),
+                .padding(vertical = 12.dp, horizontal = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-
-//            Text(
-//                text = "Shift Hari Ini",
-//                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-//                color = if (todayRows.isNotEmpty()) Color.White else Color.Black
-//            )
-
-            Spacer(modifier = Modifier.height(4.dp))
-
             if (todayRows.isNotEmpty()) {
-
-                // 🔹 Baris 1: Judul + Nama Shift
                 Text(
-                    text = "Shift Hari Ini : ${
-                        shiftNameToday!!.replaceFirstChar {
-                            it.titlecase(Locale("id", "ID"))
-                        }
-                    }",
-                    style = MaterialTheme.typography.bodySmall.copy(
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp
+                    text = "Shift Hari Ini",
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontWeight = FontWeight.Normal,
+                        letterSpacing = 1.sp
+                    ),
+                    color = Color.White.copy(alpha = 0.8f)
+                )
+
+                Text(
+                    text = shiftNameToday!!.uppercase(Locale("id", "ID")),
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = 18.sp
                     ),
                     color = Color.White
                 )
@@ -756,28 +875,29 @@ fun CardShift(
                     "${it.dstart.substring(0, 5)} - ${it.dend.substring(0, 5)}"
                 }
 
-                // 🔹 Baris 2: Jam + Periode
-                Text(
-                    text = buildString {
-                        append("($timeText)")
-                        periodeText?.let {
-                            append(" $it ${today.year}")
-                        }
-                    },
-                    style = MaterialTheme.typography.bodySmall.copy(
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.SemiBold
-                    ),
-                    color = Color.White,
-                    lineHeight = 14.sp,
-                    maxLines = 2
-                )
+                Surface(
+                    color = Color.White.copy(alpha = 0.2f),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text(
+                        text = "$timeText ${periodeText ?: ""}",
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                        style = MaterialTheme.typography.bodySmall.copy(
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold
+                        ),
+                        color = Color.White
+                    )
+                }
 
             } else {
                 Text(
-                    text = "Belum ada shift untuk hari ini.",
-                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
-                    color = Color.Black
+                    text = "TIDAK ADA SHIFT HARI INI",
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.sp
+                    ),
+                    color = Color.Black.copy(alpha = 0.6f)
                 )
             }
         }
@@ -786,61 +906,80 @@ fun CardShift(
 
 @Composable
 fun UserActionItem(
-    icon: ImageVector,
+    icon: ImageVector? = null,
+    iconPainter: Painter? = null,
     label: String,
     iconColor: Color = Color(0xFFB63352),
     showBadge: Boolean = false,
     onClick: () -> Unit
 ) {
+    val configuration = LocalConfiguration.current
+    val isCompact = configuration.screenWidthDp <= 360
+    
+    val itemWidth = if (isCompact) 72.dp else 80.dp
+    val iconBoxSize = if (isCompact) 48.dp else 56.dp
+    val iconSize = if (isCompact) 22.dp else 26.dp
+
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.width(72.dp)
+        modifier = Modifier
+            .width(itemWidth)
+            .clickable(
+                onClick = onClick,
+                interactionSource = remember { MutableInteractionSource() },
+                indication = ripple(bounded = false, radius = if (isCompact) 32.dp else 40.dp)
+            )
     ) {
-
-        Box( // 🔥 PARENT UTAMA
-            modifier = Modifier.size(64.dp)
+        Box(
+            modifier = Modifier.size(iconBoxSize),
+            contentAlignment = Alignment.Center
         ) {
-
-            Card(
+            // Background lingkaran lembut
+            Box(
                 modifier = Modifier
-                    .size(60.dp)
-                    .align(Alignment.Center),
-                shape = RoundedCornerShape(10.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
-                elevation = CardDefaults.cardElevation(2.dp),
-                onClick = onClick
-            ) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = label,
-                        tint = iconColor,
-                        modifier = Modifier.size(26.dp)
+                    .fillMaxSize()
+                    .background(
+                        color = iconColor.copy(alpha = 0.12f),
+                        shape = CircleShape
                     )
-                }
+            )
+
+            // Ikon
+            if (iconPainter != null) {
+                Icon(
+                    painter = iconPainter,
+                    contentDescription = label,
+                    tint = iconColor,
+                    modifier = Modifier.size(iconSize)
+                )
+            } else if (icon != null) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = label,
+                    tint = iconColor,
+                    modifier = Modifier.size(iconSize)
+                )
             }
 
+            // Badge dengan border putih agar lebih "pop"
             if (showBadge) {
                 Box(
                     modifier = Modifier
-                        .size(12.dp)
-                        .background(Color.Red, shape = CircleShape)
+                        .size(if (isCompact) 10.dp else 12.dp)
                         .align(Alignment.TopEnd)
-                        .offset(x = 5.dp, y = (-5).dp)
+                        .background(Color.Red, CircleShape)
+                        .border(1.5.dp, Color.White, CircleShape)
                 )
             }
         }
 
-        Spacer(Modifier.height(6.dp))
+        Spacer(Modifier.height(if (isCompact) 6.dp else 8.dp))
 
         Text(
             text = label,
-            fontSize = 12.sp,
-            fontWeight = FontWeight.Medium,
-            color = Color(0xFFB63352),
+            fontSize = if (isCompact) 10.sp else 11.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = Color(0xFF424242),
             textAlign = TextAlign.Center,
             maxLines = 1
         )
@@ -849,7 +988,7 @@ fun UserActionItem(
 
 
 class BottomCurveShape(
-    private val curveHeight: Float = 120f // tinggi lengkungan
+    private val curveHeight: Float = 120f
 ) : Shape {
     override fun createOutline(
         size: Size,
@@ -874,6 +1013,19 @@ class BottomCurveShape(
     )
 }
 
+suspend fun checkPendingGaji(userId: Int): Boolean {
+    return try {
+        val response = RetrofitClientLaravel.instance.getUserSalary(userId)
+
+        val data = response.body()?.data ?: emptyList()
+
+        data.any { it.status.equals("PENDING", true) }
+
+    } catch (e: Exception) {
+        false
+    }
+}
+
 suspend fun checkPendingApproval(
     userId: Int,
     isCaptainOrAbove: Boolean
@@ -888,6 +1040,19 @@ suspend fun checkPendingApproval(
 
         (manual.body()?.data?.isNotEmpty() == true) ||
                 (izin.body()?.data?.isNotEmpty() == true)
+
+    } catch (e: Exception) {
+        false
+    }
+}
+
+suspend fun checkPendingFace(userId: Int): Boolean {
+    return try {
+
+        val response =
+            RetrofitClientLaravel.instance.getPendingFaceList(userId)
+
+        response.body()?.data?.isNotEmpty() == true
 
     } catch (e: Exception) {
         false

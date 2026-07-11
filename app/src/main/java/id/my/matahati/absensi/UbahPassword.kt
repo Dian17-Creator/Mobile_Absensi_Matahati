@@ -15,6 +15,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.foundation.Image
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -39,14 +40,25 @@ import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.ui.focus.onFocusEvent
 import kotlinx.coroutines.delay
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
-
 
 class UbahPassword : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
         setContent {
-            UbahPasswordUI()
+            MaterialTheme {
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = Color.White
+                ) {
+                    UbahPasswordUI()
+                }
+            }
         }
     }
 }
@@ -55,6 +67,10 @@ class UbahPassword : ComponentActivity() {
 @Composable
 fun UbahPasswordUI() {
     val context = LocalContext.current
+    val configuration = LocalConfiguration.current
+    val screenWidth = configuration.screenWidthDp
+    val isCompact = screenWidth <= 360
+    
     val session = SessionManager(context)
     val focusManager = LocalFocusManager.current
     val scope = rememberCoroutineScope()
@@ -71,180 +87,201 @@ fun UbahPasswordUI() {
 
     val primaryColor = Color(0xFFB63352)
 
-    BoxWithConstraints(
+    //UI BARU
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.White)
-            .padding(16.dp)
-    ) {
-        val screenHeight = maxHeight
-        val imageSize = screenHeight * 0.28f
-        val textFieldHeight = screenHeight * 0.07f
-        val buttonHeight = screenHeight * 0.08f
+            .systemBarsPadding()
+            .verticalScroll(rememberScrollState())
+    )   {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(if (isCompact) 300.dp else 325.dp)
+                .align(Alignment.BottomCenter)
+                .background(primaryColor)
+        )
 
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(vertical = 10.dp),
-            verticalArrangement = Arrangement.spacedBy(17.dp),
+                .padding(horizontal = 24.dp)
+                .padding(top = (if (isCompact) 0.dp else 0.dp), bottom = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 4.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "Ubah Password",
-                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                    color = Color.Black,
-                    modifier = Modifier.padding(top = 15.dp)
-                )
-            }
+            Text(
+                "Ubah Password",
+                style = MaterialTheme.typography.headlineSmall,
+                modifier = Modifier.fillMaxWidth(),
+                fontWeight = FontWeight.Bold,
+                fontSize = if (isCompact) 18.sp else 22.sp,
+                color = Color.Black,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
 
             Image(
                 painter = painterResource(id = R.drawable.passwordbro),
                 contentDescription = "Password illustration",
                 modifier = Modifier
-                    .size(imageSize)
-                    .padding(top = 8.dp)
+                    .size(if (isCompact) 180.dp else 225.dp)
+                    .padding(top = 4.dp)
             )
 
-            OutlinedTextField(
-                value = oldPassword,
-                onValueChange = { oldPassword = it },
-                label = { Text("Password Lama") },
-                singleLine = true,
-                visualTransformation = if (oldPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                trailingIcon = {
-                    val image = if (oldPasswordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
-                    IconButton(onClick = { oldPasswordVisible = !oldPasswordVisible }) {
-                        Icon(image, contentDescription = null)
-                    }
-                },
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = primaryColor,
-                    focusedLabelColor = primaryColor,
-                    cursorColor = primaryColor
-                ),
-                keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Next),
-                keyboardActions = KeyboardActions(onNext = {
-                    focusManager.moveFocus(FocusDirection.Down)
-                }),
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(textFieldHeight)
-            )
-
-            OutlinedTextField(
-                value = newPassword,
-                onValueChange = { newPassword = it },
-                label = { Text("Password Baru") },
-                singleLine = true,
-                visualTransformation = if (newPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                trailingIcon = {
-                    val image = if (newPasswordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
-                    IconButton(onClick = { newPasswordVisible = !newPasswordVisible }) {
-                        Icon(image, contentDescription = null)
-                    }
-                },
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = primaryColor,
-                    focusedLabelColor = primaryColor,
-                    cursorColor = primaryColor
-                ),
-                keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Next),
-                keyboardActions = KeyboardActions(onNext = {
-                    focusManager.moveFocus(FocusDirection.Down)
-                }),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(textFieldHeight)
-            )
-
-            OutlinedTextField(
-                value = confirmPassword,
-                onValueChange = { confirmPassword = it },
-                label = { Text("Konfirmasi Password Baru") },
-                singleLine = true,
-                visualTransformation = if (confirmPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                trailingIcon = {
-                    val image = if (confirmPasswordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
-                    IconButton(onClick = { confirmPasswordVisible = !confirmPasswordVisible }) {
-                        Icon(image, contentDescription = null)
-                    }
-                },
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = primaryColor,
-                    focusedLabelColor = primaryColor,
-                    cursorColor = primaryColor
-                ),
-                keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),
-                keyboardActions = KeyboardActions(onDone = {
-                    focusManager.clearFocus()
-                }),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .bringIntoViewRequester(bringIntoViewRequester) // ✅ ini kuncinya
-                    .onFocusEvent { focusState ->
-                        if (focusState.isFocused) {
-                            scope.launch {
-                                delay(1) // beri waktu keyboard muncul
-                                bringIntoViewRequester.bringIntoView()
-                            }
-                        }
-                    }
-            )
-
-            // ✅ Tombol Simpan
-            Button(
-                onClick = {
-                    if (newPassword != confirmPassword) {
-                        Toast.makeText(context, "Password baru tidak sama", Toast.LENGTH_LONG).show()
-                    } else {
-                        val session = SessionManager(context.applicationContext)
-                        val activity = context as? ComponentActivity
-                        val userIdFromSession = session.getUserId()
-                        val userId = if (userIdFromSession != -1) {
-                            userIdFromSession
-                        } else {
-                            activity?.intent?.getIntExtra("USER_ID", -1) ?: -1
-                        }
-
-                        if (userId == -1) {
-                            Toast.makeText(context, "⚠️ Data user tidak ditemukan, silakan login ulang", Toast.LENGTH_LONG).show()
-                            return@Button
-                        }
-
-                        updatePassword(
-                            context,
-                            userId.toString(),
-                            oldPassword,
-                            newPassword
-                        ) {
-                            val intent = Intent(context, MainActivity::class.java)
-                            context.startActivity(intent)
-                            if (context is ComponentActivity) context.finish()
-                        }
-                    }
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(buttonHeight),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = primaryColor,
-                    contentColor = Color.White
-                ),
-                shape = RoundedCornerShape(8.dp)
+                    .padding(bottom = 25.dp),
+                shape = RoundedCornerShape(20.dp),
+                elevation = CardDefaults.cardElevation(8.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFFDF9FC))
             ) {
-                Text("Simpan")
+                Column(
+                    modifier = Modifier
+                        .padding(20.dp)
+                        .fillMaxWidth()
+                ) {
+                    OutlinedTextField(
+                        value = oldPassword,
+                        onValueChange = { oldPassword = it },
+                        label = { Text("Password Lama") },
+                        singleLine = true,
+                        visualTransformation = if (oldPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                        trailingIcon = {
+                            val image = if (oldPasswordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
+                            IconButton(onClick = { oldPasswordVisible = !oldPasswordVisible }) {
+                                Icon(image, contentDescription = null)
+                            }
+                        },
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = primaryColor,
+                            focusedLabelColor = primaryColor,
+                            cursorColor = primaryColor
+                        ),
+                        keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Next),
+                        keyboardActions = KeyboardActions(onNext = {
+                            focusManager.moveFocus(FocusDirection.Down)
+                        }),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    OutlinedTextField(
+                        value = newPassword,
+                        onValueChange = { newPassword = it },
+                        label = { Text("Password Baru") },
+                        singleLine = true,
+                        visualTransformation = if (newPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                        trailingIcon = {
+                            val image = if (newPasswordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
+                            IconButton(onClick = { newPasswordVisible = !newPasswordVisible }) {
+                                Icon(image, contentDescription = null)
+                            }
+                        },
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = primaryColor,
+                            focusedLabelColor = primaryColor,
+                            cursorColor = primaryColor
+                        ),
+                        keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Next),
+                        keyboardActions = KeyboardActions(onNext = {
+                            focusManager.moveFocus(FocusDirection.Down)
+                        }),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    OutlinedTextField(
+                        value = confirmPassword,
+                        onValueChange = { confirmPassword = it },
+                        label = { Text("Konfirmasi Password Baru") },
+                        singleLine = true,
+                        visualTransformation = if (confirmPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                        trailingIcon = {
+                            val image = if (confirmPasswordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
+                            IconButton(onClick = { confirmPasswordVisible = !confirmPasswordVisible }) {
+                                Icon(image, contentDescription = null)
+                            }
+                        },
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = primaryColor,
+                            focusedLabelColor = primaryColor,
+                            cursorColor = primaryColor
+                        ),
+                        keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),
+                        keyboardActions = KeyboardActions(onDone = {
+                            focusManager.clearFocus()
+                        }),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .bringIntoViewRequester(bringIntoViewRequester)
+                            .onFocusEvent { focusState ->
+                                if (focusState.isFocused) {
+                                    scope.launch {
+                                        delay(1)
+                                        bringIntoViewRequester.bringIntoView()
+                                    }
+                                }
+                            }
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Button(
+                        onClick = {
+                            if (newPassword != confirmPassword) {
+                                Toast.makeText(context, "Password baru tidak sama", Toast.LENGTH_LONG).show()
+                            } else {
+                                val session = SessionManager(context.applicationContext)
+                                val activity = context as? ComponentActivity
+                                val userIdFromSession = session.getUserId()
+                                val userId = if (userIdFromSession != -1) {
+                                    userIdFromSession
+                                } else {
+                                    activity?.intent?.getIntExtra("USER_ID", -1) ?: -1
+                                }
+
+                                if (userId == -1) {
+                                    Toast.makeText(context, "⚠️ Data user tidak ditemukan, silakan login ulang", Toast.LENGTH_LONG).show()
+                                    return@Button
+                                }
+
+                                updatePassword(
+                                    context,
+                                    userId.toString(),
+                                    oldPassword,
+                                    newPassword
+                                ) {
+                                    val intent = Intent(context, MainActivity::class.java)
+                                    context.startActivity(intent)
+                                    if (context is ComponentActivity) context.finish()
+                                }
+                            }
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(50.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = primaryColor,
+                            contentColor = Color.White
+                        ),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text("Simpan")
+                    }
+                }
             }
         }
     }
 }
 
-// 🔹 Fungsi kirim password ke server
 fun updatePassword(
     context: Context,
     userId: String,
@@ -253,8 +290,7 @@ fun updatePassword(
     onSuccess: () -> Unit
 ) {
     val client = OkHttpClient()
-    val url = "https://absensi.matahati.my.id/change_password.php"
-    // val url = "https://absensi.karyatra.cloud/change_password.php"
+    val url = "https://absensi.karyatra.cloud/change_password.php"
 
     val json = JSONObject()
     json.put("userId", userId)

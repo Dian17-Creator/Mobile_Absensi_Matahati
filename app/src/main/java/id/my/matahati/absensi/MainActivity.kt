@@ -10,9 +10,13 @@ import android.widget.Toast
 import android.animation.ObjectAnimator
 import android.animation.PropertyValuesHolder
 import android.util.Log
+import android.widget.ImageView
+import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Lifecycle
 import com.google.android.material.bottomnavigation.BottomNavigationView
@@ -34,6 +38,9 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        enableEdgeToEdge()
+
         session = SessionManager(applicationContext)
 
         val isLoggedIn = session.isLoggedIn()
@@ -57,6 +64,18 @@ class MainActivity : AppCompatActivity() {
 
         setContentView(R.layout.activity_main)
 
+        val bottomNav = findViewById<BottomNavigationView>(R.id.bottom_navigation)
+
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { _, insets ->
+            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            
+            // Berikan padding bawah ke bottom navigation agar ikon tidak tertutup tombol sistem (Back/Home)
+            // Ini adalah cara resmi menangani inset untuk komponen View-based di Edge-to-Edge
+            bottomNav.setPadding(0, 0, 0, bars.bottom)
+
+            insets
+        }
+
         FirebaseMessaging.getInstance().token
             .addOnCompleteListener { task ->
                 if (!task.isSuccessful) {
@@ -71,7 +90,6 @@ class MainActivity : AppCompatActivity() {
         // 🔹 Minta izin kamera & lokasi saat app dibuka
         checkAndRequestPermissions()
 
-        val bottomNav = findViewById<BottomNavigationView>(R.id.bottom_navigation)
         replaceFragment(HomeFragment()) // default fragment
 
         bottomNav.labelVisibilityMode = NavigationBarView.LABEL_VISIBILITY_SELECTED
@@ -80,7 +98,7 @@ class MainActivity : AppCompatActivity() {
         for (i in 0 until bottomNav.menu.size()) {
             val menuItem = bottomNav.menu.getItem(i)
             val itemView = bottomNav.findViewById<View>(menuItem.itemId)
-            val icon = itemView?.findViewById<View>(com.google.android.material.R.id.icon)
+            val icon = itemView?.findViewById<ImageView>(androidx.appcompat.R.id.icon)
 
             if (menuItem.itemId == bottomNav.selectedItemId) {
                 icon?.scaleX = 1.25f
@@ -95,7 +113,7 @@ class MainActivity : AppCompatActivity() {
         // 🔹 Listener BottomNavigation
         bottomNav.setOnItemSelectedListener { item ->
             val selectedView = bottomNav.findViewById<View>(item.itemId)
-            val selectedIcon = selectedView?.findViewById<View>(com.google.android.material.R.id.icon)
+            val selectedIcon = selectedView?.findViewById<ImageView>(androidx.appcompat.R.id.icon)
 
             selectedIcon?.let {
                 ObjectAnimator.ofPropertyValuesHolder(
@@ -111,7 +129,7 @@ class MainActivity : AppCompatActivity() {
 
             if (lastSelectedItemId != item.itemId) {
                 val prevView = bottomNav.findViewById<View>(lastSelectedItemId)
-                val prevIcon = prevView?.findViewById<View>(com.google.android.material.R.id.icon)
+                val prevIcon = prevView?.findViewById<ImageView>(androidx.appcompat.R.id.icon)
                 prevIcon?.let {
                     ObjectAnimator.ofPropertyValuesHolder(
                         it,
@@ -155,6 +173,12 @@ class MainActivity : AppCompatActivity() {
             != PackageManager.PERMISSION_GRANTED
         ) {
             permissionsToRequest.add(Manifest.permission.ACCESS_COARSE_LOCATION)
+        }
+
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+            != PackageManager.PERMISSION_GRANTED
+        ){
+            permissionsToRequest.add(Manifest.permission.POST_NOTIFICATIONS)
         }
 
         if (permissionsToRequest.isNotEmpty()) {

@@ -12,12 +12,12 @@
     <!-- Permission Lokasi-->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
-    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
 
     <!-- Permission SSID WIFI-->
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE"/>
 
-    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" tools:ignore="UnusedAttribute" />
+    <!-- Permission Notifikasi -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <!-- Nyatakan kamera opsional -->
     <uses-feature android:name="android.hardware.camera" android:required="false" />
@@ -35,6 +35,17 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.MyApplication"
         android:usesCleartextTraffic="false">
+
+        <provider
+            android:name="androidx.startup.InitializationProvider"
+            android:authorities="${applicationId}.androidx-startup"
+            android:exported="false"
+            tools:node="merge">
+
+            <meta-data
+                android:name="androidx.work.WorkManagerInitializer"
+                tools:node="remove" />
+        </provider>
 
         <!-- Launcher utama -->
         <activity
@@ -113,13 +124,6 @@
             />
 
         <activity
-            android:name=".HalamanForgot"
-            android:exported="true"
-            android:label="Absensi"
-            android:theme="@style/Theme.MyApplication"
-            />
-
-        <activity
             android:name=".HalamanApproval"
             android:exported="true"
             android:label="Absensi"
@@ -130,6 +134,34 @@
             android:exported="true"
             android:label="Absensi"
             android:theme="@style/Theme.MyApplication"/>
+
+        <activity
+            android:name=".HalamanTambahUser"
+            android:windowSoftInputMode="adjustResize"
+            android:exported="true"
+            android:label="TambahUser"
+            android:theme="@style/Theme.MyApplication"/>
+
+        <activity
+            android:name=".HalamanPayroll"
+            android:windowSoftInputMode="adjustResize"
+            android:exported="true"
+            android:label="HalamanPayroll"
+            android:theme="@style/Theme.MyApplication"/>
+
+        <activity
+            android:name=".HalamanEditPayroll"
+            android:windowSoftInputMode="adjustResize"
+            android:exported="true"
+            android:label="HalamanEditPayroll"
+            android:theme="@style/Theme.MyApplication"/>
+
+        <activity
+            android:name=".HalamanFaceApproval"
+            android:windowSoftInputMode="adjustResize"
+            android:exported="true"
+            android:label="FaceApproval"
+            android:theme="@style/Theme.MyApplication" />
 
         <service
             android:name=".FirebaseService"

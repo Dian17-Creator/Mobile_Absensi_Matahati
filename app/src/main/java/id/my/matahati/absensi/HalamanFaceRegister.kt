@@ -1,6 +1,7 @@
 package id.my.matahati.absensi
 
 import android.Manifest
+import android.content.Context
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -59,17 +60,24 @@ import com.google.mlkit.vision.face.Face
 import com.google.mlkit.vision.face.FaceDetection
 import com.google.mlkit.vision.face.FaceDetector
 import com.google.mlkit.vision.face.FaceDetectorOptions
+import android.graphics.drawable.BitmapDrawable
+import androidx.activity.enableEdgeToEdge
+import androidx.compose.ui.unit.Dp
+import coil.ImageLoader
+import coil.request.ImageRequest
+import coil.request.SuccessResult
+import com.google.android.material.internal.ViewUtils
 
 
 private const val TAG_FACE = "FACE_REGISTER"
 private val httpClient by lazy { OkHttpClient() }
-private const val FACE_UPLOAD_URL = "https://absensi.matahati.my.id/user_face_mobile.php"
-private const val FACE_STATUS_URL = "https://absensi.matahati.my.id/user_face_status_mobile.php"
-private const val FACE_RESET_URL = "https://absensi.matahati.my.id/user_face_reset_mobile.php"
+//private const val FACE_UPLOAD_URL = "https://absensi.matahati.my.id/user_face_mobile.php"
+//private const val FACE_STATUS_URL = "https://absensi.matahati.my.id/user_face_status_mobile.php"
+//private const val FACE_RESET_URL = "https://absensi.matahati.my.id/user_face_reset_mobile.php"
 
-//private const val FACE_UPLOAD_URL = "https://absensi.karyatra.cloud/user_face_mobile.php"
-//private const val FACE_STATUS_URL = "https://absensi.karyatra.cloud/user_face_status_mobile.php"
-//private const val FACE_RESET_URL = "https://absensi.karyatra.cloud/user_face_reset_mobile.php"
+private const val FACE_UPLOAD_URL = "https://absensi.karyatra.cloud/user_face_mobile.php"
+private const val FACE_STATUS_URL = "https://absensi.karyatra.cloud/user_face_status_mobile.php"
+private const val FACE_RESET_URL = "https://absensi.karyatra.cloud/user_face_reset_mobile.php"
 
 enum class FaceApprovalStatus {
     NONE,
@@ -127,13 +135,18 @@ class HalamanFaceRegister : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
+        enableEdgeToEdge()
         if (!allPermissionsGranted()) {
             ActivityCompat.requestPermissions(this, REQUIRED_PERMISSIONS, 10)
         }
 
         setContent {
-            FaceRegisterScreen()
+            val topPadding =
+                WindowInsets.statusBars
+                    .asPaddingValues()
+                    .calculateTopPadding()
+
+            FaceRegisterScreen(topPadding)
         }
     }
 
@@ -146,7 +159,9 @@ class HalamanFaceRegister : ComponentActivity() {
 private val PrimaryColor = Color(0xFFB63352)
 
 @Composable
-fun FaceRegisterScreen() {
+fun FaceRegisterScreen(
+    topPadding : Dp
+) {
 
     val scope = rememberCoroutineScope()
     var uploadStatus by remember { mutableStateOf<String?>(null) }
@@ -198,7 +213,7 @@ fun FaceRegisterScreen() {
             return@LaunchedEffect
         }
 
-        val (serverStatus, serverBitmaps) = fetchFaceStatusFromServer(uid)
+        val (serverStatus, serverBitmaps) = fetchFaceStatusFromServer(context,uid)
 
         faceStatus = serverStatus
         isFaceLoaded = true
@@ -220,6 +235,14 @@ fun FaceRegisterScreen() {
             .fillMaxSize()
             .background(Color.White)
     ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(topPadding)
+                .background(Color.Black)
+                .align(Alignment.TopCenter)
+        )
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -669,25 +692,39 @@ fun rotateBitmap(src: Bitmap, degrees: Float): Bitmap {
     return Bitmap.createBitmap(src, 0, 0, src.width, src.height, matrix, true)
 }
 
-suspend fun downloadBitmap(url: String): Bitmap? =
-    withContext(Dispatchers.IO) {
-        try {
-            val req = Request.Builder().url(url).build()
-            httpClient.newCall(req).execute().use { resp ->
-                if (!resp.isSuccessful) return@withContext null
-                val stream = resp.body?.byteStream() ?: return@withContext null
-                BitmapFactory.decodeStream(stream)
-            }
-        } catch (e: Exception) {
-            Log.e(TAG_FACE, "downloadBitmap error: $url", e)
+suspend fun downloadBitmap(
+    context: Context,
+    url: String
+): Bitmap? = withContext(Dispatchers.IO) {
+    try {
+        val loader = ImageLoader(context)
+
+        val request = ImageRequest.Builder(context)
+            .data(url)
+            .allowHardware(false)
+            .build()
+
+        val result = loader.execute(request)
+
+        if (result is SuccessResult) {
+            (result.drawable as BitmapDrawable).bitmap
+        } else {
             null
         }
+
+    } catch (e: Exception) {
+        Log.e(TAG_FACE, "downloadBitmap", e)
+        null
     }
+}
 
 /**
  * Ambil status & url foto dari server
  */
-suspend fun fetchFaceStatusFromServer(userId: Int): Pair<FaceApprovalStatus, List<Bitmap>> =
+suspend fun fetchFaceStatusFromServer(
+    context : Context,
+    userId: Int
+): Pair<FaceApprovalStatus, List<Bitmap>> =
     withContext(Dispatchers.IO) {
         try {
             val jsonReq = """
@@ -729,7 +766,9 @@ suspend fun fetchFaceStatusFromServer(userId: Int): Pair<FaceApprovalStatus, Lis
                         val fObj = facesArr.optJSONObject(i) ?: continue
                         val url = fObj.optString("url")
                         if (url.isNotBlank()) {
-                            downloadBitmap(url)?.let { bitmaps.add(it) }
+                            downloadBitmap(context, url)?.let {
+                                bitmaps.add(it)
+                            }
                         }
                     }
                 }

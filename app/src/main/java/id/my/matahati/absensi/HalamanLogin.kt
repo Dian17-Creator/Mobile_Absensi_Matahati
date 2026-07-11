@@ -15,6 +15,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.ui.graphics.Color
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.ui.res.painterResource
@@ -46,9 +47,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 
+
 class HalamanLogin : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
         setContent {
             LoginUI()
         }
@@ -64,8 +67,8 @@ fun loginUser(
 ) {
     val client = OkHttpClient()
 
-    val url = "https://absensi.matahati.my.id/user_login_mobile.php?api=1"
-    // val url = "https://absensi.karyatra.cloud/user_login_mobile.php?api=1"
+    // val url = "https://absensi.matahati.my.id/user_login_mobile.php?api=1"
+    val url = "https://absensi.karyatra.cloud/user_login_mobile.php?api=1"
 
     val formBody = FormBody.Builder()
         .add("email", email)
@@ -131,7 +134,8 @@ fun LoginUI() {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.White),
+            .background(Color.White)
+            .systemBarsPadding(),
         contentAlignment = Alignment.Center
     ) {
         Column(

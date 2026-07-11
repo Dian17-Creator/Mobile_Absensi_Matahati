@@ -59,12 +59,13 @@ import android.os.Handler
 import android.os.Looper
 import android.net.wifi.WifiManager
 import android.os.Build
+import androidx.activity.enableEdgeToEdge
 
 private const val TAG = "FACE_LOGIN"
 private const val API_KEY = "MH4T4H4TI_2025_ABSENSI_APP_SECRETx9P2F7Q1L8S3Z0R6W4K2D1M9B7T5"
 
-private const val FACE_LOGIN_URL = "https://absensi.matahati.my.id/user_face_scan_ssid.php"
-//private const val FACE_LOGIN_URL = "https://absensi.karyatra.cloud/user_face_scan_ssid.php"
+// private const val FACE_LOGIN_URL = "https://absensi.matahati.my.id/user_face_scan_ssid.php"
+private const val FACE_LOGIN_URL = "https://absensi.karyatra.cloud/user_face_scan_ssid.php"
 
 private val httpClient by lazy {
     OkHttpClient.Builder()
@@ -99,7 +100,7 @@ class HalamanFaceLogin : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
+        enableEdgeToEdge()
         if (!PERMISSIONS.all {
                 ContextCompat.checkSelfPermission(this, it) == PackageManager.PERMISSION_GRANTED
             }) {
@@ -163,7 +164,7 @@ fun FaceLoginScreen() {
     }
 
     Column(
-        modifier = Modifier.fillMaxSize().padding(20.dp),
+        modifier = Modifier.fillMaxSize().systemBarsPadding().padding(20.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
@@ -559,8 +560,8 @@ suspend fun reverseGeocode(lat: Double, lng: Double): String =
 
             Log.d("REVERSE_DEBUG", "Call SERVER reverse -> LAT=$lat | LON=$lng")
 
-            val url = "https://absensi.matahati.my.id/reverse_geocode.php?lat=$lat&lon=$lng"
-            // val url = "https://absensi.karyatra.cloud/reverse_geocode.php?lat=$lat&lon=$lng"
+            //val url = "https://absensi.matahati.my.id/reverse_geocode.php?lat=$lat&lon=$lng"
+            val url = "https://absensi.karyatra.cloud/reverse_geocode.php?lat=$lat&lon=$lng"
 
             val req = Request.Builder()
                 .url(url)

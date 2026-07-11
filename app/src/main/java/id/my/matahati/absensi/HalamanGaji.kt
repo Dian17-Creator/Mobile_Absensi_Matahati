@@ -4,7 +4,9 @@ import android.app.Activity
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -35,19 +37,31 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsControllerCompat
 
 class HalamanGaji : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
         setContent {
-            HalamanGajiScreen()
+
+            val topPadding =
+                WindowInsets.statusBars
+                    .asPaddingValues()
+                    .calculateTopPadding()
+
+            HalamanGajiScreen(topPadding)
+
         }
     }
 }
 
 @Composable
-fun HalamanGajiScreen() {
-
+fun HalamanGajiScreen(
+    topPadding: Dp
+) {
     val context = LocalContext.current
     val session = remember { SessionManager(context) }
     val userId = remember { session.getUserId() }
@@ -96,8 +110,19 @@ fun HalamanGajiScreen() {
         modifier = Modifier
             .fillMaxSize()
     ) {
+        // Area status bar
         Box(
             modifier = Modifier
+                .fillMaxWidth()
+                .height(topPadding)
+                .background(Color.Black)
+                .align(Alignment.TopCenter)
+        )
+
+        //Header
+        Box(
+            modifier = Modifier
+                .padding(top = topPadding)
                 .fillMaxWidth()
                 .height(400.dp)
                 .clip(BottomCurveShape(curveHeight = 50f))
@@ -108,7 +133,13 @@ fun HalamanGajiScreen() {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(25.dp)
+                .padding(
+                    top = 35.dp,
+                    start = 25.dp,
+                    end = 25.dp,
+                    bottom = 25.dp
+                )
+
         ) {
             Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                 IconButton(

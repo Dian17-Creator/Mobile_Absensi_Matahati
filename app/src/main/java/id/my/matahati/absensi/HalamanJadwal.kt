@@ -3,6 +3,7 @@ package id.my.matahati.absensi
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -53,6 +54,7 @@ import androidx.compose.ui.window.Dialog
 class HalamanJadwal : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
         setContent {
             MaterialTheme {
                 Surface {
@@ -66,6 +68,10 @@ class HalamanJadwal : ComponentActivity() {
 @Composable
 fun HalamanJadwalUI(scheduleViewModel: ScheduleViewModel = viewModel()) {
     val context = LocalContext.current
+    val configuration = LocalConfiguration.current
+    val screenWidth = configuration.screenWidthDp
+    val isCompact = screenWidth <= 360
+    val screenHeightDp = configuration.screenHeightDp.dp
 
     val absensiViewModel: AbsensiViewModel = viewModel()
     val contractViewModel: UserContractViewModel = viewModel()
@@ -144,20 +150,17 @@ fun HalamanJadwalUI(scheduleViewModel: ScheduleViewModel = viewModel()) {
     }
 
     val calendarBackground = Color(0xFFF5F5F5)
-    val configuration = LocalConfiguration.current
-    val screenHeight = configuration.screenHeightDp.dp
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .fillMaxWidth()
             .background(Color.White)
     ) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .align(Alignment.TopCenter)
-                .height(screenHeight * 0.25f)
+                .height(if (isCompact) screenHeightDp * 0.18f else screenHeightDp * 0.25f)
                 .background(color = Color(0xFFB63352))
         )
 
@@ -166,23 +169,24 @@ fun HalamanJadwalUI(scheduleViewModel: ScheduleViewModel = viewModel()) {
                 .fillMaxSize()
                 .padding(horizontal = 16.dp)
         ) {
-            val calendarHeight = maxHeight * 0.45f
+            val calendarHeight = maxHeight * (if (isCompact) 0.55f else 0.45f)
 
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(top = screenHeight * 0.05f),
+                    .padding(top = if (isCompact) 10.dp else 20.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 contentPadding = PaddingValues(
-                    bottom = 50.dp
+                    bottom = 125.dp // Ditambah agar Card Log Absensi tidak menempel Bottom Navigation
                 )
             ) {
                 item {
                     // === Judul ===
                     Text(
                         text = "Jadwal & Shift",
-                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                        style = if (isCompact) MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold) 
+                               else MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
                         color = Color.White
                     )
                 }
@@ -251,19 +255,17 @@ fun HalamanJadwalUI(scheduleViewModel: ScheduleViewModel = viewModel()) {
                     // === Card Log Absensi ===
                     Card(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .height(200.dp)
-                            .padding(bottom = 30.dp),
+                            .fillMaxWidth(),
                         elevation = CardDefaults.cardElevation(6.dp),
                         shape = RoundedCornerShape(12.dp),
                         colors = CardDefaults.cardColors(containerColor = Color.White)
                     ) {
-                        Column(modifier = Modifier.fillMaxSize()) {
+                        Column(modifier = Modifier.fillMaxWidth()) {
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .background(Color(0xFF4C4C59))
-                                    .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
+                                    .clip(RoundedCornerShape(12.dp, 12.dp, 0.dp, 0.dp)) // Perbaikan clip agar rapi
                                     .padding(horizontal = 16.dp, vertical = 10.dp),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
@@ -288,7 +290,7 @@ fun HalamanJadwalUI(scheduleViewModel: ScheduleViewModel = viewModel()) {
 
                             Box(
                                 modifier = Modifier
-                                    .fillMaxSize()
+                                    .fillMaxWidth()
                                     .background(Color(0xFFFFF9F2))
                                     .padding(12.dp)
                             ) {
@@ -311,8 +313,10 @@ fun HalamanJadwalUI(scheduleViewModel: ScheduleViewModel = viewModel()) {
                                         )
                                     }
                                     else -> {
-                                        LazyColumn(modifier = Modifier.fillMaxSize()) {
-                                            items(filteredLogs) { log ->
+                                        // Menggunakan Column agar tinggi Card mengikuti jumlah data (wrap content)
+                                        // dan menghilangkan double scrolling
+                                        Column(modifier = Modifier.fillMaxWidth()) {
+                                            filteredLogs.forEach { log ->
                                                 val bgColor = when (log.typeAbsensi) {
                                                     "manual" -> Color(0xFFFFF59D)
                                                     "scan" -> Color(0xFFC8D7E6)
