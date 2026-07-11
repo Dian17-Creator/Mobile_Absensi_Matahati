@@ -266,8 +266,8 @@ fun HalamanIzinUI(
             coroutineScope.launch(Dispatchers.IO) {
                 try {
 
-                    // val url = "https://absensi.matahati.my.id/reverse_geocode.php?lat=$lat&lon=$lng"
-                    val url = "https://absensi.karyatra.cloud/reverse_geocode.php?lat=$lat&lon=$lng"
+                    //val url = "https://absensi.karyatra.cloud/reverse_geocode.php?lat=$lat&lon=$lng"
+                    val url = "https://checkin.karyatra.cloud/reverse_geocode.php?lat=$lat&lon=$lng"
 
                     Log.d("IZIN_DEBUG", "CALL SERVER: $url")
 
@@ -891,8 +891,8 @@ suspend fun uploadRequest(
 
         val request = Request.Builder()
 
-            // .url("https://absensi.matahati.my.id/user_request_mobile_2.php")
-            .url("https://absensi.karyatra.cloud/user_request_mobile_2.php")
+            //.url("https://absensi.karyatra.cloud/user_request_mobile_2.php")
+            .url("https://checkin.karyatra.cloud/user_request_mobile_2.php")
 
             .post(body)
             .addHeader("Accept", "application/json")

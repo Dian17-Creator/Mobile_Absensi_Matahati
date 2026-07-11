@@ -227,8 +227,9 @@ fun HalamanManualUI(
                             val lat = loc.latitude
                             val lng = loc.longitude
 
-                            // val url = "https://absensi.matahati.my.id/reverse_geocode.php?lat=$lat&lon=$lng"
-                            val url = "https://absensi.karyatra.cloud/reverse_geocode.php?lat=$lat&lon=$lng"
+
+                            //val url = "https://absensi.karyatra.cloud/reverse_geocode.php?lat=$lat&lon=$lng"
+                            val url = "https://checkin.karyatra.cloud/reverse_geocode.php?lat=$lat&lon=$lng"
 
                             Log.d("MANUAL_DEBUG", "CALL SERVER: $url")
 
@@ -836,8 +837,8 @@ suspend fun uploadAbsenManual(
 
         val request = Request.Builder()
 
-            // .url("https://absensi.matahati.my.id/mscan_manual_mobile.php")
-            .url("https://absensi.karyatra.cloud/mscan_manual_mobile.php")
+            //.url("https://absensi.karyatra.cloud/mscan_manual_mobile.php")
+            .url("https://checkin.karyatra.cloud/mscan_manual_mobile.php")
 
             .post(body)
             .addHeader("Accept", "application/json")
