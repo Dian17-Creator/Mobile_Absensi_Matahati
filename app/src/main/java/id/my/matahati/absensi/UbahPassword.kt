@@ -290,7 +290,9 @@ fun updatePassword(
     onSuccess: () -> Unit
 ) {
     val client = OkHttpClient()
-    val url = "https://absensi.karyatra.cloud/change_password.php"
+
+    //val url = "https://absensi.karyatra.cloud/change_password.php"
+    val url = "https://checkin.karyatra.cloud/change_password.php"
 
     val json = JSONObject()
     json.put("userId", userId)
