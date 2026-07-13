@@ -1,15 +1,22 @@
 package id.my.matahati.absensi.data
 
+import android.app.Application
 import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import id.my.matahati.absensi.RuntimeSession.userId
+import id.my.matahati.absensi.SessionManager
 import kotlinx.coroutines.launch
 
-class PayrollViewModel : ViewModel() {
+class PayrollViewModel(
+    application: Application
+) : AndroidViewModel(application) {
+
+    private val session = SessionManager(application)
+
     var payrolls by mutableStateOf<List<PayrollItem>>(
         emptyList()
     )
@@ -40,14 +47,13 @@ class PayrollViewModel : ViewModel() {
 
     fun loadDepartments() {
 
+        val userId = session.getUserId()
+
         viewModelScope.launch {
 
             try {
 
-                Log.d(
-                    "PAYROLL",
-                    "Load departments start"
-                )
+                Log.d("PAYROLL", "Session userId = $userId")
 
                 val response =
                     RetrofitClientLaravel.instance
@@ -82,7 +88,7 @@ class PayrollViewModel : ViewModel() {
                     ) {
 
                         selectedDepartment =
-                            departments.first().code
+                            departments.first().nid.toString()
 
                         loadPayrolls()
                     }
@@ -113,6 +119,8 @@ class PayrollViewModel : ViewModel() {
 
     fun loadPayrolls() {
 
+        val userId = session.getUserId()
+
         viewModelScope.launch {
 
             loading = true
@@ -141,9 +149,12 @@ class PayrollViewModel : ViewModel() {
                     "month = $selectedMonth"
                 )
 
+                Log.d("PAYROLL", "Session userId = $userId")
+
                 val response =
                     RetrofitClientLaravel.instance
                         .getPayrollList(
+                            userId = userId,
                             departmentId = selectedDepartment,
                             year = selectedYear,
                             month = selectedMonth

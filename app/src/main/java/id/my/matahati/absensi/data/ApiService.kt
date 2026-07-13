@@ -125,6 +125,7 @@ interface ApiService {
 
     @GET("api/user/gaji/list")
     suspend fun getPayrollList(
+        @Query("user_id") userId: Int,
 
         @Query("department_id")
         departmentId: String?,

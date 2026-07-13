@@ -55,7 +55,6 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.coerceAtLeast
-import id.my.matahati.absensi.RuntimeSession.userId
 
 class HalamanTambahUser : ComponentActivity() {
 
