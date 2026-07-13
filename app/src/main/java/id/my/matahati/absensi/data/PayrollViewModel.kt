@@ -6,6 +6,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import id.my.matahati.absensi.RuntimeSession.userId
 import kotlinx.coroutines.launch
 
 class PayrollViewModel : ViewModel() {
@@ -50,7 +51,7 @@ class PayrollViewModel : ViewModel() {
 
                 val response =
                     RetrofitClientLaravel.instance
-                        .getDepartments()
+                        .getDepartments(userId)
 
                 Log.d(
                     "PAYROLL",

@@ -90,13 +90,19 @@ interface ApiService {
     ): Response<StoreUserResponse>
 
     @GET("api/department/list")
-    suspend fun getDepartments(): Response<DepartmentResponse>
+    suspend fun getDepartments(
+        @Query("user_id") userId: Int
+    ): Response<DepartmentResponse>
 
     @GET("api/bank/list")
-    suspend fun getBankList(): Response<BankResponse>
+    suspend fun getBankList(
+        @Query("user_id") userId: Int
+    ): Response<BankResponse>
 
     @GET("api/mandiri/rekening")
-    suspend fun getMandiriRekening(): Response<RekeningResponse>
+    suspend fun getMandiriRekening(
+        @Query("user_id") userId: Int
+    ): Response<RekeningResponse>
 
     @GET("api/face-approval/pending")
     suspend fun getPendingFaceList(

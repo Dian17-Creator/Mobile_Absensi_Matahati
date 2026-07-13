@@ -55,6 +55,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.coerceAtLeast
+import id.my.matahati.absensi.RuntimeSession.userId
 
 class HalamanTambahUser : ComponentActivity() {
 
@@ -70,11 +71,16 @@ class HalamanTambahUser : ComponentActivity() {
 @Composable
 fun HalamanTambahUserUI() {
 
+
+
     val primaryColor = Color(0xFFB63352)
     val context = LocalContext.current
     val activity = context as Activity
 
     val focusManager = LocalFocusManager.current
+
+    val session = SessionManager(context)
+    val userId = session.getUserId()
 
     var username by remember { mutableStateOf("") }
     var gmail by remember { mutableStateOf("") }
@@ -125,8 +131,10 @@ fun HalamanTambahUserUI() {
 
         try {
 
+            android.util.Log.d("ADD_USER", "userId = $userId")
+
             val response =
-                RetrofitClientLaravel.instance.getDepartments()
+                RetrofitClientLaravel.instance.getDepartments(userId)
 
             if (response.isSuccessful) {
 
@@ -136,7 +144,7 @@ fun HalamanTambahUserUI() {
             }
 
             val rekeningResponse =
-                RetrofitClientLaravel.instance.getMandiriRekening()
+                RetrofitClientLaravel.instance.getMandiriRekening(userId)
 
             if (rekeningResponse.isSuccessful) {
 

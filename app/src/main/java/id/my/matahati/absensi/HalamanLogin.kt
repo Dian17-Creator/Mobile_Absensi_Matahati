@@ -253,6 +253,10 @@ fun handleLogin(
         if (success && userJson != null) {
 
             val userId = userJson.optInt("id", -1)
+            android.util.Log.d("LOGIN_JSON", userJson.toString())
+            android.util.Log.d("LOGIN_USER_ID", "userId=$userId")
+
+
             val userName = userJson.optString("name", "")
             val userEmail = userJson.optString("email", "")
 
