@@ -17,5 +17,7 @@ data class UserStoreRequest(
     val rekening_id: Int? = null,
     val bank: String? = null,
     val fnotif: Int = 0,
-    val role: String = "crew"
+    val role: String = "crew",
+
+    val creator_id: Int? = null
 )
