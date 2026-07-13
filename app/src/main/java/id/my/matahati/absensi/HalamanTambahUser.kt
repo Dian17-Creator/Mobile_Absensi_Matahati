@@ -598,7 +598,9 @@ fun HalamanTambahUserUI() {
                                     dtanggalmasuk = tanggalMasuk.ifBlank { null },
                                     rekening_id = selectedRekening?.id,
                                     bank = selectedBank.ifBlank { null },
-                                    role = roleValue
+                                    role = roleValue,
+
+                                    creator_id = userId
                                 )
 
                                 Log.d("STORE_USER", "REQUEST = $request")
