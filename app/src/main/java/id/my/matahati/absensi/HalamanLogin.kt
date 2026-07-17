@@ -39,6 +39,8 @@ import androidx.compose.foundation.background
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
 import com.google.firebase.messaging.FirebaseMessaging
 import id.my.matahati.absensi.data.RetrofitClient
 import id.my.matahati.absensi.data.RetrofitClientLaravel
@@ -147,11 +149,11 @@ fun LoginUI() {
             verticalArrangement = Arrangement.Center
         ) {
             Image(
-                painter = painterResource(id = R.drawable.loginbro),
+                painter = painterResource(id = R.drawable.loginbro2),
                 contentDescription = "Login",
                 modifier = Modifier
                     .size(260.dp)
-                    .padding(bottom = 24.dp),
+                    .padding(bottom = 0.dp),
                 contentScale = ContentScale.Fit
             )
 
@@ -220,7 +222,7 @@ fun LoginUI() {
                 Text("Ingatkan saya")
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             Button(
                 onClick = {
@@ -232,11 +234,40 @@ fun LoginUI() {
                 colors = ButtonDefaults.buttonColors(
                     containerColor = primaryColor,
                     contentColor = Color.White
-                ),
-                shape = RoundedCornerShape(8.dp)
+                )
             ) {
                 Text("LOGIN")
             }
+
+            Spacer(modifier = Modifier.height(0.dp))
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = "Belum punya akun?",
+                    fontSize = 16.sp,
+                    color = Color.Gray
+                )
+
+                TextButton(
+                    onClick = {
+                        val intent = Intent(context, HalamanRegister::class.java)
+                        context.startActivity(intent)
+                    },
+                    contentPadding = PaddingValues(start = 4.dp)
+                ) {
+                    Text(
+                        text = "Daftar",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = primaryColor
+                    )
+                }
+            }
+
         }
     }
 }
