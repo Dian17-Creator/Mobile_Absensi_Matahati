@@ -226,6 +226,7 @@ fun HalamanTambahUserUI() {
             .fillMaxSize()
             .background(Color.White) // Pastikan background utama putih atau mengikuti tema
             .systemBarsPadding() // Menangani padding sistem secara otomatis di tingkat root
+            .imePadding()
             .verticalScroll(rememberScrollState())
     ) {
         // BACKGROUND BAWAH
