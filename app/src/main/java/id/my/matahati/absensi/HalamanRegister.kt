@@ -6,6 +6,8 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -146,14 +148,17 @@ fun RegisterUI() {
         modifier = Modifier
             .fillMaxSize()
             .background(Color.White)
-            .systemBarsPadding(),
-        contentAlignment = Alignment.Center
+            .systemBarsPadding()
+            .imePadding()
+            .verticalScroll(rememberScrollState()),
+        contentAlignment = Alignment.TopCenter
     ) {
 
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 32.dp),
+                .padding(horizontal = 32.dp)
+                .padding(bottom = 80.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
 
@@ -166,50 +171,13 @@ fun RegisterUI() {
             Spacer(modifier = Modifier.height(12.dp))
 
             OutlinedTextField(
-                value = company,
-                onValueChange = { company = it },
-                label = { Text("Nama Perusahaan") },
-                placeholder = { Text("Contoh: Matahati") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = primaryColor,
-                    focusedLabelColor = primaryColor,
-                    cursorColor = primaryColor
-                )
+                value = email,
+                onValueChange = {},
+                readOnly = true,
+                enabled = false,
+                label = { Text("Email") },
+                modifier = Modifier.fillMaxWidth()
             )
-
-            if (checkingCompany) {
-
-                Text(
-                    text = "Memeriksa nama perusahaan...",
-                    fontSize = 12.sp,
-                    color = Color.Gray,
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-            } else {
-
-                when (companyExists) {
-
-                    true -> Text(
-                        text = "❌ Nama perusahaan sudah terdaftar",
-                        color = Color.Red,
-                        fontSize = 12.sp,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    false -> Text(
-                        text = "✅ Nama perusahaan tersedia",
-                        color = Color(0xFF2E7D32),
-                        fontSize = 12.sp,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    null -> {}
-                }
-
-            }
 
             Spacer(modifier = Modifier.height(12.dp))
 
@@ -219,6 +187,14 @@ fun RegisterUI() {
                 label = { Text("Nama") },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
+                keyboardOptions = KeyboardOptions(
+                    imeAction = ImeAction.Next
+                ),
+                keyboardActions = KeyboardActions(
+                    onNext = {
+                        focusManager.moveFocus(androidx.compose.ui.focus.FocusDirection.Down)
+                    }
+                ),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = primaryColor,
                     focusedLabelColor = primaryColor,
@@ -229,12 +205,55 @@ fun RegisterUI() {
             Spacer(modifier = Modifier.height(12.dp))
 
             OutlinedTextField(
-                value = email,
-                onValueChange = {},
-                readOnly = true,
-                enabled = false,
-                label = { Text("Email") },
-                modifier = Modifier.fillMaxWidth()
+                value = company,
+                onValueChange = { company = it },
+                label = { Text("Nama Perusahaan") },
+                placeholder = { Text("Contoh: Matahati") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+                keyboardOptions = KeyboardOptions(
+                    imeAction = ImeAction.Next
+                ),
+                keyboardActions = KeyboardActions(
+                    onNext = {
+                        focusManager.moveFocus(androidx.compose.ui.focus.FocusDirection.Down)
+                    }
+                ),
+
+                supportingText = {
+
+                    when {
+
+                        checkingCompany -> {
+                            Text(
+                                text = "Memeriksa nama perusahaan...",
+                                color = Color.Gray
+                            )
+                        }
+
+                        companyExists == true -> {
+                            Text(
+                                text = "❌ Nama perusahaan sudah terdaftar",
+                                color = Color.Red
+                            )
+                        }
+
+                        companyExists == false -> {
+                            Text(
+                                text = "✅ Nama perusahaan tersedia",
+                                color = Color(0xFF2E7D32)
+                            )
+                        }
+
+                    }
+
+                },
+
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = primaryColor,
+                    focusedLabelColor = primaryColor,
+                    cursorColor = primaryColor
+                )
             )
 
             Spacer(modifier = Modifier.height(12.dp))
