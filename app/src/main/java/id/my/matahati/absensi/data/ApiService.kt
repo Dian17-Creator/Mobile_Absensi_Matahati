@@ -148,4 +148,14 @@ interface ApiService {
         @Path("id") id: Int,
         @Body request: PayrollUpdateRequest
     ): Response<ApiMessageResponse>
+
+    @GET("api/register/check-company")
+    suspend fun checkCompany(
+        @Query("ccompany") company: String
+    ): Response<CompanyCheckResponse>
+
+    @POST("api/register")
+    suspend fun register(
+        @Body request: RegisterRequest
+    ): Response<RegisterResponse>
 }
