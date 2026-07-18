@@ -91,7 +91,8 @@ fun UbahPasswordUI() {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .systemBarsPadding()
+            .statusBarsPadding()
+            .navigationBarsPadding()
             .verticalScroll(rememberScrollState())
     )   {
         Box(
@@ -106,7 +107,7 @@ fun UbahPasswordUI() {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(horizontal = 24.dp)
-                .padding(top = (if (isCompact) 0.dp else 0.dp), bottom = 24.dp),
+                .padding(top = (if (isCompact) 16.dp else 0.dp), bottom = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(

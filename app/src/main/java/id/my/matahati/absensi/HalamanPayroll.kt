@@ -87,8 +87,12 @@ fun HalamanPayrollScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .statusBarsPadding()
-                .padding(horizontal = 20.dp)
-                .padding(top = 28.dp)
+                .padding(
+                    start = 20.dp,
+                    top = 0.dp,
+                    end = 20.dp,
+                    bottom = 20.dp
+                )
         ) {
 
             /* ================= TOP BAR ================= */
@@ -512,7 +516,9 @@ fun HalamanPayrollScreen(
                         verticalArrangement =
                             Arrangement.spacedBy(16.dp),
                         contentPadding =
-                            PaddingValues(bottom = 24.dp)
+                            PaddingValues(
+                                bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + 24.dp
+                            )
                     ) {
 
                         items(viewModel.filteredPayrolls) { payroll ->

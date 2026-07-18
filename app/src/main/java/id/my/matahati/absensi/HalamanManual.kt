@@ -310,8 +310,9 @@ fun HalamanManualUI() {
             modifier = Modifier
                 .fillMaxSize()
                 .statusBarsPadding()
+                .navigationBarsPadding()
                 .padding(horizontal = (24.dp * scaleFactor))
-                .padding(top = (40.dp * scaleFactor), bottom = (24.dp * scaleFactor)),
+                .padding(top = (10.dp * scaleFactor), bottom = (24.dp * scaleFactor)),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
 

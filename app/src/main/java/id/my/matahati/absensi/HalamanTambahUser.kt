@@ -217,8 +217,7 @@ fun HalamanTambahUserUI() {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.White) // Pastikan background utama putih atau mengikuti tema
-            .systemBarsPadding() // Menangani padding sistem secara otomatis di tingkat root
+            .background(Color.White)
             .verticalScroll(rememberScrollState())
     ) {
         // BACKGROUND BAWAH
@@ -234,8 +233,14 @@ fun HalamanTambahUserUI() {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 20.dp)
-                .padding(top = 20.dp, bottom = 24.dp),
+                .statusBarsPadding()
+                .navigationBarsPadding()
+                .padding(
+                    start = 20.dp,
+                    top = 0.dp,
+                    end = 20.dp,
+                    bottom = 20.dp
+                ),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
 

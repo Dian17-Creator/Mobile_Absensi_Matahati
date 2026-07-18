@@ -116,7 +116,7 @@ fun HalamanGajiScreen() {
                 .fillMaxSize()
                 .statusBarsPadding()
                 .padding(
-                    top = 35.dp,
+                    top = 0.dp,
                     start = 25.dp,
                     end = 25.dp,
                     bottom = 25.dp
@@ -169,7 +169,9 @@ fun HalamanGajiScreen() {
                     LazyColumn(
                         modifier = Modifier.weight(1f), // 🔥 INI KUNCINYA
                         verticalArrangement = Arrangement.spacedBy(14.dp),
-                        contentPadding = PaddingValues(bottom = 24.dp)
+                        contentPadding = PaddingValues(
+                            bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + 24.dp
+                        )
                     ) {
 
                         items(gajiList) { item ->

@@ -6,6 +6,7 @@ import java.util.*
 import java.io.File
 import android.net.Uri
 import android.Manifest
+import android.R.attr.maxLines
 import android.util.Log
 import android.os.Bundle
 import org.json.JSONObject
@@ -338,12 +339,12 @@ fun HalamanIzinUI() {
             modifier = Modifier
                 .fillMaxSize()
                 .statusBarsPadding()
+                .navigationBarsPadding()
                 .padding(horizontal = (24.dp * scaleFactor))
-                .padding(top = (20.dp * scaleFactor), bottom = (24.dp * scaleFactor)),
+                .padding(top = (10.dp * scaleFactor), bottom = (24.dp * scaleFactor)),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Box(modifier = Modifier
-                .padding(top = 16.dp)
                 .fillMaxWidth(),
                 contentAlignment = Alignment.Center) {
 
@@ -615,7 +616,7 @@ fun HalamanIzinUI() {
                         ),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(50.dp),
+                            .height(75.dp),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = primaryColor,
                             focusedLabelColor = primaryColor

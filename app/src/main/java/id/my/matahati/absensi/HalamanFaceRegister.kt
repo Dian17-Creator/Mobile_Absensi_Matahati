@@ -233,7 +233,12 @@ fun FaceRegisterScreen() {
             modifier = Modifier
                 .fillMaxSize()
                 .statusBarsPadding()
-                .padding(20.dp),
+                .padding(
+                    start = 20.dp,
+                    top = 0.dp,
+                    end = 20.dp,
+                    bottom = 20.dp
+                ),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
 
