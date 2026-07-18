@@ -42,12 +42,7 @@ class HalamanPayroll : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            val topPadding =
-                WindowInsets.statusBars
-                    .asPaddingValues()
-                    .calculateTopPadding()
-
-            HalamanPayrollScreen(topPadding)
+            HalamanPayrollScreen()
         }
     }
 }
@@ -55,7 +50,6 @@ class HalamanPayroll : ComponentActivity() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HalamanPayrollScreen(
-    topPadding : Dp,
     viewModel: PayrollViewModel = viewModel()
 ) {
 
@@ -71,7 +65,8 @@ fun HalamanPayrollScreen(
     }
 
     Box(
-        modifier = Modifier.fillMaxSize()
+        modifier = Modifier
+            .fillMaxSize()
     ) {
 
         /* ================= HEADER ================= */
@@ -79,15 +74,6 @@ fun HalamanPayrollScreen(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(topPadding)
-                .background(Color.Black)
-                .align(Alignment.TopCenter)
-        )
-
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = topPadding)
                 .height(450.dp)
                 .clip(
                     BottomCurveShape(
@@ -100,6 +86,7 @@ fun HalamanPayrollScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .statusBarsPadding()
                 .padding(horizontal = 20.dp)
                 .padding(top = 28.dp)
         ) {
