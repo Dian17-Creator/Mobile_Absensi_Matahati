@@ -53,6 +53,8 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import android.content.res.Configuration as AndroidConfiguration
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.coerceAtLeast
 
@@ -165,6 +167,9 @@ fun HalamanTambahUserUI() {
 
     val scaleFactor = rememberAdaptiveScale()
 
+    val configuration = LocalConfiguration.current
+    val isLandscape = configuration.orientation == AndroidConfiguration.ORIENTATION_LANDSCAPE
+
     if (showDatePicker) {
 
         DatePickerDialog(
@@ -235,18 +240,18 @@ fun HalamanTambahUserUI() {
                 .fillMaxSize()
                 .statusBarsPadding()
                 .navigationBarsPadding()
+                .imePadding()
+                .padding(horizontal = 20.dp)
                 .padding(
-                    start = 20.dp,
-                    top = 0.dp,
-                    end = 20.dp,
-                    bottom = 20.dp
+                    top = if (isLandscape) 0.dp else 20.dp,
+                    bottom = 24.dp
                 ),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
 
             Box(modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 12.dp), contentAlignment = Alignment.Center) {
+                .padding(top = if (isLandscape) 4.dp else 12.dp), contentAlignment = Alignment.Center) {
                 IconButton(
                     onClick = { (context as Activity).finish() },
                     modifier = Modifier.align(Alignment.CenterStart)
@@ -256,25 +261,29 @@ fun HalamanTambahUserUI() {
 
                 Text(
                     text = "Tambah User",
-                    fontSize = 24.sp,
+                    fontSize = if (isLandscape) 20.sp else 24.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color.Black,
                     textAlign = TextAlign.Center
                 )
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            if (!isLandscape) {
+                Spacer(modifier = Modifier.height(12.dp))
 
-            // GAMBAR
-            Image(
-                painter = painterResource(id = R.drawable.user),
-                contentDescription = null,
-                modifier = Modifier
-                    .size(225.dp).padding(top = 4.dp),
-                contentScale = ContentScale.Fit
-            )
+                // GAMBAR
+                Image(
+                    painter = painterResource(id = R.drawable.user),
+                    contentDescription = null,
+                    modifier = Modifier
+                        .size(225.dp).padding(top = 4.dp),
+                    contentScale = ContentScale.Fit
+                )
 
-            Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(16.dp))
+            } else {
+                Spacer(modifier = Modifier.height(8.dp))
+            }
 
             val scrollState = rememberScrollState()
 

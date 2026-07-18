@@ -37,6 +37,7 @@ import androidx.compose.material.icons.Icons
 import coil.compose.rememberAsyncImagePainter
 import id.my.matahati.absensi.data.OfflineIzin
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import id.my.matahati.absensi.utils.NetworkUtils
 import androidx.compose.foundation.verticalScroll
@@ -70,7 +71,9 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.coerceAtLeast
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import android.content.res.Configuration as AndroidConfiguration
 import androidx.compose.ui.unit.Dp
 
 private val httpClient by lazy {
@@ -320,6 +323,9 @@ fun HalamanIzinUI() {
     var showPreview by remember { mutableStateOf(false) }
     val secondaryColor = Color(0xFF7F0B27)
 
+    val configuration = LocalConfiguration.current
+    val isLandscape = configuration.orientation == AndroidConfiguration.ORIENTATION_LANDSCAPE
+
     //Tampilan Ui
     Box(
         modifier = Modifier
@@ -329,7 +335,10 @@ fun HalamanIzinUI() {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height((400.dp * scaleFactor).coerceAtLeast(200.dp))
+                .height(
+                    if (isLandscape) (180.dp * scaleFactor)
+                    else (400.dp * scaleFactor).coerceAtLeast(200.dp)
+                )
                 .align(Alignment.BottomCenter)
                 .semiCircleTop()
                 .background(primaryColor)
@@ -341,7 +350,10 @@ fun HalamanIzinUI() {
                 .statusBarsPadding()
                 .navigationBarsPadding()
                 .padding(horizontal = (24.dp * scaleFactor))
-                .padding(top = (10.dp * scaleFactor), bottom = (24.dp * scaleFactor)),
+                .padding(
+                    top = if (isLandscape) (4.dp * scaleFactor) else (10.dp * scaleFactor),
+                    bottom = (24.dp * scaleFactor)
+                ),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Box(modifier = Modifier
@@ -358,7 +370,7 @@ fun HalamanIzinUI() {
                 /* ================= TITLE ================= */
                 Text(
                     text = "Izin Tidak Masuk",
-                    fontSize = 20.sp,
+                    fontSize = if (isLandscape) 18.sp else 20.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color.Black,
                     modifier = Modifier
@@ -367,22 +379,26 @@ fun HalamanIzinUI() {
                 )
             }
 
-            Spacer(modifier = Modifier.height(4.dp))
+            if (!isLandscape) {
+                Spacer(modifier = Modifier.height(4.dp))
 
-            Image(
-                painter = painterResource(id = R.drawable.izin),
-                contentDescription = "Password illustration",
-                modifier = Modifier
-                    .size(200.dp)
-                    .padding(top = 4.dp)
-            )
+                Image(
+                    painter = painterResource(id = R.drawable.izin),
+                    contentDescription = "Password illustration",
+                    modifier = Modifier
+                        .size(200.dp)
+                        .padding(top = 4.dp)
+                )
 
-            Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(8.dp))
+            } else {
+                Spacer(modifier = Modifier.height(2.dp))
+            }
 
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = (50.dp * scaleFactor))
+                    .padding(bottom = if (isLandscape) (10.dp * scaleFactor) else (50.dp * scaleFactor))
                 ,
                 shape = RoundedCornerShape((20.dp * scaleFactor)),
                 elevation = CardDefaults.cardElevation(8.dp),
@@ -393,6 +409,7 @@ fun HalamanIzinUI() {
                         .padding((20.dp * scaleFactor))
                         .fillMaxWidth()
                         .verticalScroll(rememberScrollState())
+                        .imePadding()
                 ) {
 
                     // 🔽 LOKASI (FULL)

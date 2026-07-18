@@ -67,6 +67,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
+import android.content.res.Configuration as AndroidConfiguration
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.coerceAtLeast
 import androidx.compose.ui.unit.sp
@@ -290,6 +291,9 @@ fun HalamanManualUI() {
     var showPreview by remember { mutableStateOf(false) }
     val secondaryColor = Color(0xFF7F0B27)
 
+    val configuration = LocalConfiguration.current
+    val isLandscape = configuration.orientation == AndroidConfiguration.ORIENTATION_LANDSCAPE
+
     //Tampilan UI
     Box(
         modifier = Modifier
@@ -300,7 +304,10 @@ fun HalamanManualUI() {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height((445.dp * scaleFactor).coerceAtLeast(250.dp))
+                .height(
+                    if (isLandscape) (180.dp * scaleFactor)
+                    else (445.dp * scaleFactor).coerceAtLeast(250.dp)
+                )
                 .align(Alignment.BottomCenter)
                 .semiCircleTop()
                 .background(primaryColor)
@@ -311,8 +318,12 @@ fun HalamanManualUI() {
                 .fillMaxSize()
                 .statusBarsPadding()
                 .navigationBarsPadding()
+                .imePadding()
                 .padding(horizontal = (24.dp * scaleFactor))
-                .padding(top = (10.dp * scaleFactor), bottom = (24.dp * scaleFactor)),
+                .padding(
+                    top = if (isLandscape) (10.dp * scaleFactor) else (40.dp * scaleFactor),
+                    bottom = (24.dp * scaleFactor)
+                ),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
 
@@ -329,28 +340,32 @@ fun HalamanManualUI() {
                     style = MaterialTheme.typography.headlineSmall,
                     modifier = Modifier.fillMaxWidth(),
                     fontWeight = FontWeight.Bold,
-                    fontSize = (22.sp * scaleFactor),
+                    fontSize = if (isLandscape) (18.sp * scaleFactor) else (22.sp * scaleFactor),
                     color = Color.Black,
                     textAlign = androidx.compose.ui.text.style.TextAlign.Center
                 )
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            if (!isLandscape) {
+                Spacer(modifier = Modifier.height(8.dp))
 
-            Image(
-                painter = painterResource(id = R.drawable.attendance),
-                contentDescription = "Password illustration",
-                modifier = Modifier
-                    .size(225.dp)
-                    .padding(top = 4.dp)
-            )
+                Image(
+                    painter = painterResource(id = R.drawable.attendance),
+                    contentDescription = "Password illustration",
+                    modifier = Modifier
+                        .size(225.dp)
+                        .padding(top = 4.dp)
+                )
 
-            Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(8.dp))
+            } else {
+                Spacer(modifier = Modifier.height(2.dp))
+            }
 
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = (25.dp * scaleFactor)),
+                    .padding(bottom = if (isLandscape) (10.dp * scaleFactor) else (25.dp * scaleFactor)),
                 shape = RoundedCornerShape((20.dp * scaleFactor)),
                 elevation = CardDefaults.cardElevation(8.dp),
                 colors = CardDefaults.cardColors(containerColor = Color(0xFFFDF9FC))

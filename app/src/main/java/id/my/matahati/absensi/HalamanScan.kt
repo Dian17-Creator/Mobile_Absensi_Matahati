@@ -344,14 +344,13 @@ fun HalamanScanUI(
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 16.dp)
-                .navigationBarsPadding(),
+                .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             contentPadding = PaddingValues(
                 top = headerHeight, // Dinamis sesuai layar
                 // 80dp (estimasi tinggi BottomNav) + 16dp (gap)
-                bottom = 96.dp
+                bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + 96.dp
             )
         ) {
             //Box Face Absensi

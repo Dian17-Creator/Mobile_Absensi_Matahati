@@ -93,6 +93,7 @@ fun UbahPasswordUI() {
             .fillMaxSize()
             .statusBarsPadding()
             .navigationBarsPadding()
+            .imePadding()
             .verticalScroll(rememberScrollState())
     )   {
         Box(
