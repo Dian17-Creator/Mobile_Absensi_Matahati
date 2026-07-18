@@ -141,12 +141,7 @@ class HalamanFaceRegister : ComponentActivity() {
         }
 
         setContent {
-            val topPadding =
-                WindowInsets.statusBars
-                    .asPaddingValues()
-                    .calculateTopPadding()
-
-            FaceRegisterScreen(topPadding)
+            FaceRegisterScreen()
         }
     }
 
@@ -159,9 +154,7 @@ class HalamanFaceRegister : ComponentActivity() {
 private val PrimaryColor = Color(0xFFB63352)
 
 @Composable
-fun FaceRegisterScreen(
-    topPadding : Dp
-) {
+fun FaceRegisterScreen() {
 
     val scope = rememberCoroutineScope()
     var uploadStatus by remember { mutableStateOf<String?>(null) }
@@ -235,17 +228,11 @@ fun FaceRegisterScreen(
             .fillMaxSize()
             .background(Color.White)
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(topPadding)
-                .background(Color.Black)
-                .align(Alignment.TopCenter)
-        )
 
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .statusBarsPadding()
                 .padding(20.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {

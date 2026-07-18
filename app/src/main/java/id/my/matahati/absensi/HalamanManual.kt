@@ -87,12 +87,7 @@ class HalamanManual : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            val topPadding =
-                WindowInsets.statusBars
-                    .asPaddingValues()
-                    .calculateTopPadding()
-
-            HalamanManualUI(topPadding)
+            HalamanManualUI()
         }
     }
 }
@@ -120,9 +115,7 @@ fun rememberAdaptiveScale(baseWidthDp: Float = 411f): Float {
 }
 
 @Composable
-fun HalamanManualUI(
-    topPadding : Dp
-) {
+fun HalamanManualUI() {
     val activity = LocalContext.current as Activity
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
@@ -303,13 +296,6 @@ fun HalamanManualUI(
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(topPadding)
-                .background(Color.Black)
-                .align(Alignment.TopCenter)
-        )
 
         Box(
             modifier = Modifier
@@ -323,6 +309,7 @@ fun HalamanManualUI(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .statusBarsPadding()
                 .padding(horizontal = (24.dp * scaleFactor))
                 .padding(top = (40.dp * scaleFactor), bottom = (24.dp * scaleFactor)),
             horizontalAlignment = Alignment.CenterHorizontally

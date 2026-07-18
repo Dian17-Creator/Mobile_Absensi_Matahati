@@ -38,19 +38,13 @@ class HalamanFaceApproval : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            val topPadding =
-                WindowInsets.statusBars
-                    .asPaddingValues()
-                    .calculateTopPadding()
-
-            HalamanFaceApprovalScreen(topPadding)
+            HalamanFaceApprovalScreen()
         }
     }
 }
 
 @Composable
 fun HalamanFaceApprovalScreen(
-    topPadding : Dp,
     viewModel: FaceApprovalViewModel = viewModel()
 ) {
 
@@ -69,7 +63,8 @@ fun HalamanFaceApprovalScreen(
     val loading = viewModel.loading
 
     Box(
-        modifier = Modifier.fillMaxSize()
+        modifier = Modifier
+            .fillMaxSize()
     ) {
 
         /* ================= HEADER BACKGROUND ================= */
@@ -77,15 +72,6 @@ fun HalamanFaceApprovalScreen(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(topPadding)
-                .background(Color.Black)
-                .align(Alignment.TopCenter)
-        )
-
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = topPadding)
                 .height(400.dp)
                 .clip(
                     BottomCurveShape(
@@ -99,6 +85,7 @@ fun HalamanFaceApprovalScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .statusBarsPadding()
                 .padding(horizontal = 20.dp)
                 .padding(top = 28.dp)
         ) {

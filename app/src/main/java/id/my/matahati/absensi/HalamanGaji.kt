@@ -46,22 +46,13 @@ class HalamanGaji : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-
-            val topPadding =
-                WindowInsets.statusBars
-                    .asPaddingValues()
-                    .calculateTopPadding()
-
-            HalamanGajiScreen(topPadding)
-
+            HalamanGajiScreen()
         }
     }
 }
 
 @Composable
-fun HalamanGajiScreen(
-    topPadding: Dp
-) {
+fun HalamanGajiScreen() {
     val context = LocalContext.current
     val session = remember { SessionManager(context) }
     val userId = remember { session.getUserId() }
@@ -110,19 +101,9 @@ fun HalamanGajiScreen(
         modifier = Modifier
             .fillMaxSize()
     ) {
-        // Area status bar
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(topPadding)
-                .background(Color.Black)
-                .align(Alignment.TopCenter)
-        )
-
         //Header
         Box(
             modifier = Modifier
-                .padding(top = topPadding)
                 .fillMaxWidth()
                 .height(400.dp)
                 .clip(BottomCurveShape(curveHeight = 50f))
@@ -133,6 +114,7 @@ fun HalamanGajiScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .statusBarsPadding()
                 .padding(
                     top = 35.dp,
                     start = 25.dp,

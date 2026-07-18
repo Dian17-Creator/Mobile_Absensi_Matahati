@@ -18,7 +18,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.unit.Dp
 import id.my.matahati.absensi.data.ApprovalItem
 import id.my.matahati.absensi.data.RetrofitClient
 import kotlinx.coroutines.*
@@ -28,21 +27,14 @@ class HalamanApproval : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            val topPadding =
-                WindowInsets.statusBars
-                    .asPaddingValues()
-                    .calculateTopPadding()
-
-            HalamanApprovalScreen(topPadding)
+            HalamanApprovalScreen()
         }
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HalamanApprovalScreen(
-    topPadding : Dp
-) {
+fun HalamanApprovalScreen() {
 
     val context = LocalContext.current
     val session = remember { SessionManager(context) }
@@ -93,28 +85,26 @@ fun HalamanApprovalScreen(
             .fillMaxSize()
             .background(Color.White)
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(topPadding)
-                .background(Color.Black)
-                .align(Alignment.CenterHorizontally)
-        )
-
         // ===== HEADER =====
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(70.dp)
-                .background(Color(0xFFB63352)),
-            contentAlignment = Alignment.Center
+                .background(Color(0xFFB63352))
+                .statusBarsPadding()
         ) {
-            Text(
-                "APPROVAL",
-                color = Color.White,
-                fontWeight = FontWeight.Bold,
-                fontSize = 20.sp
-            )
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(70.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    "APPROVAL",
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 20.sp
+                )
+            }
         }
 
         // ===== TAB =====
