@@ -37,21 +37,14 @@ class HalamanAktivitas : ComponentActivity() {
         enableEdgeToEdge()
 
         setContent {
-            val topPadding =
-                WindowInsets.statusBars
-                    .asPaddingValues()
-                    .calculateTopPadding()
-
-            HalamanAktivitasScreen(topPadding)
+            HalamanAktivitasScreen()
         }
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HalamanAktivitasScreen(
-    topPadding: Dp
-) {
+fun HalamanAktivitasScreen() {
 
     val tabs = listOf("Absen Manual", "Izin")
 
@@ -100,39 +93,38 @@ fun HalamanAktivitasScreen(
             .fillMaxSize()
             .background(Color.White)
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(topPadding)
-                .background(Color.Black)
-                .align(Alignment.CenterHorizontally)
-        )
 
         // HEADER
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(55.dp)
-                .background(Color(0xFFB63352)),
-            contentAlignment = Alignment.BottomCenter
+                .background(Color(0xFFB63352))
+                .statusBarsPadding()
         ) {
-
-            IconButton(
-                onClick = { (context as Activity).finish() },
+            Box(
                 modifier = Modifier
-                    .align(Alignment.BottomStart)
-                    .padding(horizontal = 20.dp)
+                    .fillMaxWidth()
+                    .height(55.dp),
+                contentAlignment = Alignment.BottomCenter
             ) {
-                Icon(Icons.Default.ArrowBack, null, tint = Color.White)
-            }
 
-            Text(
-                text = "AKTIVITAS",
-                fontWeight = FontWeight.Bold,
-                fontSize = 20.sp,
-                color = Color.White,
-                modifier = Modifier.padding(bottom = 15.dp)
-            )
+                IconButton(
+                    onClick = { (context as Activity).finish() },
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .padding(horizontal = 20.dp)
+                ) {
+                    Icon(Icons.Default.ArrowBack, null, tint = Color.White)
+                }
+
+                Text(
+                    text = "AKTIVITAS",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 20.sp,
+                    color = Color.White,
+                    modifier = Modifier.padding(bottom = 15.dp)
+                )
+            }
         }
 
         // TAB

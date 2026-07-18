@@ -87,19 +87,12 @@ class HalamanIzin : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            val topPadding =
-                WindowInsets.statusBars
-                    .asPaddingValues()
-                    .calculateTopPadding()
-
-            HalamanIzinUI(topPadding)
+            HalamanIzinUI()
         }
     }
 }
 @Composable
-fun HalamanIzinUI(
-    topPadding : Dp
-) {
+fun HalamanIzinUI() {
     val localeId = Locale("id", "ID")
     val displayFormat = SimpleDateFormat("dd-MM-yyyy", localeId)
     val valueFormat = SimpleDateFormat("yyyy-MM-dd", Locale.US)
@@ -330,15 +323,7 @@ fun HalamanIzinUI(
     Box(
         modifier = Modifier
             .fillMaxSize()
-
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(topPadding)
-                .background(Color.Black)
-                .align(Alignment.TopCenter)
-        )
 
         Box(
             modifier = Modifier
@@ -352,6 +337,7 @@ fun HalamanIzinUI(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .statusBarsPadding()
                 .padding(horizontal = (24.dp * scaleFactor))
                 .padding(top = (20.dp * scaleFactor), bottom = (24.dp * scaleFactor)),
             horizontalAlignment = Alignment.CenterHorizontally
