@@ -14,8 +14,8 @@ android {
         applicationId = "id.my.matahati.absensi"
         minSdk = 24
         targetSdk = 36
-        versionCode = 17
-        versionName = "1.0.17"
+        versionCode = 9
+        versionName = "1.0.19"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -26,8 +26,8 @@ android {
     }
     buildTypes {
         release {
-            isMinifyEnabled = false
-            isShrinkResources = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
