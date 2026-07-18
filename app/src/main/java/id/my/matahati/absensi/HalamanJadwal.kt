@@ -178,7 +178,7 @@ fun HalamanJadwalUI(scheduleViewModel: ScheduleViewModel = viewModel()) {
                 verticalArrangement = Arrangement.spacedBy(12.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 contentPadding = PaddingValues(
-                    bottom = 125.dp // Ditambah agar Card Log Absensi tidak menempel Bottom Navigation
+                    bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + 96.dp
                 )
             ) {
                 item {
@@ -187,7 +187,8 @@ fun HalamanJadwalUI(scheduleViewModel: ScheduleViewModel = viewModel()) {
                         text = "Jadwal & Shift",
                         style = if (isCompact) MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold) 
                                else MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                        color = Color.White
+                        color = Color.White,
+                        modifier = Modifier.statusBarsPadding()
                     )
                 }
 

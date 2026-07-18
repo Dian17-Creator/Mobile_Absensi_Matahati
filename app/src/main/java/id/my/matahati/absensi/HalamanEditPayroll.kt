@@ -223,15 +223,16 @@ fun HalamanEditPayrollScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .systemBarsPadding()
                 .padding(horizontal = 20.dp)
-                .padding(top = 28.dp)
         ) {
 
             /* ================= TOP BAR ================= */
 
             Box(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .statusBarsPadding()
+                    .padding(top = 28.dp),
                 contentAlignment = Alignment.Center
             ) {
 
@@ -297,7 +298,9 @@ fun HalamanEditPayrollScreen(
                         Arrangement.spacedBy(18.dp),
 
                     contentPadding =
-                        PaddingValues(bottom = 24.dp)
+                        PaddingValues(
+                            bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + 24.dp
+                        )
                 ) {
 
                     /* ================= USER INFO ================= */

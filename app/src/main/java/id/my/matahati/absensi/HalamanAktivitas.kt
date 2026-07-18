@@ -191,10 +191,13 @@ fun HalamanAktivitasScreen() {
 
                 else -> {
                     LazyColumn(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(horizontal = 12.dp, vertical = 8.dp)
-                    ) {
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                    contentPadding = PaddingValues(
+                        bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + 16.dp
+                    )
+                ) {
                         items(aktivitasList) { item ->
                             AktivitasCard(item)
                         }

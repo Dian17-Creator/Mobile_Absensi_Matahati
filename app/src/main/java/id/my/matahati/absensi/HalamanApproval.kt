@@ -1,5 +1,6 @@
 package id.my.matahati.absensi
 
+import android.app.Activity
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
@@ -9,6 +10,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -91,13 +94,32 @@ fun HalamanApprovalScreen() {
                 .fillMaxWidth()
                 .background(Color(0xFFB63352))
                 .statusBarsPadding()
+                .padding(
+                    start = 20.dp,
+                    top = 0.dp,
+                    end = 20.dp,
+                    bottom = 0.dp
+                ),
         ) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(70.dp),
+                    .height(70.dp)
+                    .padding(
+                        start = 20.dp,
+                        top = 0.dp,
+                        end = 20.dp,
+                        bottom = 0.dp
+                    ),
                 contentAlignment = Alignment.Center
             ) {
+                IconButton(
+                    onClick = { (context as Activity).finish() },
+                    modifier = Modifier.align(Alignment.CenterStart)
+                ) {
+                    Icon(Icons.Default.ArrowBack, null, tint = Color(0xFFFFFFFF))
+                }
+
                 Text(
                     "APPROVAL",
                     color = Color.White,
@@ -155,7 +177,10 @@ fun HalamanApprovalScreen() {
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(12.dp)
+                        .padding(12.dp),
+                    contentPadding = PaddingValues(
+                        bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + 16.dp
+                    )
                 ) {
                     items(listData) { item ->
                         ApprovalCard(
