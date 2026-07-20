@@ -1,47 +1,39 @@
-# Add project specific ProGuard rules here.
-# You can control the set of applied configuration files using the
-# proguardFiles setting in build.gradle.
+# ProGuard Rules untuk Android 15 & API Laravel
 
-# 1. Metadata Generic & Annotations (Sangat Penting untuk ParameterizedType Error)
+# 1. Menjaga Metadata Generic (WAJIB untuk ParameterizedType Error)
 -keepattributes Signature, InnerClasses, EnclosingMethod
 -keepattributes RuntimeVisibleAnnotations, RuntimeVisibleParameterAnnotations
 -keepattributes RuntimeInvisibleAnnotations, RuntimeInvisibleParameterAnnotations
+-keepattributes AnnotationDefault
 
-# 2. Retrofit & OkHttp
+# 2. Retrofit 2
 -keep class retrofit2.** { *; }
--keep class okhttp3.** { *; }
+-keep class id.my.matahati.absensi.data.** { *; }
+-keep interface id.my.matahati.absensi.data.** { *; }
 -dontwarn retrofit2.**
--dontwarn okhttp3.**
-
-# Menjaga Interface Service (Penting agar method API Laravel tetap ada)
 -keepclasseswithmembers class * {
     @retrofit2.http.* <methods>;
 }
 
-# 3. Gson & JSON Modeling
--keepattributes Signature
--keepattributes *Annotation*
+# 3. Gson
 -keep class com.google.gson.** { *; }
--keep class * extends com.google.gson.reflect.TypeToken { *; }
-
-# Menjaga SerializedName agar field JSON tidak berubah namanya
+-keep class com.google.gson.reflect.TypeToken { *; }
+-keep class * extends com.google.gson.reflect.TypeToken
 -keepclassmembers class * {
     @com.google.gson.annotations.SerializedName <fields>;
 }
 
-# 4. Data Models (Aplikasi Anda)
-# Pastikan semua class di package data tidak di-minify
--keep class id.my.matahati.absensi.data.** { *; }
+# 4. OkHttp 3
+-keep class okhttp3.** { *; }
+-dontwarn okhttp3.**
+-dontwarn okio.**
 
-# 5. Kotlin Coroutines (Mencegah error pada suspend functions)
+# 5. Menjaga Data Models Aplikasi
+# Ini sangat penting: semua class model API Anda harus tetap utuh
+-keep public class id.my.matahati.absensi.data.** { *; }
+-keepclassmembers class id.my.matahati.absensi.data.** { *; }
+
+# 6. Coroutines
 -keepnames class kotlinx.coroutines.internal.MainDispatcherFactory {}
 -keepnames class kotlinx.coroutines.CoroutineExceptionHandler {}
 -keepclassmembers class * extends kotlinx.coroutines.AbstractCoroutine { *; }
-
-# 6. ML Kit & Firebase (Konfigurasi bawaan sebelumnya)
--keep class com.google.mlkit.** { *; }
--keep class com.google.firebase.** { *; }
-
-# 7. Room Database
--keep class androidx.room.** { *; }
--dontwarn androidx.room.**
