@@ -6,32 +6,32 @@
 -keepattributes RuntimeInvisibleAnnotations, RuntimeInvisibleParameterAnnotations
 -keepattributes AnnotationDefault
 
-# 2. Retrofit 2
--keep class retrofit2.** { *; }
--keep class id.my.matahati.absensi.data.** { *; }
--keep interface id.my.matahati.absensi.data.** { *; }
--dontwarn retrofit2.**
--keepclasseswithmembers class * {
+# 2. Retrofit 2 & Networking
+# Menjaga interface agar tidak dihapus atau diganti namanya
+-keep interface id.my.matahati.absensi.data.ApiService { *; }
+-keepclassmembers interface * {
     @retrofit2.http.* <methods>;
 }
+-dontwarn retrofit2.**
 
-# 3. Gson
--keep class com.google.gson.** { *; }
--keep class com.google.gson.reflect.TypeToken { *; }
--keep class * extends com.google.gson.reflect.TypeToken
--keepclassmembers class * {
+# 3. Gson & Data Models
+# Menjaga field yang dipetakan ke JSON, namun tetap mengizinkan obfuscation pada nama class
+-keepclassmembers,allowobfuscation class id.my.matahati.absensi.data.** {
     @com.google.gson.annotations.SerializedName <fields>;
+    <init>(...);
 }
+-dontwarn com.google.gson.**
 
-# 4. OkHttp 3
--keep class okhttp3.** { *; }
+# 4. OkHttp 3 & Core Libraries
 -dontwarn okhttp3.**
 -dontwarn okio.**
 
-# 5. Menjaga Data Models Aplikasi
-# Ini sangat penting: semua class model API Anda harus tetap utuh
--keep public class id.my.matahati.absensi.data.** { *; }
--keepclassmembers class id.my.matahati.absensi.data.** { *; }
+# 5. Room Database
+-keep @androidx.room.Entity class *
+-keepclassmembers class * {
+    @androidx.room.PrimaryKey <fields>;
+    @androidx.room.ColumnInfo <fields>;
+}
 
 # 6. Coroutines
 -keepnames class kotlinx.coroutines.internal.MainDispatcherFactory {}
