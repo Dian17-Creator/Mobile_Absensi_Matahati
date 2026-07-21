@@ -7,18 +7,40 @@
 -keepattributes AnnotationDefault
 
 # 2. Retrofit 2 & Networking
-# Menjaga interface agar tidak dihapus atau diganti namanya
--keep interface id.my.matahati.absensi.data.ApiService { *; }
--keepclassmembers interface * {
+# Menjaga SELURUH interface API di package data agar signature generic-nya tidak hilang
+-keep interface id.my.matahati.absensi.data.** { *; }
+
+# Menjaga method yang memiliki anotasi Retrofit secara global
+-keepclassmembers,allowshrinking,allowobfuscation interface * {
     @retrofit2.http.* <methods>;
 }
 -dontwarn retrofit2.**
 
+# WAJIB untuk suspend fun + Response<T> (R8 full mode) - kunci fix ParameterizedType error
+-keep,allowobfuscation,allowshrinking class kotlin.coroutines.Continuation
+-keep,allowobfuscation,allowshrinking class retrofit2.Response
+
+-dontwarn org.codehaus.mojo.animal_sniffer.AnnotationAvailable
+-dontwarn javax.annotation.**
+-dontwarn kotlin.Unit
+-dontwarn retrofit2.KotlinExtensions
+-dontwarn retrofit2.KotlinExtensions$*
+
+# Gson TypeToken (untuk TypeToken<T> manual di kode, jika ada)
+-keep class com.google.gson.reflect.TypeToken { *; }
+-keep class * extends com.google.gson.reflect.TypeToken
+
 # 3. Gson & Data Models
-# Menjaga field yang dipetakan ke JSON, namun tetap mengizinkan obfuscation pada nama class
--keepclassmembers,allowobfuscation class id.my.matahati.absensi.data.** {
+# Menjaga field yang dipetakan ke JSON.
+# Kita tidak menggunakan 'allowobfuscation' di sini untuk menjamin metadata 'Signature' tetap utuh.
+-keep class id.my.matahati.absensi.data.** {
     @com.google.gson.annotations.SerializedName <fields>;
     <init>(...);
+}
+
+# Jaga semua field data class (jaga-jaga untuk yang tidak pakai @SerializedName)
+-keepclassmembers class id.my.matahati.absensi.data.** {
+    <fields>;
 }
 -dontwarn com.google.gson.**
 
