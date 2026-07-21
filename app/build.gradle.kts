@@ -14,8 +14,8 @@ android {
         applicationId = "id.my.matahati.absensi"
         minSdk = 24
         targetSdk = 36
-        versionCode = 39
-        versionName = "1.0.39"
+        versionCode = 40
+        versionName = "1.0.40"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -59,9 +59,9 @@ dependencies {
     implementation("com.google.firebase:firebase-messaging:23.4.1")
 
     // Room
-    kapt("androidx.room:room-compiler:2.6.1")
-    implementation("androidx.room:room-ktx:2.6.1")
-    implementation("androidx.room:room-runtime:2.6.1")
+    kapt("androidx.room:room-compiler:2.8.0")
+    implementation("androidx.room:room-ktx:2.8.0")
+    implementation("androidx.room:room-runtime:2.8.0")
 
     // Networking
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
