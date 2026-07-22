@@ -167,7 +167,14 @@
             android:name=".HalamanRegister"
             android:windowSoftInputMode="adjustResize"
             android:exported="true"
-            android:label="FaceApproval"
+            android:label="HalamanRegister"
+            android:theme="@style/Theme.MyApplication" />
+
+        <activity
+            android:name=".HalamanCompany"
+            android:windowSoftInputMode="adjustResize"
+            android:exported="true"
+            android:label="HalamanCompany"
             android:theme="@style/Theme.MyApplication" />
 
         <service
