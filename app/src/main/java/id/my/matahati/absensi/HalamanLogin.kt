@@ -45,7 +45,7 @@ import id.my.matahati.absensi.data.RetrofitClientLaravel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-
+import androidx.compose.ui.text.input.KeyboardType
 
 
 class HalamanLogin : ComponentActivity() {
@@ -165,10 +165,16 @@ fun LoginUI() {
                     focusedLabelColor = primaryColor,
                     cursorColor = primaryColor
                 ),
-                keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Next),
+
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Email,
+                    imeAction = ImeAction.Next
+                ),
+
                 keyboardActions = KeyboardActions(onNext = {
                     focusManager.moveFocus(FocusDirection.Down)
                 }),
+
                 modifier = Modifier.fillMaxWidth()
             )
 
