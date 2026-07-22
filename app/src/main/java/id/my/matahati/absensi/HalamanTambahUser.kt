@@ -223,7 +223,6 @@ fun HalamanTambahUserUI() {
         modifier = Modifier
             .fillMaxSize()
             .background(Color.White)
-            .verticalScroll(rememberScrollState())
     ) {
         // BACKGROUND BAWAH
         Box(
@@ -235,12 +234,15 @@ fun HalamanTambahUserUI() {
                 .background(primaryColor)
         )
 
+        val pageScroll = rememberScrollState()
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .statusBarsPadding()
                 .navigationBarsPadding()
                 .imePadding()
+                .verticalScroll(pageScroll)
                 .padding(horizontal = 20.dp)
                 .padding(
                     top = if (isLandscape) 0.dp else 20.dp,
@@ -285,13 +287,10 @@ fun HalamanTambahUserUI() {
                 Spacer(modifier = Modifier.height(8.dp))
             }
 
-            val scrollState = rememberScrollState()
-
             // CARD FORM
             Card(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(max = 500.dp),
+                    .fillMaxWidth(),
 
                 shape = RoundedCornerShape(20.dp),
                 elevation = CardDefaults.cardElevation(8.dp),
@@ -306,8 +305,8 @@ fun HalamanTambahUserUI() {
                     Column(
                         modifier = Modifier
                             .padding(20.dp)
-                            .padding(end = 6.dp) // kasih ruang untuk scrollbar
-                            .verticalScroll(scrollState)
+                            .padding(end = 6.dp)
+                            .imePadding()
                     ) {
                         Text(
                             text = "Data User",
@@ -696,12 +695,6 @@ fun HalamanTambahUserUI() {
                         Box(
                             modifier = Modifier
                                 .align(Alignment.TopCenter)
-                                .offset(
-                                    y = (
-                                            (scrollState.value.toFloat() /
-                                                    (scrollState.maxValue + 1)) * 225
-                                            ).dp
-                                )
                                 .width(4.dp)
                                 .height(125.dp)
                                 .background(
