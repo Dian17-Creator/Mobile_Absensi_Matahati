@@ -646,6 +646,16 @@ fun HalamanScanUI(
                                 }
                             }
 
+                            if (isHRDOrAbove) {
+                                UserActionItem(
+                                    iconPainter = painterResource(id = R.drawable.icompany),
+                                    label = "Company",
+                                    iconColor = Color(0xFFE91E63)
+                                ) {
+                                    context.startActivity(Intent(context, HalamanCompany::class.java))
+                                }
+                            }
+
                             UserActionItem(
                                 icon = Icons.Default.Logout,
                                 label = "Logout",
