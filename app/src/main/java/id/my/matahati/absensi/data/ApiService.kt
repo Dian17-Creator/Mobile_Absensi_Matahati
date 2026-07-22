@@ -158,4 +158,19 @@ interface ApiService {
     suspend fun register(
         @Body request: RegisterRequest
     ): Response<RegisterResponse>
+
+    @POST("api/company/check")
+    suspend fun checkCompany(
+        @Body request: CompanyRequest
+    ): Response<CompanyCheckResponses>
+
+    @POST("api/company/update")
+    suspend fun updateCompany(
+        @Body request: CompanyRequest
+    ): Response<CompanyUpdateResponse>
+
+    @GET("api/company")
+    suspend fun getCompany(
+        @Query("user_id") userId: Int
+    ): Response<CompanyResponse>
 }
