@@ -92,7 +92,9 @@ class HalamanCompany : ComponentActivity() {
                     ) {
                         item {
                             Column(
-                                modifier = Modifier.fillMaxWidth(),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 8.dp),
                                 horizontalAlignment = Alignment.Start
                             ) {
                                 Text(
