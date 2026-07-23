@@ -33,6 +33,7 @@ class HalamanCompany : ComponentActivity() {
         enableEdgeToEdge()
 
         setContent {
+
             val vm: CompanyViewModel = viewModel()
             val context = LocalContext.current
             val sessionManager = SessionManager(context)
@@ -88,7 +89,7 @@ class HalamanCompany : ComponentActivity() {
                             .padding(horizontal = 20.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(16.dp),
-                        contentPadding = PaddingValues(top = 24.dp, bottom = 100.dp)
+                        contentPadding = PaddingValues(top = 12.dp, bottom = 32.dp)
                     ) {
                         item {
                             Column(
@@ -132,6 +133,12 @@ class HalamanCompany : ComponentActivity() {
                                             vm.checkCompany(sessionManager.getUserId())
                                         },
                                         modifier = Modifier.fillMaxWidth(),
+
+                                        colors = OutlinedTextFieldDefaults.colors(
+                                            focusedBorderColor = primaryColor,
+                                            focusedLabelColor = primaryColor
+                                        ),
+
                                         label = { Text("Nama Company") },
                                         leadingIcon = {
                                             Icon(Icons.Default.Business, contentDescription = null, tint = primaryColor)
@@ -166,6 +173,12 @@ class HalamanCompany : ComponentActivity() {
                                             vm.checkCompany(sessionManager.getUserId())
                                         },
                                         modifier = Modifier.fillMaxWidth(),
+
+                                        colors = OutlinedTextFieldDefaults.colors(
+                                            focusedBorderColor = primaryColor,
+                                            focusedLabelColor = primaryColor
+                                        ),
+
                                         label = { Text("Domain Email") },
                                         leadingIcon = {
                                             Icon(Icons.Default.Email, contentDescription = null, tint = primaryColor)
@@ -194,33 +207,26 @@ class HalamanCompany : ComponentActivity() {
                                 }
                             }
                         }
-                    }
 
-                    // Button Simpan di bawah
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .align(Alignment.BottomCenter)
-                            .padding(20.dp)
-                            .navigationBarsPadding()
-                    ) {
-                        Button(
-                            onClick = { vm.updateCompany(sessionManager.getUserId()) },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(56.dp),
-                            enabled = !vm.saving && !vm.nameExists && !vm.domainExists,
-                            shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = primaryColor)
-                        ) {
-                            if (vm.saving) {
-                                CircularProgressIndicator(
-                                    color = Color.White,
-                                    modifier = Modifier.size(24.dp),
-                                    strokeWidth = 2.dp
-                                )
-                            } else {
-                                Text("Simpan Perubahan", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
+                        item {
+                            Button(
+                                onClick = { vm.updateCompany(sessionManager.getUserId()) },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(50.dp),
+                                enabled = !vm.saving && !vm.nameExists && !vm.domainExists,
+                                shape = RoundedCornerShape(50.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = primaryColor)
+                            ) {
+                                if (vm.saving) {
+                                    CircularProgressIndicator(
+                                        color = Color.White,
+                                        modifier = Modifier.size(24.dp),
+                                        strokeWidth = 2.dp
+                                    )
+                                } else {
+                                    Text("Simpan Perubahan", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
+                                }
                             }
                         }
                     }
