@@ -43,7 +43,8 @@ class SyncIzinWorker(context: Context, params: WorkerParameters) : Worker(contex
                             val lng = latLng[1].trim()
 
                             // val url = "https://absensi.matahati.my.id/reverse_geocode.php?lat=$lat&lon=$lng"
-                            val url = "https://absensi.karyatra.cloud/reverse_geocode.php?lat=$lat&lon=$lng"
+                            //val url = "https://crew.matahaticafe.com/reverse_geocode.php?lat=$lat&lon=$lng"
+                            val url = "https://crew.matahaticafe.com/reverse_geocode.php?lat=$lat&lon=$lng"
 
                             Log.d("SyncIzinWorker", "🌍 CALL SERVER: $url")
 
@@ -93,7 +94,7 @@ class SyncIzinWorker(context: Context, params: WorkerParameters) : Worker(contex
                 val request = Request.Builder()
 
                     // .url("https://absensi.matahati.my.id/user_request_mobile.php")
-                    .url("https://absensi.karyatra.cloud/user_request_mobile.php")
+                    .url("https://crew.matahaticafe.com/user_request_mobile.php")
 
                     .post(body)
                     .addHeader("Accept", "application/json")

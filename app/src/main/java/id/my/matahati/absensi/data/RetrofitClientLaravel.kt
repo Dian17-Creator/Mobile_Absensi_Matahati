@@ -6,7 +6,8 @@ import retrofit2.converter.gson.GsonConverterFactory
 object RetrofitClientLaravel {
 
     // private const val BASE_URL = "https://absensi.matahati.my.id/laravel/public/"
-    private const val BASE_URL = "https://hrd.karyatra.cloud/"
+    //private const val BASE_URL = "https://hrd.karyatra.cloud/"
+    private const val BASE_URL = "https://hrd.matahaticafe.com/"
 
     val instance: ApiService by lazy {
         Retrofit.Builder()
