@@ -8,7 +8,8 @@ import retrofit2.converter.gson.GsonConverterFactory
 
 object ApiClient {
     // private const val BASE_URL = "https://absensi.matahati.my.id/laravel/public/" // atau tambahkan /api/ kalau API kamu langsung di bawah itu
-    private const val BASE_URL = "https://hrd.karyatra.cloud/" // atau tambahkan /api/ kalau API kamu langsung di bawah itu
+    //private const val BASE_URL = "https://hrd.karyatra.cloud/" // atau tambahkan /api/ kalau API kamu langsung di bawah itu
+    private const val BASE_URL = "https://hrd.matahaticafe.com/"
 
     // 🔹 Client dengan interceptor logging mentah
     private val client by lazy {

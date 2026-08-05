@@ -141,4 +141,16 @@ interface ApiService {
         @Path("id") id: Int,
         @Body request: PayrollUpdateRequest
     ): Response<ApiMessageResponse>
+
+    @GET("api/todo")
+    suspend fun getTodoList(
+        @Query("user_id") userId: Int
+    ): Response<TodoResponse>
+
+    @FormUrlEncoded
+    @POST("api/todo/complete/{id}")
+    suspend fun completeTodo(
+        @Path("id") taskId: Int,
+        @Field("user_id") userId: Int
+    ): Response<ApiMessageResponse>
 }

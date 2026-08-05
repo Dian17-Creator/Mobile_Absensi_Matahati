@@ -22,7 +22,7 @@ class SyncWorker(appContext: Context, params: WorkerParameters) :
 
         for (scan in scans) {
             // val url = "https://absensi.matahati.my.id/verify.php"
-            val url = "https://absensi.karyatra.cloud/verify.php"
+            val url = "https://crew.matahaticafe.com/verify.php"
 
             val json = JSONObject().apply {
                 put("token", scan.token)
