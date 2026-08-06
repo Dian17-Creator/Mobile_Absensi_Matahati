@@ -16,7 +16,9 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.Business
@@ -26,6 +28,7 @@ import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.outlined.Circle
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -40,8 +43,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.material.icons.filled.Delete
 import id.my.matahati.absensi.data.TodoItem
+import id.my.matahati.absensi.data.TodoStoreItem
+import id.my.matahati.absensi.data.TodoStoreRequest
 import id.my.matahati.absensi.data.TodoViewModel
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Locale
 import java.util.TimeZone
@@ -73,6 +80,7 @@ fun TodoScreen(
     val context = LocalContext.current
     val session = SessionManager(context)
     val userId = session.getUserId()
+    val scope = rememberCoroutineScope()
 
     val myTasks = viewModel.myTasks
     val incomingTasks = viewModel.incomingTasks
@@ -81,6 +89,7 @@ fun TodoScreen(
 
     val primaryColor = Color(0xFFB63352)
     var selectedTab by remember { mutableIntStateOf(0) }
+    var showAddDialog by remember { mutableStateOf(false) }
 
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -92,6 +101,9 @@ fun TodoScreen(
     }
     LaunchedEffect(Unit) {
         viewModel.loadTodo(userId)
+        if (session.isCaptainOrAbove()) {
+            viewModel.loadDepartments()
+        }
     }
 
     LaunchedEffect(errorMessage) {
@@ -101,12 +113,39 @@ fun TodoScreen(
         }
     }
 
+    if (showAddDialog) {
+        AddTodoDialog(
+            viewModel = viewModel,
+            onDismiss = { showAddDialog = false },
+            onSuccess = {
+                showAddDialog = false
+                scope.launch {
+                    snackbarHostState.showSnackbar("Task berhasil ditambahkan")
+                }
+            }
+        )
+    }
+
     Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) }
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        floatingActionButton = {
+            if (session.isCaptainOrAbove()) {
+                FloatingActionButton(
+                    onClick = { showAddDialog = true },
+                    modifier = Modifier.padding(bottom = 50.dp),
+                    containerColor = primaryColor,
+                    contentColor = Color.White,
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = "Tambah Task")
+                }
+            }
+        }
     ) { paddingValues ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
+                .padding(bottom = paddingValues.calculateBottomPadding())
         ) {
             // Header Background - Immersive
             Box(
@@ -169,7 +208,7 @@ fun TodoScreen(
                             verticalArrangement = Arrangement.spacedBy(16.dp),
                             contentPadding = PaddingValues(
                                 top = 4.dp,
-                                bottom = paddingValues.calculateBottomPadding() + 24.dp
+                                bottom = 100.dp
                             )
                         ) {
                             items(currentTasks) { task ->
@@ -541,6 +580,185 @@ fun StatusBadge(isSelesai: Boolean) {
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
         )
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AddTodoDialog(
+    viewModel: TodoViewModel,
+    onDismiss: () -> Unit,
+    onSuccess: () -> Unit
+) {
+    val context = LocalContext.current
+    val userId = SessionManager(context).getUserId()
+
+    // State for multiple items
+    val items = remember {
+        mutableStateListOf(
+            TodoDraftItem()
+        )
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Tambah Task", fontWeight = FontWeight.Bold) },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 450.dp)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                items.forEachIndexed { index, item ->
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(Color(0xFFF8F9FA), RoundedCornerShape(12.dp))
+                            .padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Task #${index + 1}",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.Gray
+                            )
+                            if (items.size > 1) {
+                                IconButton(
+                                    onClick = { items.removeAt(index) },
+                                    modifier = Modifier.size(24.dp)
+                                ) {
+                                    Icon(
+                                        Icons.Default.Delete,
+                                        contentDescription = "Hapus",
+                                        tint = Color.Red.copy(alpha = 0.7f),
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+                            }
+                        }
+
+                        // Departemen Dropdown
+                        ExposedDropdownMenuBox(
+                            expanded = item.expanded,
+                            onExpandedChange = { item.expanded = !item.expanded }
+                        ) {
+                            OutlinedTextField(
+                                value = item.selectedDept?.cname ?: "",
+                                onValueChange = {},
+                                readOnly = true,
+                                label = { Text("Departemen Tujuan") },
+                                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(item.expanded) },
+                                modifier = Modifier
+                                    .menuAnchor(MenuAnchorType.PrimaryEditable, true)
+                                    .fillMaxWidth(),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = Color(0xFFB63352),
+                                    unfocusedBorderColor = Color.LightGray
+                                )
+                            )
+                            ExposedDropdownMenu(
+                                expanded = item.expanded,
+                                onDismissRequest = { item.expanded = false }
+                            ) {
+                                viewModel.departments.forEach { dept ->
+                                    DropdownMenuItem(
+                                        text = { Text(dept.cname) },
+                                        onClick = {
+                                            item.selectedDept = dept
+                                            item.expanded = false
+                                        }
+                                    )
+                                }
+                            }
+                        }
+
+                        // Permintaan TextField
+                        OutlinedTextField(
+                            value = item.requestText,
+                            onValueChange = { if (it.length <= 512) item.requestText = it },
+                            label = { Text("Permintaan") },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            minLines = 2,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = Color(0xFFB63352),
+                                unfocusedBorderColor = Color.LightGray
+                            )
+                        )
+                    }
+                }
+
+                // Tombol Tambah Item
+                TextButton(
+                    onClick = { items.add(TodoDraftItem()) },
+                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Tambah Item", fontWeight = FontWeight.SemiBold)
+                }
+            }
+        },
+        confirmButton = {
+            val isValid = items.all { it.selectedDept != null && it.requestText.isNotBlank() }
+            
+            Button(
+                onClick = {
+                    if (isValid) {
+                        val storeItems = items.map {
+                            TodoStoreItem(
+                                ndep_tujuan = it.selectedDept!!.nid,
+                                cpermintaan = it.requestText
+                            )
+                        }
+                        val request = TodoStoreRequest(
+                            user_id = userId,
+                            items = storeItems
+                        )
+                        viewModel.storeTodo(request, onSuccess)
+                    }
+                },
+                enabled = !viewModel.saving && isValid,
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF009536)),
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                if (viewModel.saving) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(18.dp),
+                            color = Color.White,
+                            strokeWidth = 2.dp
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Menyimpan...")
+                    }
+                } else {
+                    Text("Simpan (${items.size})")
+                }
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Batal")
+            }
+        },
+        shape = RoundedCornerShape(16.dp),
+        containerColor = Color.White
+    )
+}
+
+class TodoDraftItem {
+    var selectedDept by mutableStateOf<id.my.matahati.absensi.data.DepartmentItem?>(null)
+    var requestText by mutableStateOf("")
+    var expanded by mutableStateOf(false)
 }
 
 @Composable

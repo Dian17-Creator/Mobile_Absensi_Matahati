@@ -153,4 +153,9 @@ interface ApiService {
         @Path("id") taskId: Int,
         @Field("user_id") userId: Int
     ): Response<ApiMessageResponse>
+
+    @POST("api/todo/store")
+    suspend fun storeTodo(
+        @Body request: TodoStoreRequest
+    ): Response<ApiMessageResponse>
 }
