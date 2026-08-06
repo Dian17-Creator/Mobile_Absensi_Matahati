@@ -84,6 +84,12 @@ fun TodoScreen(
 
     val snackbarHostState = remember { SnackbarHostState() }
 
+
+    val subtitle = if (session.isCaptainOrAbove()) {
+        "Kelola dan distribusikan task departemen"
+    } else {
+        "Lihat dan selesaikan task yang ada"
+    }
     LaunchedEffect(Unit) {
         viewModel.loadTodo(userId)
     }
@@ -128,10 +134,12 @@ fun TodoScreen(
                 )
                 
                 Text(
-                    text = "Kelola seluruh task departemen",
+                    text = subtitle,
                     fontSize = 14.sp,
                     color = Color.White.copy(alpha = 0.9f),
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 6.dp),
                     textAlign = TextAlign.Center
                 )
 
@@ -308,7 +316,7 @@ fun TodoCard(
             )
             .clickable { isExpanded = !isExpanded },
         shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White)
     ) {
         Row(modifier = Modifier.height(IntrinsicSize.Min)) {
@@ -334,25 +342,26 @@ fun TodoCard(
                     ) {
                         StatusBadge(isSelesai = task.fselesai)
 
-                        Spacer(modifier = Modifier.width(12.dp))
-
-                        Icon(
-                            painter = painterResource(id = R.drawable.auditdept),
-                            contentDescription = null,
-                            tint = Color(0xFFB63352),
-                            modifier = Modifier.size(14.dp)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = task.departemen_tujuan,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFFB63352)
-                        )
+//                        Spacer(modifier = Modifier.width(12.dp))
+//
+//                        Icon(
+//                            painter = painterResource(id = R.drawable.auditdept),
+//                            contentDescription = null,
+//                            tint = Color(0xFFB63352),
+//                            modifier = Modifier.size(14.dp)
+//                        )
+//                        Spacer(modifier = Modifier.width(4.dp))
+//                        Text(
+//                            text = task.departemen_tujuan,
+//                            fontSize = 12.sp,
+//                            fontWeight = FontWeight.Bold,
+//                            color = Color(0xFFB63352)
+//                        )
                     }
 
                     // Action Controls - Perfectly Centered Vertically
                     Row(
+                        modifier = Modifier.offset(y = 16.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
@@ -365,7 +374,7 @@ fun TodoCard(
                                 imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
                                 contentDescription = null,
                                 tint = Color.Gray,
-                                modifier = Modifier.size(20.dp)
+                                modifier = Modifier.size(32.dp)
                             )
                         }
 
@@ -379,7 +388,7 @@ fun TodoCard(
                                     imageVector = Icons.Outlined.Circle,
                                     contentDescription = "Complete",
                                     tint = Color.Gray,
-                                    modifier = Modifier.size(24.dp)
+                                    modifier = Modifier.size(32.dp)
                                 )
                             }
                         } else {
@@ -391,7 +400,7 @@ fun TodoCard(
                                     imageVector = Icons.Default.CheckCircle,
                                     contentDescription = "Selesai",
                                     tint = Color(0xFF009536),
-                                    modifier = Modifier.size(24.dp)
+                                    modifier = Modifier.size(32.dp)
                                 )
                             }
                         }
@@ -537,7 +546,9 @@ fun StatusBadge(isSelesai: Boolean) {
 @Composable
 fun EmptyState() {
     Column(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(bottom = 100.dp),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -548,6 +559,6 @@ fun EmptyState() {
             tint = Color.LightGray.copy(alpha = 0.7f)
         )
         Spacer(modifier = Modifier.height(16.dp))
-        Text(text = "Belum ada task.", color = Color.Gray, fontSize = 16.sp)
+        Text(text = "Belum ada task", color = Color.Gray, fontSize = 16.sp)
     }
 }
