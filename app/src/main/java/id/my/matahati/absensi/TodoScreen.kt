@@ -1,6 +1,18 @@
 package id.my.matahati.absensi
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -8,8 +20,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.Business
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Checklist
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.outlined.Circle
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -18,6 +34,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -28,13 +45,11 @@ import id.my.matahati.absensi.data.TodoViewModel
 import java.text.SimpleDateFormat
 import java.util.Locale
 import java.util.TimeZone
-
-import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
+import androidx.compose.ui.draw.shadow
 
 fun formatTaskDate(dateString: String?): String {
     if (dateString.isNullOrBlank()) return "-"
     return try {
-        // Handle ISO format from Laravel: "2026-08-05T07:18:53.000000Z" or "2026-08-05 08:15:00"
         val inputFormat = if (dateString.contains("T")) {
             SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSSSS'Z'", Locale.getDefault()).apply {
                 timeZone = TimeZone.getTimeZone("UTC")
@@ -66,7 +81,6 @@ fun TodoScreen(
 
     val primaryColor = Color(0xFFB63352)
     var selectedTab by remember { mutableIntStateOf(0) }
-    val tabs = listOf("Task Saya", "Task Masuk")
 
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -88,12 +102,11 @@ fun TodoScreen(
             modifier = Modifier
                 .fillMaxSize()
         ) {
-            // Header Background - Immersive (Edge-to-Edge)
+            // Header Background - Immersive
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(240.dp)
-                    .clip(BottomCurveShape(curveHeight = 50f))
+                    .height(193.dp)
                     .background(primaryColor)
             )
 
@@ -124,35 +137,12 @@ fun TodoScreen(
 
                 Spacer(modifier = Modifier.height(28.dp))
 
-                // Tabs
-                TabRow(
-                    selectedTabIndex = selectedTab,
-                    containerColor = Color.White,
-                    contentColor = primaryColor,
-                    indicator = { tabPositions ->
-                        TabRowDefaults.Indicator(
-                            Modifier.tabIndicatorOffset(tabPositions[selectedTab]),
-                            color = primaryColor
-                        )
-                    },
-                    modifier = Modifier
-                        .height(48.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                ) {
-                    tabs.forEachIndexed { index, title ->
-                        Tab(
-                            selected = selectedTab == index,
-                            onClick = { selectedTab = index },
-                            text = {
-                                Text(
-                                    text = title,
-                                    fontSize = 14.sp,
-                                    fontWeight = if (selectedTab == index) FontWeight.Bold else FontWeight.Medium
-                                )
-                            }
-                        )
-                    }
-                }
+                // Modern Switch Tab
+                TodoTabSwitch(
+                    selectedTab = selectedTab,
+                    onTabSelected = { selectedTab = it },
+                    primaryColor = primaryColor
+                )
 
                 Spacer(modifier = Modifier.height(20.dp))
 
@@ -177,10 +167,9 @@ fun TodoScreen(
                             items(currentTasks) { task ->
                                 TodoCard(
                                     task = task,
-                                    isMyTask = selectedTab == 0,
                                     onComplete = {
                                         viewModel.completeTodo(task.nid, userId) {
-                                            // Optional success callback
+                                            // Refresh callback handled in VM
                                         }
                                     }
                                 )
@@ -194,12 +183,95 @@ fun TodoScreen(
 }
 
 @Composable
+fun TodoTabSwitch(
+    selectedTab: Int,
+    onTabSelected: (Int) -> Unit,
+    primaryColor: Color
+) {
+    val containerColor = Color(0xFF8E1D36) // Darker shade of primary
+    
+    BoxWithConstraints(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(52.dp)
+            .clip(RoundedCornerShape(14.dp))
+            .background(containerColor)
+            .padding(4.dp)
+    ) {
+        val pillWidth = maxWidth / 2
+        val offset by animateDpAsState(
+            targetValue = if (selectedTab == 0) 0.dp else pillWidth,
+            animationSpec = spring(stiffness = 500f, dampingRatio = 0.8f)
+        )
+
+        // Sliding Pill
+        Box(
+            modifier = Modifier
+                .offset(x = offset)
+                .width(pillWidth)
+                .fillMaxHeight()
+                .shadow(2.dp, RoundedCornerShape(12.dp))
+                .background(Color.White, RoundedCornerShape(12.dp))
+        )
+
+        // Labels
+        Row(modifier = Modifier.fillMaxSize()) {
+            TabLabel(
+                text = "Task Saya",
+                isSelected = selectedTab == 0,
+                activeColor = primaryColor,
+                modifier = Modifier.weight(1f),
+                onClick = { onTabSelected(0) }
+            )
+            TabLabel(
+                text = "Task Masuk",
+                isSelected = selectedTab == 1,
+                activeColor = primaryColor,
+                modifier = Modifier.weight(1f),
+                onClick = { onTabSelected(1) }
+            )
+        }
+    }
+}
+
+@Composable
+fun TabLabel(
+    text: String,
+    isSelected: Boolean,
+    activeColor: Color,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    val textColor by animateColorAsState(
+        targetValue = if (isSelected) activeColor else Color.White.copy(alpha = 0.9f),
+        animationSpec = tween(200)
+    )
+
+    Box(
+        modifier = modifier
+            .fillMaxHeight()
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null
+            ) { onClick() },
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = text,
+            color = textColor,
+            fontSize = 15.sp,
+            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+        )
+    }
+}
+
+@Composable
 fun TodoCard(
     task: TodoItem,
-    isMyTask: Boolean,
     onComplete: () -> Unit
 ) {
     var showConfirmDialog by remember { mutableStateOf(false) }
+    var isExpanded by remember { mutableStateOf(false) }
 
     if (showConfirmDialog) {
         AlertDialog(
@@ -226,33 +298,48 @@ fun TodoCard(
     }
 
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .animateContentSize(
+                animationSpec = spring(
+                    dampingRatio = 0.8f,
+                    stiffness = 400f
+                )
+            )
+            .clickable { isExpanded = !isExpanded },
         shape = RoundedCornerShape(16.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White)
     ) {
         Row(modifier = Modifier.height(IntrinsicSize.Min)) {
-            // Status Accent Bar
+            // Status Accent Bar - Fixed: Sharp corners fix
             Box(
                 modifier = Modifier
                     .fillMaxHeight()
                     .width(6.dp)
+                    .clip(RoundedCornerShape(topStart = 16.dp, bottomStart = 16.dp))
                     .background(if (task.fselesai) Color(0xFF009536) else Color(0xFFEF6C00))
             )
 
             Column(modifier = Modifier.padding(16.dp)) {
+                // Header Row - Fixed vertical alignment
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    StatusBadge(isSelesai = task.fselesai)
-                    
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        StatusBadge(isSelesai = task.fselesai)
+
+                        Spacer(modifier = Modifier.width(12.dp))
+
                         Icon(
-                            imageVector = Icons.Default.Business,
+                            painter = painterResource(id = R.drawable.auditdept),
                             contentDescription = null,
-                            tint = Color.Gray,
+                            tint = Color(0xFFB63352),
                             modifier = Modifier.size(14.dp)
                         )
                         Spacer(modifier = Modifier.width(4.dp))
@@ -260,8 +347,54 @@ fun TodoCard(
                             text = task.departemen_tujuan,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color.Gray
+                            color = Color(0xFFB63352)
                         )
+                    }
+
+                    // Action Controls - Perfectly Centered Vertically
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        // Expand Button
+                        IconButton(
+                            onClick = { isExpanded = !isExpanded },
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(
+                                imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                                contentDescription = null,
+                                tint = Color.Gray,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+
+                        // Checkmark Option
+                        if (!task.fselesai) {
+                            IconButton(
+                                onClick = { showConfirmDialog = true },
+                                modifier = Modifier.size(32.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Outlined.Circle,
+                                    contentDescription = "Complete",
+                                    tint = Color.Gray,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            }
+                        } else {
+                            Box(
+                                modifier = Modifier.size(32.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.CheckCircle,
+                                    contentDescription = "Selesai",
+                                    tint = Color(0xFF009536),
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            }
+                        }
                     }
                 }
 
@@ -272,58 +405,73 @@ fun TodoCard(
                     fontSize = 17.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color.Black,
-                    lineHeight = 22.sp
+                    lineHeight = 22.sp,
+                    modifier = Modifier.fillMaxWidth()
                 )
 
-                Spacer(modifier = Modifier.height(14.dp))
+                AnimatedVisibility(
+                    visible = isExpanded,
+                    enter = fadeIn(animationSpec = tween(300)) + expandVertically(
+                        animationSpec = tween(300)
+                    ),
+                    exit = fadeOut(animationSpec = tween(200)) + shrinkVertically(
+                        animationSpec = tween(200)
+                    )
+                ) {
+                    Column {
+                        Spacer(modifier = Modifier.height(14.dp))
+                        HorizontalDivider(color = Color.LightGray.copy(alpha = 0.3f))
+                        Spacer(modifier = Modifier.height(14.dp))
 
-                HorizontalDivider(color = Color.LightGray.copy(alpha = 0.3f))
-
-                Spacer(modifier = Modifier.height(14.dp))
-
-                if (!isMyTask) {
-                    ModernInfoRow(icon = Icons.Default.Person, label = "Pembuat", value = task.nama_peminta)
-                    Spacer(modifier = Modifier.height(6.dp))
-                }
-                
-                ModernInfoRow(icon = Icons.Default.AccessTime, label = "Dibuat", value = formatTaskDate(task.dminta))
-                
-                if (task.fselesai) {
-                    Spacer(modifier = Modifier.height(6.dp))
-                    ModernInfoRow(icon = Icons.Default.AccessTime, label = "Selesai", value = formatTaskDate(task.dselesai))
-                    Spacer(modifier = Modifier.height(6.dp))
-                    ModernInfoRow(icon = Icons.Default.Person, label = "Pelaksana", value = task.nama_pelaksana ?: "-")
-                }
-
-                if (!task.fselesai) {
-                    Spacer(modifier = Modifier.height(20.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        OutlinedButton(
-                            onClick = { /* Detail Action */ },
-                            modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(10.dp),
-                            contentPadding = PaddingValues(vertical = 12.dp),
-                            border = androidx.compose.foundation.BorderStroke(1.dp, Color.LightGray)
+                        // Metadata Section (Concise & Modern)
+                        Surface(
+                            color = Color(0xFFF8F9FA),
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text("Detail", color = Color.Gray, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
-                        }
-
-                        Button(
-                            onClick = { showConfirmDialog = true },
-                            modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(10.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF009536)),
-                            contentPadding = PaddingValues(vertical = 12.dp)
-                        ) {
-                            Text(
-                                if (isMyTask) "Selesai" else "Selesaikan", 
-                                color = Color.White, 
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Bold
-                            )
+                            Column(modifier = Modifier.padding(12.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                                ) {
+                                    CompactMetaItem(
+                                        icon = Icons.Default.Person,
+                                        label = "Pembuat",
+                                        value = task.nama_peminta,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    if (task.fselesai) {
+                                        CompactMetaItem(
+                                            icon = Icons.Default.Person,
+                                            label = "Pelaksana",
+                                            value = task.nama_pelaksana ?: "-",
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                    }
+                                }
+                                
+                                Spacer(modifier = Modifier.height(10.dp))
+                                
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                                ) {
+                                    CompactMetaItem(
+                                        icon = Icons.Default.AccessTime,
+                                        label = "Dibuat",
+                                        value = formatTaskDate(task.dminta),
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    if (task.fselesai) {
+                                        CompactMetaItem(
+                                            icon = Icons.Default.AccessTime,
+                                            label = "Selesai",
+                                            value = formatTaskDate(task.dselesai),
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -333,26 +481,35 @@ fun TodoCard(
 }
 
 @Composable
-fun ModernInfoRow(icon: ImageVector, label: String, value: String) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = Color.Gray.copy(alpha = 0.7f),
-            modifier = Modifier.size(14.dp)
-        )
-        Spacer(modifier = Modifier.width(6.dp))
-        Text(text = label, fontSize = 12.sp, color = Color.Gray, modifier = Modifier.width(60.dp))
+fun CompactMetaItem(
+    icon: ImageVector,
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier
+) {
+    Column(modifier = modifier) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = Color(0xFFB63352).copy(alpha = 0.7f),
+                modifier = Modifier.size(12.dp)
+            )
+            Spacer(modifier = Modifier.width(4.dp))
+            Text(
+                text = label,
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Medium,
+                color = Color.Gray,
+                maxLines = 1
+            )
+        }
         Text(
             text = value,
-            fontSize = 12.sp,
+            fontSize = 11.sp,
             fontWeight = FontWeight.SemiBold,
             color = Color.DarkGray,
-            textAlign = TextAlign.End,
-            modifier = Modifier.weight(1f)
+            maxLines = 1
         )
     }
 }
@@ -385,10 +542,10 @@ fun EmptyState() {
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Icon(
-            imageVector = Icons.Default.Checklist,
+            painter = painterResource(id = R.drawable.ic_taskicon),
             contentDescription = null,
-            modifier = Modifier.size(80.dp),
-            tint = Color.LightGray
+            modifier = Modifier.size(60.dp),
+            tint = Color.LightGray.copy(alpha = 0.7f)
         )
         Spacer(modifier = Modifier.height(16.dp))
         Text(text = "Belum ada task.", color = Color.Gray, fontSize = 16.sp)
