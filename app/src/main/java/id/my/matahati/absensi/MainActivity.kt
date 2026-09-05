@@ -23,7 +23,6 @@ import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.android.material.navigation.NavigationBarView
 import id.my.matahati.absensi.fragment.HomeFragment
 import id.my.matahati.absensi.fragment.JadwalFragment
-import id.my.matahati.absensi.fragment.TodoFragment
 import id.my.matahati.absensi.fragment.PasswordFragment
 import com.google.firebase.messaging.FirebaseMessaging
 import java.io.File
@@ -147,7 +146,6 @@ class MainActivity : AppCompatActivity() {
             when (item.itemId) {
                 R.id.nav_home -> replaceFragment(HomeFragment())
                 R.id.nav_jadwal -> replaceFragment(JadwalFragment())
-                R.id.nav_todo -> replaceFragment(TodoFragment())
                 R.id.nav_password -> replaceFragment(PasswordFragment())
             }
 

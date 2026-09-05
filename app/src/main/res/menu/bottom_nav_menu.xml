@@ -8,10 +8,7 @@
         android:id="@+id/nav_jadwal"
         android:icon="@drawable/ic_cal"
         android:title="Jadwal" />
-    <item
-        android:id="@+id/nav_todo"
-        android:icon="@drawable/ic_todo"
-        android:title="To Do" />
+
     <item
         android:id="@+id/nav_password"
         android:icon="@drawable/ic_pass"
