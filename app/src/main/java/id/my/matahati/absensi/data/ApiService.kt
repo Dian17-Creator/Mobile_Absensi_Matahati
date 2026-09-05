@@ -173,13 +173,13 @@ interface ApiService {
     suspend fun getMasterScheduleList(): Response<MasterScheduleListResponse>
 
     @FormUrlEncoded
-    @PUT("api/user-schedule/{id}")
+    @POST("api/user-schedule/{id}/update")
     suspend fun updateAdminUserSchedule(
         @Path("id") id: Int,
         @Field("nidsched") nidsched: Int
     ): Response<ApiMessageResponse>
 
-    @DELETE("api/user-schedule/{id}")
+    @POST("api/user-schedule/{id}/delete")
     suspend fun deleteAdminUserSchedule(
         @Path("id") id: Int
     ): Response<ApiMessageResponse>
