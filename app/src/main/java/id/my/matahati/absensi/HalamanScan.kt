@@ -626,6 +626,16 @@ fun HalamanScanUI(
 
                             if (isCaptainOrAbove) {
                                 UserActionItem(
+                                    icon = Icons.Default.Event,
+                                    label = "Kelola Jadwal",
+                                    iconColor = Color(0xFFE91E63)
+                                ) {
+                                    context.startActivity(Intent(context, HalamanKelolaJadwal::class.java))
+                                }
+                            }
+
+                            if (isCaptainOrAbove) {
+                                UserActionItem(
                                     iconPainter = painterResource(id = R.drawable.faces),
                                     label = "Face Acc",
                                     iconColor = Color(0xFFE91E63),
