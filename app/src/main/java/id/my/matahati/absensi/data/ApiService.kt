@@ -10,6 +10,7 @@ import retrofit2.http.POST
 import retrofit2.http.Field
 import retrofit2.http.Header
 import retrofit2.http.PUT
+import retrofit2.http.DELETE
 import retrofit2.http.Url
 
 interface ApiService {
@@ -157,5 +158,29 @@ interface ApiService {
     @POST("api/todo/store")
     suspend fun storeTodo(
         @Body request: TodoStoreRequest
+    ): Response<ApiMessageResponse>
+
+    @GET("api/schedule/list")
+    suspend fun getAdminScheduleList(
+        @Query("user_id") userId: Int? = null,
+        @Query("filter_user_id") filterUserId: Int? = null,
+        @Query("department_id") departmentId: Int? = null,
+        @Query("start_date") startDate: String? = null,
+        @Query("end_date") endDate: String? = null
+    ): Response<AdminScheduleListResponse>
+
+    @GET("api/master-schedule/list")
+    suspend fun getMasterScheduleList(): Response<MasterScheduleListResponse>
+
+    @FormUrlEncoded
+    @PUT("api/user-schedule/{id}")
+    suspend fun updateAdminUserSchedule(
+        @Path("id") id: Int,
+        @Field("nidsched") nidsched: Int
+    ): Response<ApiMessageResponse>
+
+    @DELETE("api/user-schedule/{id}")
+    suspend fun deleteAdminUserSchedule(
+        @Path("id") id: Int
     ): Response<ApiMessageResponse>
 }
