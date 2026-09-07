@@ -176,7 +176,8 @@ interface ApiService {
     @POST("api/user-schedule/{id}/update")
     suspend fun updateAdminUserSchedule(
         @Path("id") id: Int,
-        @Field("nidsched") nidsched: Int
+        @Field("nidsched") nidsched: Int,
+        @Field("user_id") userId: Int
     ): Response<ApiMessageResponse>
 
     @POST("api/user-schedule/{id}/delete")
