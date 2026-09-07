@@ -429,7 +429,7 @@ fun HalamanKelolaJadwalScreen() {
                                 if (schedId != null && masterId != null) {
                                     scope.launch {
                                         try {
-                                            val res = RetrofitClientLaravel.instance.updateAdminUserSchedule(schedId, masterId)
+                                            val res = RetrofitClientLaravel.instance.updateAdminUserSchedule(schedId, masterId, currentUserId)
                                             if (res.isSuccessful && res.body()?.success == true) {
                                                 Toast.makeText(context, "Shift berhasil diperbarui", Toast.LENGTH_SHORT).show()
                                                 showEditDialog = false
