@@ -208,35 +208,53 @@ fun HalamanKelolaJadwalScreen() {
                             Text("Departemen:", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
                         }
 
-                        Box {
-                            OutlinedButton(
-                                onClick = { expandedDeptDropdown = true },
-                                colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFB63352)),
-                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
-                            ) {
-                                val selectedName = departmentList.find { it.nid == selectedDeptId }?.cname ?: "Semua Departemen"
-                                Text(selectedName, fontSize = 13.sp)
-                            }
-
-                            DropdownMenu(
+                        Box(
+                            modifier = Modifier.width(200.dp)
+                        ) {
+                            val selectedName = departmentList.find { it.nid == selectedDeptId }?.cname ?: "Semua Departemen"
+                            ExposedDropdownMenuBox(
                                 expanded = expandedDeptDropdown,
-                                onDismissRequest = { expandedDeptDropdown = false }
+                                onExpandedChange = { expandedDeptDropdown = !expandedDeptDropdown }
                             ) {
-                                DropdownMenuItem(
-                                    text = { Text("Semua Departemen") },
-                                    onClick = {
-                                        selectedDeptId = null
-                                        expandedDeptDropdown = false
-                                    }
+                                OutlinedTextField(
+                                    value = selectedName,
+                                    onValueChange = {},
+                                    readOnly = true,
+                                    modifier = Modifier
+                                        .menuAnchor()
+                                        .fillMaxWidth(),
+                                    textStyle = androidx.compose.ui.text.TextStyle(fontSize = 13.sp),
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedBorderColor = Color(0xFFB63352),
+                                        focusedLabelColor = Color(0xFFB63352),
+                                        unfocusedBorderColor = Color.LightGray
+                                    ),
+                                    trailingIcon = {
+                                        ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedDeptDropdown)
+                                    },
+                                    singleLine = true
                                 )
-                                departmentList.forEach { dept ->
+
+                                ExposedDropdownMenu(
+                                    expanded = expandedDeptDropdown,
+                                    onDismissRequest = { expandedDeptDropdown = false }
+                                ) {
                                     DropdownMenuItem(
-                                        text = { Text(dept.cname) },
+                                        text = { Text("Semua Departemen") },
                                         onClick = {
-                                            selectedDeptId = dept.nid
+                                            selectedDeptId = null
                                             expandedDeptDropdown = false
                                         }
                                     )
+                                    departmentList.forEach { dept ->
+                                        DropdownMenuItem(
+                                            text = { Text(dept.cname) },
+                                            onClick = {
+                                                selectedDeptId = dept.nid
+                                                expandedDeptDropdown = false
+                                            }
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -279,7 +297,7 @@ fun HalamanKelolaJadwalScreen() {
                             ) {
                                 Column(
                                     modifier = Modifier.padding(16.dp),
-                                    verticalArrangement = Arrangement.spacedBy(3.dp)
+                                    verticalArrangement = Arrangement.spacedBy(4.dp)
                                 ) {
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
@@ -293,13 +311,13 @@ fun HalamanKelolaJadwalScreen() {
                                             color = Color(0xFFB63352)
                                         )
 
-                                        // Shift Badge
+                                        // Department Badge
                                         Surface(
                                             color = Color(0xFFFFF0F3),
                                             shape = RoundedCornerShape(8.dp)
                                         ) {
                                             Text(
-                                                text = item.cschedname ?: "Libur",
+                                                text = item.user?.department?.cname ?: "-",
                                                 color = Color(0xFFB63352),
                                                 fontWeight = FontWeight.Bold,
                                                 fontSize = 12.sp,
@@ -311,17 +329,12 @@ fun HalamanKelolaJadwalScreen() {
                                     Spacer(modifier = Modifier.height(4.dp))
 
                                     Text(
-                                        text = "🏢 ${item.user?.department?.cname ?: "-"}",
+                                        text = "Nama Shift : ${item.cschedname ?: "-"}",
                                         fontSize = 13.sp,
                                         color = Color.DarkGray
                                     )
                                     Text(
-                                        text = "📅 ${item.dwork}",
-                                        fontSize = 13.sp,
-                                        color = Color.DarkGray
-                                    )
-                                    Text(
-                                        text = "⏰ Jam: ${item.dstart ?: "-"} - ${item.dend ?: "-"}" +
+                                        text = "Jam : ${item.dstart ?: "-"} - ${item.dend ?: "-"}" +
                                                 if (!item.dstart2.isNullOrEmpty()) " | ${item.dstart2} - ${item.dend2}" else "",
                                         fontSize = 13.sp,
                                         fontWeight = FontWeight.Medium,
