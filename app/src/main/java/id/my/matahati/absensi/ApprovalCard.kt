@@ -16,6 +16,15 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.layout.ContentScale
 import android.util.Log
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.draw.clip
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 
 @Composable
 fun ApprovalCard(
@@ -24,6 +33,7 @@ fun ApprovalCard(
     onReject: () -> Unit
 ) {
     val primaryColor = Color(0xFFB63352)
+    var showImageDialog by remember { mutableStateOf(false) }
 
     Card(
         modifier = Modifier
@@ -46,28 +56,62 @@ fun ApprovalCard(
                 modifier = Modifier.weight(1f)
             ) {
 
+                val dateParts = item.tanggal.split(" ")
+                val datePart = dateParts.getOrNull(0) ?: item.tanggal
+                val timePart = dateParts.getOrNull(1)?.let { if (it.length >= 5) it.substring(0, 5) else it } ?: ""
+
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.Bottom // 🔥 ini kunci
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
 
                     Text(
                         text = item.user_name,
                         fontWeight = FontWeight.Bold,
-                        fontSize = 16.sp
+                        fontSize = 15.sp,
+                        color = Color.Black
                     )
 
-                    Text(
-                        text = " | ",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 16.sp,
-                        color = Color.Gray,
-                    )
+                    Spacer(modifier = Modifier.width(8.dp))
 
+                    Surface(
+                        color = Color(0xFFF7F7F7),
+                        shape = RoundedCornerShape(6.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Text(
+                                text = datePart,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = Color.DarkGray
+                            )
+                            if (timePart.isNotBlank()) {
+                                Text(
+                                    text = "•",
+                                    fontSize = 10.sp,
+                                    color = Color.Gray
+                                )
+                                Text(
+                                    text = timePart,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFFB63352)
+                                )
+                            }
+                        }
+                    }
+                }
+
+                if (!item.tempat.isNullOrBlank()) {
+                    Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = item.tanggal,
+                        text = "Lokasi : ${item.tempat}",
                         fontSize = 12.sp,
-                        modifier = Modifier.padding(bottom = 2.dp) // 🔥 fine tuning
+                        color = Color.Gray
                     )
                 }
 
@@ -124,8 +168,14 @@ fun ApprovalCard(
             Box(
                 modifier = Modifier
                     .size(100.dp)
+                    .clip(RoundedCornerShape(12.dp))
             ) {
                 Surface(
+                    onClick = {
+                        if (item.cphoto_url != null) {
+                            showImageDialog = true
+                        }
+                    },
                     modifier = Modifier.fillMaxSize(),
                     color = Color.LightGray,
                     shape = MaterialTheme.shapes.medium
@@ -164,5 +214,87 @@ fun ApprovalCard(
                 }
             }
         }
+    }
+
+    if (showImageDialog && item.cphoto_url != null) {
+        Dialog(onDismissRequest = { showImageDialog = false }) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Card(
+                    shape = RoundedCornerShape(20.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    elevation = CardDefaults.cardElevation(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Box {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = "Foto Absen",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 16.sp
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            AsyncImage(
+                                model = ImageRequest.Builder(LocalContext.current)
+                                    .data(item.cphoto_url)
+                                    .crossfade(true)
+                                    .build(),
+                                contentDescription = "Zoomed Photo",
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .wrapContentHeight()
+                                    .clip(RoundedCornerShape(12.dp)),
+                                contentScale = ContentScale.Fit
+                            )
+                        }
+
+                        IconButton(
+                            onClick = { showImageDialog = false },
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .padding(4.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Close",
+                                tint = Color.Gray
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Preview(showBackground = true, backgroundColor = 0xFFF5F5F5)
+@Composable
+fun ApprovalCardPreview() {
+    val sampleItem = ApprovalItem(
+        nid = 1,
+        user_name = "Ahmad Fatih",
+        department = "IT Engineering",
+        tanggal = "2026-09-08 08:30:00",
+        tempat = "Kantor Pusat Jakarta",
+        creason = "Sakit Demam, mohon izin istirahat.",
+        cphoto_url = null
+    )
+    Surface(modifier = Modifier.padding(16.dp)) {
+        ApprovalCard(
+            item = sampleItem,
+            onApprove = {},
+            onReject = {}
+        )
     }
 }

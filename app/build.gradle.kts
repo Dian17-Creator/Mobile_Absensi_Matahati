@@ -96,6 +96,9 @@ dependencies {
     // Compose BOM
     implementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(platform(libs.androidx.compose.bom))
+    implementation("androidx.compose.ui:ui")
+    implementation("androidx.compose.ui:ui-tooling-preview")
+    debugImplementation("androidx.compose.ui:ui-tooling")
 
     // Dengan yang lebih kecil:
     implementation("androidx.compose.material:material-icons-core")
