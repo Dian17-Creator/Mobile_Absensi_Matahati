@@ -14,8 +14,8 @@ android {
         applicationId = "id.my.matahati.absensi"
         minSdk = 24
         targetSdk = 36
-        versionCode = 44
-        versionName = "2.0.2"
+        versionCode = 45
+        versionName = "2.0.3"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
